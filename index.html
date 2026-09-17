@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transact Bridge - Enterprise Transaction Monitoring Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- SheetJS & PapaParse for In-Browser Client-Side Excel and CSV Processing -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    
+    <!-- Top Header -->
+    <header class="dashboard-header">
+      <div class="brand-section">
+        <div class="brand-logo-card">
+          <img src="data:image/png;base64,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" alt="Transact Bridge Logo">
+        </div>
+        <div class="brand-titles">
+          <div class="brand-title-row">
+            <h1 class="app-heading">Transaction Monitoring</h1>
+            <span class="badge-pill badge-live" id="gatewayLiveBadge">
+              <span class="pulse-dot"></span>
+              Live Gateway
+            </span>
+          </div>
+          <span class="app-subheading">Real-Time Payment Health, Volume &amp; Hourly Merchant Ingestion</span>
+        </div>
+      </div>
+
+      <!-- Header Filter Controls -->
+      <div class="header-actions">
+        <!-- Manual Hourly Data Upload Button -->
+        <button id="openUploadBtn" class="btn-action btn-upload" title="Upload Hourly Excel or CSV dataset">
+          <span>📤</span> Upload Hourly Data
+        </button>
+
+        <!-- Batch Selector -->
+        <div class="control-group" id="batchSelectorGroup">
+          <select id="batchSelect" class="select-custom" aria-label="Hourly Batch Selector">
+            <option value="all">Cumulative (All Uploaded)</option>
+            <option value="demo" selected>Live Demo Traffic</option>
+          </select>
+        </div>
+
+        <!-- Time Range Selector -->
+        <div class="control-group">
+          <select id="timeRangeSelect" class="select-custom" aria-label="Time Range">
+            <option value="15m">Real-Time (Last 15m)</option>
+            <option value="1h">Last 1 Hour</option>
+            <option value="24h" selected>Today (24h)</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+          </select>
+        </div>
+
+        <!-- Currency Selector -->
+        <div class="control-group">
+          <select id="currencySelect" class="select-custom" aria-label="Currency">
+            <option value="INR" selected>INR (₹)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+          </select>
+        </div>
+
+        <!-- Live Traffic Simulator Toggle -->
+        <button id="toggleSimBtn" class="btn-action btn-sim-active" title="Toggle Real-Time Stream Simulation">
+          <span>●</span> <span id="simStatusText">Streaming Active</span>
+        </button>
+
+        <!-- CSV Export Button -->
+        <button id="exportCsvBtn" class="btn-action btn-primary" title="Export Merchant Report as CSV">
+          <span>📥</span> Export Report
+        </button>
+
+        <!-- Theme Switcher -->
+        <button id="themeToggleBtn" class="btn-action" title="Toggle Dark/Light Theme">
+          <span id="themeIcon">☀️ Light</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Data Source Status Banner -->
+    <div class="data-status-banner" id="dataStatusBanner">
+      <div class="data-status-info">
+        <span class="data-status-tag tag-simulated" id="dataModeTag">Demo Mode</span>
+        <span id="dataStatusMessage">Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest your Excel (.xlsx) or CSV reports.</span>
+      </div>
+      <div class="data-status-actions">
+        <button class="btn-small" id="downloadSampleBtn" title="Download Excel/CSV template with your exact schema">
+          📄 Download Schema Template
+        </button>
+        <button class="btn-small" id="resetDataBtn" style="display: none;">
+          🔄 Reset to Demo
+        </button>
+      </div>
+    </div>
+
+    <!-- Overall KPI Metrics Section -->
+    <section class="kpi-section">
+      <div class="section-header-row">
+        <h2 class="section-title">
+          <span class="section-title-icon">⚡</span> Overall Transaction Metrics
+        </h2>
+        <span id="lastUpdatedTime" style="font-size: 0.78rem; color: var(--text-dim);">Updated: Just now</span>
+      </div>
+
+      <div class="kpi-grid">
+        <!-- 1. Total Transaction Count -->
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Total Transactions</span>
+            <div class="kpi-icon-wrap">📊</div>
+          </div>
+          <div class="kpi-value" id="kpiTotalCount">0</div>
+          <div class="kpi-footer">
+            <span>Processed Gateway Volume</span>
+            <span class="kpi-badge up" id="kpiTotalBadge">Total Txns</span>
+          </div>
+        </div>
+
+        <!-- 2. Success Transaction Count -->
+        <div class="kpi-card success-theme">
+          <div class="kpi-top">
+            <span class="kpi-label">Success Count</span>
+            <div class="kpi-icon-wrap">✓</div>
+          </div>
+          <div class="kpi-value text-success" id="kpiSuccessCount">0</div>
+          <div class="kpi-footer">
+            <span id="kpiSuccessShare">0% of total</span>
+            <span class="kpi-badge up">Settled</span>
+          </div>
+        </div>
+
+        <!-- 3. Failed Transaction Count -->
+        <div class="kpi-card failed-theme">
+          <div class="kpi-top">
+            <span class="kpi-label">Failed Count</span>
+            <div class="kpi-icon-wrap">✕</div>
+          </div>
+          <div class="kpi-value text-failed" id="kpiFailedCount">0</div>
+          <div class="kpi-footer">
+            <span id="kpiFailedShare">0% of total</span>
+            <span class="kpi-badge down">Declined / Errored</span>
+          </div>
+        </div>
+
+        <!-- 4. Overall Success Rate % -->
+        <div class="kpi-card rate-theme">
+          <div class="kpi-top">
+            <span class="kpi-label">Overall Success Rate</span>
+            <div class="kpi-icon-wrap">🎯</div>
+          </div>
+          <div class="kpi-value" id="kpiSuccessRate">0.00%</div>
+          <div class="rate-progress-bar-bg">
+            <div class="rate-progress-bar-fill" id="kpiRateBar" style="width: 0%;"></div>
+          </div>
+          <div class="kpi-footer" style="margin-top: 0.6rem;">
+            <span>Target SLA: &gt;95.00%</span>
+            <span class="kpi-badge neutral" id="kpiSlaBadge">Optimal</span>
+          </div>
+        </div>
+
+        <!-- 5. Total Transaction Amount -->
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Total Amount</span>
+            <div class="kpi-icon-wrap">💳</div>
+          </div>
+          <div class="kpi-value" id="kpiTotalAmount">₹0.00</div>
+          <div class="kpi-footer">
+            <span>Gross Processed Volume</span>
+            <span class="kpi-badge up">Volume</span>
+          </div>
+        </div>
+
+        <!-- 6. Success Amount -->
+        <div class="kpi-card success-theme">
+          <div class="kpi-top">
+            <span class="kpi-label">Success Amount</span>
+            <div class="kpi-icon-wrap">💰</div>
+          </div>
+          <div class="kpi-value text-success" id="kpiSuccessAmount">₹0.00</div>
+          <div class="kpi-footer">
+            <span id="kpiSuccessAmtShare">0% collected</span>
+            <span class="kpi-badge up">Captured</span>
+          </div>
+        </div>
+
+        <!-- 7. Failed Amount -->
+        <div class="kpi-card failed-theme">
+          <div class="kpi-top">
+            <span class="kpi-label">Failed Amount</span>
+            <div class="kpi-icon-wrap">⚠️</div>
+          </div>
+          <div class="kpi-value text-failed" id="kpiFailedAmount">₹0.00</div>
+          <div class="kpi-footer">
+            <span id="kpiFailedAmtShare">0% uncollected</span>
+            <span class="kpi-badge down">Drop-off</span>
+          </div>
+        </div>
+
+        <!-- 8. Average Transaction Value -->
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Avg Transaction Value</span>
+            <div class="kpi-icon-wrap">📈</div>
+          </div>
+          <div class="kpi-value" id="kpiAvgTicket">₹0.00</div>
+          <div class="kpi-footer">
+            <span id="kpiMerchCount">Merchants Active</span>
+            <span class="kpi-badge neutral">Ticket Size</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Charts Grid -->
+    <section class="charts-section">
+      <div class="charts-grid">
+        <!-- Main Chart: Transaction Volume & Success Rate Trend -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <span>📈</span> Transaction Volume &amp; Success Rate Timeline
+            </h3>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <span class="legend-dot" style="background: #10b981;"></span>
+                <span>Success Vol</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: #f43f5e;"></span>
+                <span>Failed Vol</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: #007aff; border-radius: 50%;"></span>
+                <span>Success Rate %</span>
+              </div>
+            </div>
+          </div>
+          <div class="canvas-container">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Donut Chart: Failure Diagnostics Breakdown -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <span>🔍</span> Failure Reasons Distribution (failedInfo)
+            </h3>
+          </div>
+          <div class="canvas-container">
+            <canvas id="failureChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Charts Row -->
+      <div class="secondary-charts-grid">
+        <!-- Payment Methods Breakdown -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <span>💳</span> Volume &amp; Success Rate by Payment Method
+            </h3>
+          </div>
+          <div class="canvas-container" style="min-height: 220px;">
+            <canvas id="paymentMethodChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Top Merchants By Processing Volume -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <span>🏆</span> Top Merchants by Gross Volume
+            </h3>
+          </div>
+          <div class="canvas-container" style="min-height: 220px;">
+            <canvas id="merchantRankChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Merchant-Wise Monitoring Section -->
+    <section class="merchant-section">
+      <div class="table-toolbar">
+        <div class="table-title-area">
+          <h3 class="table-title">🏢 Merchant-Wise Performance &amp; Settlement</h3>
+          <span class="table-count-badge" id="merchantTotalBadge">12 Merchants</span>
+        </div>
+
+        <div class="table-filters">
+          <!-- Search Input -->
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="merchantSearch" class="search-input" placeholder="Search merchantId or category...">
+          </div>
+
+          <!-- Status Filter Pills -->
+          <div class="filter-pills">
+            <button class="filter-pill-btn active" data-filter="all">All</button>
+            <button class="filter-pill-btn" data-filter="healthy">&gt;95% Healthy</button>
+            <button class="filter-pill-btn" data-filter="warning">90-95% Watch</button>
+            <button class="filter-pill-btn" data-filter="alert">&lt;90% Degraded</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="table-wrapper">
+        <table class="data-table" id="merchantTable">
+          <thead>
+            <tr>
+              <th data-sort="name">Merchant (merchantId)</th>
+              <th data-sort="totalCount">Total Txns</th>
+              <th data-sort="successCount">Success Count</th>
+              <th data-sort="failedCount">Failed Count</th>
+              <th data-sort="successRate" class="sorted-desc">Success Rate %</th>
+              <th data-sort="totalAmount">Total Amount</th>
+              <th data-sort="successAmount">Success Amount</th>
+              <th data-sort="failedAmount">Failed Amount</th>
+              <th data-sort="avgLatency">Latency</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="merchantTableBody">
+            <!-- Populated dynamically by app.js -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Real-Time Transaction Stream -->
+    <section class="stream-grid">
+      <div class="live-feed-card">
+        <div class="chart-header">
+          <h3 class="chart-title">
+            <span class="pulse-dot"></span>
+            <span>Transaction Stream &amp; Ingested Records</span>
+          </h3>
+          <span style="font-size: 0.78rem; color: var(--text-dim);" id="feedModeLabel">Displaying recent payment pipeline</span>
+        </div>
+        <div class="feed-list" id="feedList">
+          <!-- Populated by app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Dedicated "Created By" Section with Uploaded Transact Bridge Logo -->
+    <footer class="footer-created-by">
+      <div class="footer-content-row">
+        <div class="footer-brand-box">
+          <div class="footer-logo-badge">
+            <img src="data:image/png;base64,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" alt="Created by Transact Bridge">
+          </div>
+          <div class="footer-brand-text">
+            <div class="created-by-tag">Platform Architect &amp; Gateway Provider</div>
+            <div class="footer-brand-title">Created by Transact Bridge</div>
+            <div class="footer-brand-desc">
+              High-availability payment orchestration and intelligent transaction monitoring platform. Engineered for 99.999% reliability, sub-50ms latency routing, automated decline recovery, and hourly settlement reconciliation.
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-badges">
+          <div class="footer-pill-spec">
+            <span class="spec-label">Brand Palette</span>
+            <div class="color-swatch-row">
+              <span class="swatch-box" style="background: #001626;" title="Midnight Navy: #001626"></span>
+              <span class="swatch-box" style="background: #007aff;" title="Transact Blue: #007aff"></span>
+              <span class="swatch-box" style="background: #10b981;" title="Success Green: #10b981"></span>
+              <span class="swatch-box" style="background: #f43f5e;" title="Failure Coral: #f43f5e"></span>
+            </div>
+            <span class="spec-value" style="font-size: 0.72rem; margin-top: 3px;">#001626 / #007aff</span>
+          </div>
+
+          <div class="footer-pill-spec">
+            <span class="spec-label">Gateway Compliance</span>
+            <span class="spec-value">PCI-DSS Level 1</span>
+          </div>
+
+          <div class="footer-pill-spec">
+            <span class="spec-label">Cloud Deployment</span>
+            <span class="spec-value">Vercel Edge Ready</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Upload Hourly Data Modal -->
+  <div class="modal-overlay" id="uploadModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>📤</span> Upload Hourly Transaction Data
+        </h3>
+        <button class="modal-close-btn" id="uploadModalCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="modal-tabs">
+          <button class="modal-tab-btn active" data-tab="tab-file">📁 Upload Excel / CSV</button>
+          <button class="modal-tab-btn" data-tab="tab-paste">📋 Paste Copied Cells</button>
+          <button class="modal-tab-btn" data-tab="tab-batches">🗂️ Manage Hourly Batches</button>
+        </div>
+
+        <!-- Tab 1: File Upload -->
+        <div id="tab-file" class="tab-content active">
+          <div class="dropzone-container" id="dropzone">
+            <input type="file" id="fileInput" class="file-input-hidden" accept=".xlsx,.xls,.csv,.tsv">
+            <div class="dropzone-icon">📥</div>
+            <div class="dropzone-title">Click to select or drag &amp; drop file here</div>
+            <div class="dropzone-subtitle">Supports Excel (.xlsx, .xls) and Delimited (.csv, .tsv) files</div>
+            <div id="selectedFileInfo" style="margin-top: 10px; font-weight: 600; color: var(--accent-blue);"></div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Paste Copied Excel Cells -->
+        <div id="tab-paste" class="tab-content" style="display: none;">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
+            Copy cells directly from Microsoft Excel or Google Sheets (with header row) and paste below:
+          </p>
+          <textarea id="pasteTextarea" class="paste-textarea" placeholder="Paste tab-separated or comma-separated rows here (starting with _id, merchantId, customerId, status, etc.)..."></textarea>
+        </div>
+
+        <!-- Tab 3: Batch Management -->
+        <div id="tab-batches" class="tab-content" style="display: none;">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
+            Hourly batches currently stored in browser IndexedDB:
+          </p>
+          <div style="max-height: 200px; overflow-y: auto;">
+            <table class="batch-list-table" id="batchListTable">
+              <thead>
+                <tr>
+                  <th>Batch Name</th>
+                  <th>Records</th>
+                  <th>Success %</th>
+                  <th>Volume</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="batchListTbody">
+                <!-- Filled dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Ingestion Settings Form -->
+        <div class="upload-options-row">
+          <div style="flex: 1; min-width: 200px;">
+            <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Batch Label</label>
+            <input type="text" id="batchLabelInput" class="input-field" placeholder="e.g. Hour 11:00 - 12:00 | 17-Sep">
+          </div>
+          <div style="min-width: 180px;">
+            <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Ingestion Mode</label>
+            <select id="ingestModeSelect" class="input-field" style="height: 38px;">
+              <option value="append" selected>Append to today's data</option>
+              <option value="replace">Replace all current data</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+          <button class="btn-action" id="downloadSampleInModalBtn">
+            📄 Get Schema Template
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-action" id="cancelUploadBtn">Cancel</button>
+            <button class="btn-action btn-primary" id="processUploadBtn">
+              Process &amp; Ingest Batch
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Merchant Drill-Down Modal -->
+  <div class="modal-overlay" id="merchantModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalMerchantTitle">
+          <span>🏢</span> Merchant Deep-Dive
+        </h3>
+        <button class="modal-close-btn" id="modalCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body" id="modalMerchantBody">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip Element for Canvas Charts -->
+  <div id="chart-tooltip"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

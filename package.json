@@ -1,0 +1,19 @@
+{
+  "name": "transact-bridge-monitoring-dashboard",
+  "version": "1.0.0",
+  "description": "Transact Bridge Enterprise Transaction Monitoring Dashboard",
+  "scripts": {
+    "build": "mkdir -p public && cp -r index.html styles.css app.js assets sample_hourly_transactions.csv public/ 2>/dev/null || true",
+    "start": "npx serve public",
+    "dev": "npx serve public"
+  },
+  "keywords": [
+    "transact-bridge",
+    "transaction-monitoring",
+    "fintech",
+    "payment-gateway",
+    "vercel"
+  ],
+  "author": "Transact Bridge",
+  "license": "MIT"
+}
