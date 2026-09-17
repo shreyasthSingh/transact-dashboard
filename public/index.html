@@ -288,6 +288,89 @@
       </div>
     </section>
 
+    
+    <!-- Payment Routing & Ecosystem Analysis Reports (PSP, UPI App, UPI Handle) -->
+    <section class="analysis-section">
+      <div class="analysis-card">
+        <div class="analysis-header-row">
+          <div>
+            <h3 class="analysis-main-title">
+              <span>📊</span> Payment Routing &amp; Ecosystem Analysis Reports
+            </h3>
+            <p class="analysis-subtitle">
+              Granular breakdown of success vs. failed transactions across <strong>Gateways (PSP)</strong>, <strong>UPI Apps</strong>, and <strong>UPI Handles (@vpa)</strong>.
+            </p>
+          </div>
+          <button id="exportAnalysisCsvBtn" class="btn-action btn-primary" title="Export Current Analysis Report as CSV">
+            <span>📥</span> Export Analysis CSV
+          </button>
+        </div>
+
+        <!-- 3 Dimension Tabs -->
+        <div class="analysis-tabs-nav">
+          <button class="analysis-nav-btn active" data-atab="psp">
+            <span>🏛️</span> PSP / Gateway Wise <code>paymentDetails.pgProvider</code>
+          </button>
+          <button class="analysis-nav-btn" data-atab="app">
+            <span>📱</span> UPI App Wise <code>paymentDetails.upiAppName</code>
+          </button>
+          <button class="analysis-nav-btn" data-atab="handle">
+            <span>⚡</span> UPI Handle Wise <code>@paytm, @okaxis...</code>
+          </button>
+        </div>
+
+        <!-- Toolbar for Active Analysis Tab -->
+        <div class="table-toolbar">
+          <div class="table-title-area">
+            <h4 class="table-title" id="analysisTabTitle">Payment Service Providers (PSPs)</h4>
+            <span class="table-count-badge" id="analysisCountBadge">7 Providers</span>
+          </div>
+
+          <div class="table-filters">
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="analysisSearchInput" class="search-input" placeholder="Search provider, app, or @handle...">
+            </div>
+
+            <div class="filter-pills">
+              <button class="analysis-filter-pill-btn active" data-af="all">All</button>
+              <button class="analysis-filter-pill-btn" data-af="healthy">&gt;95% Optimal</button>
+              <button class="analysis-filter-pill-btn" data-af="warning">90-95% Watch</button>
+              <button class="analysis-filter-pill-btn" data-af="alert">&lt;90% Degraded</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analysis Performance Bar Chart -->
+        <div class="canvas-container" style="min-height: 200px; max-height: 220px; margin-bottom: 1.25rem;">
+          <canvas id="analysisChart"></canvas>
+        </div>
+
+        <!-- Analysis Table -->
+        <div class="table-wrapper">
+          <table class="data-table" id="analysisTable">
+            <thead>
+              <tr>
+                <th data-asort="name" id="analysisColEntityName">Provider / Entity</th>
+                <th data-asort="totalCount">Total Txns</th>
+                <th data-asort="successCount">Success Count</th>
+                <th data-asort="failedCount">Failed Count</th>
+                <th data-asort="successRate" class="sorted-desc">Success Rate %</th>
+                <th data-asort="totalAmount">Total Amount</th>
+                <th data-asort="successAmount">Success Amount</th>
+                <th data-asort="failedAmount">Failed Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="analysisTableBody">
+              <!-- Populated dynamically by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
     <!-- Merchant-Wise Monitoring Section -->
     <section class="merchant-section">
       <div class="table-toolbar">

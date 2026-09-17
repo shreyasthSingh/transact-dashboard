@@ -2,10 +2,8 @@
 (function() {
   'use strict';
 
-  // Sample CSV Template (Exact 83-column payment gateway schema)
-  const SAMPLE_CSV_RAW = "_id\tmerchantId\tcustomerId\tstatus\ttype\ttxSubStatus\tcode\tcurrId\tquoteCurrCode\tisSettled\treferenceId\tbillingSessionId\tpaymentDetails.payMethod\tpaymentDetails.pgCode\tpaymentDetails.pgProvider\tpaymentDetails.payMethodIdentifier\tpaymentDetails.payMethodBeneficiary\tpaymentDetails.upiChannel\tpaymentDetails.paymentId\tpaymentDetails.BankName\tpaymentDetails.CardName\tpaymentDetails.upiAppName\tpaymentDetails.sourceDevice\tpaymentDetails.sourceOS\tpaymentDetails.sourcePlatform\tpaymentDetails.payMethodGroup\tmeta.param1\tmeta.param2\tmeta.param3\tremark\ttxSubType\tgstInclusive\tisMandate\tisBanned\tcreatedDate\tupdatedDate\tfailedInfo.failedState\tfailedInfo.responseCode\treferenceNo\tisDirectPacbMerchant\tquoteAmt\tquoteAmount\ttotalTax\tamount\ttotalAmount\ttxFee\ttxQuoteFee\ttxCost\ttxCostQuoteFee\trrFee\trrQuoteFee\tsettleAmount\tsettleQuoteAmount\tfxQuote\tmandateRegFee\tmandateRegQuoteFee\tmandateExcQuoteFee\tmandateExecFee\tmandateNotifyQuoteFee\tmandateNotifyFee\tmidMandateRegFee\tmidMandateExecFee\tsubscriptionId\tsuccessDate\tfailedDate\tsettleId\trefund_txnId\trefund_initiatedDate\trefund_successDate\trefund_status\tchargeback_txnId\tchargeback_initiatedDate\tchargeback_successDate\tchargeback_status\tdepositSuccessDate\tbanDate\temail\tcustomerName\treturnUrl\tpendingUrl\tsuccessUrl\tfailedUrl\tlegalEntityCode\ntx_1001\tMERCH_AMAZON\tCUST_9912\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_AMZ_881\tBILLSESS_01\tUPI\tPG_RZP\tRAZORPAY\tamzn@upi\tTransact Bridge Settler\tPHONEPE\tPAY_RZP_99121\tHDFC Bank\t\tPhonePe\tMobile\tiOS\tAPP\tUPI\torder_12\tref_9\t\tOrder settled successfully\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 10:04:12\t2026-09-17 10:04:15\t\t\tRN_AMZ_01\ttrue\t1450.00\t1450.00\t261.00\t1450.00\t1450.00\t14.50\t14.50\t8.20\t8.20\t0.00\t0.00\t1435.50\t1435.50\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 10:04:15\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 10:04:15\t\trahul.sharma@example.com\tRahul Sharma\thttps://amazon.in/ret\thttps://amazon.in/pend\thttps://amazon.in/succ\thttps://amazon.in/fail\tIN_CORP_01\ntx_1002\tMERCH_AMAZON\tCUST_4421\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_AMZ_882\tBILLSESS_02\tCREDIT_CARD\tPG_PAYU\tPAYU\t411122******1234\tTransact Bridge Settler\t\tPAY_PYU_44122\tICICI Bank\tVisa Signature\t\tDesktop\tmacOS\tWEB\tCARD\torder_13\t\t\tOrder completed\tSTANDARD\ttrue\tfalse\tfalse\t2026-09-17 10:12:30\t2026-09-17 10:12:35\t\t\tRN_AMZ_02\ttrue\t3890.00\t3890.00\t700.20\t3890.00\t3890.00\t58.35\t58.35\t32.10\t32.10\t0.00\t0.00\t3831.65\t3831.65\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 10:12:35\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 10:12:35\t\tpriya.k@example.com\tPriya Kapoor\thttps://amazon.in/ret\thttps://amazon.in/pend\thttps://amazon.in/succ\thttps://amazon.in/fail\tIN_CORP_01\ntx_1003\tMERCH_SWIGGY\tCUST_7811\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_SWG_101\tBILLSESS_03\tUPI\tPG_CASHFREE\tCASHFREE\tswiggy@okaxis\tTransact Bridge Settler\tGPAY\tPAY_CF_7712\tAxis Bank\t\tGoogle Pay\tMobile\tAndroid\tAPP\tUPI\torder_sw_99\t\t\tFood order paid\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 10:18:45\t2026-09-17 10:18:48\t\t\tRN_SWG_01\ttrue\t450.00\t450.00\t81.00\t450.00\t450.00\t4.50\t4.50\t2.10\t2.10\t0.00\t0.00\t445.50\t445.50\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 10:18:48\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 10:18:48\t\tarun.v@example.com\tArun Verma\thttps://swiggy.com/ret\thttps://swiggy.com/pend\thttps://swiggy.com/succ\thttps://swiggy.com/fail\tIN_CORP_01\ntx_1004\tMERCH_SWIGGY\tCUST_9021\tFAILED\tPAYMENT\tDROPPED\tE104\tINR\tINR\tfalse\tREF_SWG_102\tBILLSESS_04\tUPI\tPG_CASHFREE\tCASHFREE\tswiggy@oksbi\tTransact Bridge Settler\tPAYTM\tPAY_CF_7719\tState Bank of India\t\tPaytm UPI\tMobile\tAndroid\tAPP\tUPI\torder_sw_100\t\t\tBank gateway connection timeout\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 10:22:10\t2026-09-17 10:22:45\tBANK_DOWNTIME\tISSUER_TIMEOUT\tRN_SWG_02\ttrue\t620.00\t620.00\t111.60\t620.00\t620.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t2026-09-17 10:22:45\t\t\t\t\t\t\t\t\t\t\t\tsneha.r@example.com\tSneha Roy\thttps://swiggy.com/ret\thttps://swiggy.com/pend\thttps://swiggy.com/succ\thttps://swiggy.com/fail\tIN_CORP_01\ntx_1005\tMERCH_UBER\tCUST_3190\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_UBR_551\tBILLSESS_05\tDEBIT_CARD\tPG_RZP\tRAZORPAY\t524188******9012\tTransact Bridge Settler\t\tPAY_RZP_33190\tKotak Mahindra Bank\tMastercard Platinum\t\tMobile\tiOS\tAPP\tCARD\ttrip_90\t\t\tAirport ride fare\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 10:29:15\t2026-09-17 10:29:19\t\t\tRN_UBR_01\ttrue\t840.00\t840.00\t151.20\t840.00\t840.00\t8.40\t8.40\t4.20\t4.20\t0.00\t0.00\t831.60\t831.60\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 10:29:19\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 10:29:19\t\tmanish.g@example.com\tManish Gupta\thttps://uber.com/ret\thttps://uber.com/pend\thttps://uber.com/succ\thttps://uber.com/fail\tIN_CORP_01\ntx_1006\tMERCH_UBER\tCUST_5521\tFAILED\tPAYMENT\tDECLINED\tE201\tINR\tINR\tfalse\tREF_UBR_552\tBILLSESS_06\tCREDIT_CARD\tPG_RZP\tRAZORPAY\t431288******4419\tTransact Bridge Settler\t\tPAY_RZP_33199\tHDFC Bank\tVisa Regalia\t\tMobile\tAndroid\tAPP\tCARD\ttrip_91\t\t\tCard issuer declined: Insufficient Balance\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 10:34:02\t2026-09-17 10:34:08\tINSUFFICIENT_FUNDS\tBALANCE_EXCEEDED\tRN_UBR_02\ttrue\t1250.00\t1250.00\t225.00\t1250.00\t1250.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t2026-09-17 10:34:08\t\t\t\t\t\t\t\t\t\t\t\tvikas.j@example.com\tVikas Jain\thttps://uber.com/ret\thttps://uber.com/pend\thttps://uber.com/succ\thttps://uber.com/fail\tIN_CORP_01\ntx_1007\tMERCH_FLIPKART\tCUST_6619\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_FK_889\tBILLSESS_07\tNET_BANKING\tPG_BILLDESK\tBILLDESK\tNB_HDFC\tTransact Bridge Settler\t\tPAY_BD_6612\tHDFC NetBanking\t\t\tDesktop\tWindows\tWEB\tNET_BANKING\tord_fk_120\t\t\tLaptop accessories purchased\tSTANDARD\ttrue\tfalse\tfalse\t2026-09-17 10:41:20\t2026-09-17 10:41:50\t\t\tRN_FK_01\ttrue\t5400.00\t5400.00\t972.00\t5400.00\t5400.00\t54.00\t54.00\t28.00\t28.00\t0.00\t0.00\t5346.00\t5346.00\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 10:41:50\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 10:41:50\t\tdeepak.s@example.com\tDeepak Saxena\thttps://flipkart.com/ret\thttps://flipkart.com/pend\thttps://flipkart.com/succ\thttps://flipkart.com/fail\tIN_CORP_01\ntx_1008\tMERCH_NETFLIX\tCUST_1109\tSUCCESS\tMANDATE\tSETTLED\t00\tINR\tINR\ttrue\tREF_NFLX_01\tBILLSESS_08\tCREDIT_CARD\tPG_STRIPE\tSTRIPE\t400000******0002\tTransact Bridge Settler\t\tPAY_ST_1109\tCitibank\tVisa Platinum\t\tServer\tLinux\tAPI\tCARD\tsub_nflx_4k\t\t\tMonthly 4K Subscription recurring\tRECURRING\ttrue\ttrue\tfalse\t2026-09-17 10:45:00\t2026-09-17 10:45:04\t\t\tRN_NF_01\ttrue\t649.00\t649.00\t116.82\t649.00\t649.00\t12.98\t12.98\t6.50\t6.50\t0.00\t0.00\t636.02\t636.02\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\tSUB_NFLX_99\t2026-09-17 10:45:04\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 10:45:04\t\tananya.m@example.com\tAnanya Mishra\thttps://netflix.com/ret\thttps://netflix.com/pend\thttps://netflix.com/succ\thttps://netflix.com/fail\tIN_CORP_01\ntx_1009\tMERCH_ZOMATO\tCUST_8832\tFAILED\tPAYMENT\tDECLINED\tE303\tINR\tINR\tfalse\tREF_ZOM_331\tBILLSESS_09\tUPI\tPG_RZP\tRAZORPAY\tzomato@upi\tTransact Bridge Settler\tPAYTM\tPAY_RZP_8832\tAxis Bank\t\tPaytm UPI\tMobile\tAndroid\tAPP\tUPI\torder_zm_44\t\t\tUser entered incorrect MPIN 3 times\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 10:51:30\t2026-09-17 10:51:42\t3DS_AUTH_FAILED\tINCORRECT_PIN\tRN_ZM_01\ttrue\t390.00\t390.00\t70.20\t390.00\t390.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t2026-09-17 10:51:42\t\t\t\t\t\t\t\t\t\t\t\tkavita.p@example.com\tKavita Patel\thttps://zomato.com/ret\thttps://zomato.com/pend\thttps://zomato.com/succ\thttps://zomato.com/fail\tIN_CORP_01\ntx_1010\tMERCH_ZOMATO\tCUST_9910\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_ZOM_332\tBILLSESS_10\tUPI\tPG_RZP\tRAZORPAY\tzomato@okicici\tTransact Bridge Settler\tGPAY\tPAY_RZP_9910\tICICI Bank\t\tGoogle Pay\tMobile\tiOS\tAPP\tUPI\torder_zm_45\t\t\tLunch order settled\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 10:55:10\t2026-09-17 10:55:14\t\t\tRN_ZM_02\ttrue\t780.00\t780.00\t140.40\t780.00\t780.00\t7.80\t7.80\t3.90\t3.90\t0.00\t0.00\t772.20\t772.20\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 10:55:14\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 10:55:14\t\trohit.b@example.com\tRohit Bajaj\thttps://zomato.com/ret\thttps://zomato.com/pend\thttps://zomato.com/succ\thttps://zomato.com/fail\tIN_CORP_01\n";
+  const SAMPLE_CSV_RAW = "_id\tmerchantId\tcustomerId\tstatus\ttype\ttxSubStatus\tcode\tcurrId\tquoteCurrCode\tisSettled\treferenceId\tbillingSessionId\tpaymentDetails.payMethod\tpaymentDetails.pgCode\tpaymentDetails.pgProvider\tpaymentDetails.payMethodIdentifier\tpaymentDetails.payMethodBeneficiary\tpaymentDetails.upiChannel\tpaymentDetails.paymentId\tpaymentDetails.BankName\tpaymentDetails.CardName\tpaymentDetails.upiAppName\tpaymentDetails.sourceDevice\tpaymentDetails.sourceOS\tpaymentDetails.sourcePlatform\tpaymentDetails.payMethodGroup\tmeta.param1\tmeta.param2\tmeta.param3\tremark\ttxSubType\tgstInclusive\tisMandate\tisBanned\tcreatedDate\tupdatedDate\tfailedInfo.failedState\tfailedInfo.responseCode\treferenceNo\tisDirectPacbMerchant\tquoteAmt\tquoteAmount\ttotalTax\tamount\ttotalAmount\ttxFee\ttxQuoteFee\ttxCost\ttxCostQuoteFee\trrFee\trrQuoteFee\tsettleAmount\tsettleQuoteAmount\tfxQuote\tmandateRegFee\tmandateRegQuoteFee\tmandateExcQuoteFee\tmandateExecFee\tmandateNotifyQuoteFee\tmandateNotifyFee\tmidMandateRegFee\tmidMandateExecFee\tsubscriptionId\tsuccessDate\tfailedDate\tsettleId\trefund_txnId\trefund_initiatedDate\trefund_successDate\trefund_status\tchargeback_txnId\tchargeback_initiatedDate\tchargeback_successDate\tchargeback_status\tdepositSuccessDate\tbanDate\temail\tcustomerName\treturnUrl\tpendingUrl\tsuccessUrl\tfailedUrl\tlegalEntityCode\ntx_2001\tMERCH_AMAZON\tCUST_9912\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_AMZ_881\tBILLSESS_01\tUPI\tPG_RZP\tRAZORPAY\trahul@paytm\tTransact Bridge\tPHONEPE\tPAY_RZP_99121\tPaytm Payments Bank\t\tPhonePe\tMobile\tiOS\tAPP\tUPI\torder_12\tref_9\t\tOrder settled\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 11:04:12\t2026-09-17 11:04:15\t\t\tRN_AMZ_01\ttrue\t1450.00\t1450.00\t261.00\t1450.00\t1450.00\t14.50\t14.50\t8.20\t8.20\t0.00\t0.00\t1435.50\t1435.50\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 11:04:15\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 11:04:15\t\trahul@example.com\tRahul Sharma\thttps://amazon.in/ret\thttps://amazon.in/pend\thttps://amazon.in/succ\thttps://amazon.in/fail\tIN_CORP_01\ntx_2002\tMERCH_SWIGGY\tCUST_7811\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_SWG_101\tBILLSESS_02\tUPI\tPG_CF\tCASHFREE\tswiggy@okaxis\tTransact Bridge\tGPAY\tPAY_CF_7712\tAxis Bank\t\tGoogle Pay\tMobile\tAndroid\tAPP\tUPI\torder_sw_99\t\t\tFood order paid\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 11:18:45\t2026-09-17 11:18:48\t\t\tRN_SWG_01\ttrue\t450.00\t450.00\t81.00\t450.00\t450.00\t4.50\t4.50\t2.10\t2.10\t0.00\t0.00\t445.50\t445.50\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 11:18:48\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 11:18:48\t\tarun@example.com\tArun Verma\thttps://swiggy.com/ret\thttps://swiggy.com/pend\thttps://swiggy.com/succ\thttps://swiggy.com/fail\tIN_CORP_01\ntx_2003\tMERCH_SWIGGY\tCUST_9021\tFAILED\tPAYMENT\tDROPPED\tE104\tINR\tINR\tfalse\tREF_SWG_102\tBILLSESS_03\tUPI\tPG_CF\tCASHFREE\tsneha@oksbi\tTransact Bridge\tPAYTM\tPAY_CF_7719\tState Bank of India\t\tPaytm\tMobile\tAndroid\tAPP\tUPI\torder_sw_100\t\t\tBank connection timeout\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 11:22:10\t2026-09-17 11:22:45\tBANK_DOWNTIME\tISSUER_TIMEOUT\tRN_SWG_02\ttrue\t620.00\t620.00\t111.60\t620.00\t620.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t2026-09-17 11:22:45\t\t\t\t\t\t\t\t\t\t\t\tsneha@example.com\tSneha Roy\thttps://swiggy.com/ret\thttps://swiggy.com/pend\thttps://swiggy.com/succ\thttps://swiggy.com/fail\tIN_CORP_01\ntx_2004\tMERCH_UBER\tCUST_3190\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_UBR_551\tBILLSESS_04\tUPI\tPG_RZP\tRAZORPAY\tmanish@ybl\tTransact Bridge\tPHONEPE\tPAY_RZP_33190\tYes Bank\t\tPhonePe\tMobile\tiOS\tAPP\tUPI\ttrip_90\t\t\tAirport ride fare\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 11:29:15\t2026-09-17 11:29:19\t\t\tRN_UBR_01\ttrue\t840.00\t840.00\t151.20\t840.00\t840.00\t8.40\t8.40\t4.20\t4.20\t0.00\t0.00\t831.60\t831.60\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 11:29:19\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 11:29:19\t\tmanish@example.com\tManish Gupta\thttps://uber.com/ret\thttps://uber.com/pend\thttps://uber.com/succ\thttps://uber.com/fail\tIN_CORP_01\ntx_2005\tMERCH_FLIPKART\tCUST_6619\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_FK_889\tBILLSESS_05\tUPI\tPG_PYU\tPAYU\tdeepak@okhdfcbank\tTransact Bridge\tGPAY\tPAY_PU_6612\tHDFC Bank\t\tGoogle Pay\tDesktop\tWindows\tWEB\tUPI\tord_fk_120\t\t\tElectronics purchase\tSTANDARD\ttrue\tfalse\tfalse\t2026-09-17 11:41:20\t2026-09-17 11:41:50\t\t\tRN_FK_01\ttrue\t5400.00\t5400.00\t972.00\t5400.00\t5400.00\t54.00\t54.00\t28.00\t28.00\t0.00\t0.00\t5346.00\t5346.00\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 11:41:50\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 11:41:50\t\tdeepak@example.com\tDeepak Saxena\thttps://flipkart.com/ret\thttps://flipkart.com/pend\thttps://flipkart.com/succ\thttps://flipkart.com/fail\tIN_CORP_01\ntx_2006\tMERCH_ZOMATO\tCUST_8832\tFAILED\tPAYMENT\tDECLINED\tE303\tINR\tINR\tfalse\tREF_ZOM_331\tBILLSESS_06\tUPI\tPG_BD\tBILLDESK\tkavita@paytm\tTransact Bridge\tPAYTM\tPAY_BD_8832\tPaytm Payments Bank\t\tPaytm\tMobile\tAndroid\tAPP\tUPI\torder_zm_44\t\t\tIncorrect MPIN entered\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 11:51:30\t2026-09-17 11:51:42\t3DS_AUTH_FAILED\tINCORRECT_PIN\tRN_ZM_01\ttrue\t390.00\t390.00\t70.20\t390.00\t390.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t2026-09-17 11:51:42\t\t\t\t\t\t\t\t\t\t\t\tkavita@example.com\tKavita Patel\thttps://zomato.com/ret\thttps://zomato.com/pend\thttps://zomato.com/succ\thttps://zomato.com/fail\tIN_CORP_01\ntx_2007\tMERCH_ZOMATO\tCUST_9910\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_ZOM_332\tBILLSESS_07\tUPI\tPG_RZP\tRAZORPAY\trohit@apl\tTransact Bridge\tAMAZONPAY\tPAY_RZP_9910\tAxis Bank\t\tAmazon Pay\tMobile\tiOS\tAPP\tUPI\torder_zm_45\t\t\tLunch settled\tINSTANT\ttrue\tfalse\tfalse\t2026-09-17 11:55:10\t2026-09-17 11:55:14\t\t\tRN_ZM_02\ttrue\t780.00\t780.00\t140.40\t780.00\t780.00\t7.80\t7.80\t3.90\t3.90\t0.00\t0.00\t772.20\t772.20\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\t\t2026-09-17 11:55:14\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 11:55:14\t\trohit@example.com\tRohit Bajaj\thttps://zomato.com/ret\thttps://zomato.com/pend\thttps://zomato.com/succ\thttps://zomato.com/fail\tIN_CORP_01\ntx_2008\tMERCH_NETFLIX\tCUST_1109\tSUCCESS\tPAYMENT\tSETTLED\t00\tINR\tINR\ttrue\tREF_NFLX_01\tBILLSESS_08\tUPI\tPG_STRIPE\tSTRIPE\tananya@cred\tTransact Bridge\tCRED\tPAY_ST_1109\tHDFC Bank\t\tCRED\tServer\tLinux\tAPI\tUPI\tsub_nflx_4k\t\t\tRecurring Mandate\tRECURRING\ttrue\ttrue\tfalse\t2026-09-17 11:57:00\t2026-09-17 11:57:04\t\t\tRN_NF_01\ttrue\t649.00\t649.00\t116.82\t649.00\t649.00\t12.98\t12.98\t6.50\t6.50\t0.00\t0.00\t636.02\t636.02\t1.0\t0\t0\t0\t0\t0\t0\t0\t0\tSUB_NFLX_99\t2026-09-17 11:57:04\t\tSETTL_001\t\t\t\t\t\t\t\t\t2026-09-17 11:57:04\t\tananya@example.com\tAnanya Mishra\thttps://netflix.com/ret\thttps://netflix.com/pend\thttps://netflix.com/succ\thttps://netflix.com/fail\tIN_CORP_01";
 
-  // Currencies
   const CURRENCIES = {
     INR: { symbol: '₹', rate: 1.0 },
     USD: { symbol: '$', rate: 0.0115 },
@@ -22,13 +20,59 @@
   let currentFilter = 'all';
   let searchQuery = '';
 
-  // Data Mode State: 'demo' vs 'uploaded'
+  // Data Mode
   let dataMode = 'demo';
   let activeBatchId = 'demo';
   let uploadedBatches = [];
   let currentTransactions = [];
 
-  // Default Demo Merchants (When no custom batch is uploaded)
+  // Analysis Reports State
+  let activeAnalysisTab = 'psp'; // 'psp', 'app', 'handle'
+  let analysisSearchQuery = '';
+  let analysisFilter = 'all';
+  let analysisSortField = 'successRate';
+  let analysisSortDirection = 'desc';
+
+  // Demo PSP Data (paymentDetails.pgProvider)
+  const defaultDemoPsp = [
+    { id: 'RAZORPAY', name: 'Razorpay Gateway', count: 1380000, success: 1324800, failed: 55200, amount: 690000000, successAmt: 662400000, failedAmt: 27600000 },
+    { id: 'CASHFREE', name: 'Cashfree Payments', count: 840000, success: 798000, failed: 42000, amount: 420000000, successAmt: 399000000, failedAmt: 21000000 },
+    { id: 'PAYU', name: 'PayU Payments', count: 520000, success: 478400, failed: 41600, amount: 260000000, successAmt: 239200000, failedAmt: 20800000 },
+    { id: 'BILLDESK', name: 'BillDesk India', count: 340000, success: 312800, failed: 27200, amount: 238000000, successAmt: 218960000, failedAmt: 19040000 },
+    { id: 'STRIPE', name: 'Stripe India', count: 180000, success: 174600, failed: 5400, amount: 144000000, successAmt: 139680000, failedAmt: 4320000 },
+    { id: 'PHONEPE_PG', name: 'PhonePe PG', count: 160000, success: 153600, failed: 6400, amount: 96000000, successAmt: 92160000, failedAmt: 3840000 },
+    { id: 'PAYTM_PG', name: 'Paytm Payment Gateway', count: 95000, success: 84550, failed: 10450, amount: 57000000, successAmt: 50730000, failedAmt: 6270000 }
+  ];
+
+  // Demo UPI App Data (paymentDetails.upiAppName)
+  const defaultDemoUpiApp = [
+    { id: 'PhonePe', name: 'PhonePe', count: 1220000, success: 1179740, failed: 40260, amount: 488000000, successAmt: 471896000, failedAmt: 16104000 },
+    { id: 'Google Pay', name: 'Google Pay (GPay)', count: 980000, success: 942760, failed: 37240, amount: 392000000, successAmt: 377104000, failedAmt: 14896000 },
+    { id: 'Paytm', name: 'Paytm UPI', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
+    { id: 'CRED', name: 'CRED UPI', count: 290000, success: 283040, failed: 6960, amount: 232000000, successAmt: 226432000, failedAmt: 5568000 },
+    { id: 'BHIM', name: 'BHIM UPI', count: 140000, success: 131600, failed: 8400, amount: 42000000, successAmt: 39480000, failedAmt: 2520000 },
+    { id: 'Amazon Pay', name: 'Amazon Pay UPI', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
+    { id: 'WhatsApp', name: 'WhatsApp Pay', count: 65000, success: 60450, failed: 4550, amount: 19500000, successAmt: 18135000, failedAmt: 1365000 }
+  ];
+
+  // Demo UPI Handle Data (paymentDetails.payMethodIdentifier after @)
+  const defaultDemoUpiHandle = [
+    { id: '@okaxis', name: '@okaxis (Google Pay - Axis)', count: 490000, success: 472850, failed: 17150, amount: 196000000, successAmt: 189140000, failedAmt: 6860000 },
+    { id: '@ybl', name: '@ybl (PhonePe - Yes Bank)', count: 620000, success: 600160, failed: 19840, amount: 248000000, successAmt: 240064000, failedAmt: 7936000 },
+    { id: '@oksbi', name: '@oksbi (Google Pay - SBI)', count: 340000, success: 312800, failed: 27200, amount: 136000000, successAmt: 125120000, failedAmt: 10880000 },
+    { id: '@paytm', name: '@paytm (Paytm VPA)', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
+    { id: '@okhdfcbank', name: '@okhdfcbank (Google Pay - HDFC)', count: 280000, success: 271600, failed: 8400, amount: 140000000, successAmt: 135800000, failedAmt: 4200000 },
+    { id: '@ibl', name: '@ibl (PhonePe - ICICI Bank)', count: 410000, success: 396880, failed: 13120, amount: 164000000, successAmt: 158752000, failedAmt: 5248000 },
+    { id: '@axl', name: '@axl (PhonePe - Axis Bank)', count: 190000, success: 183160, failed: 6840, amount: 76000000, successAmt: 73264000, failedAmt: 2736000 },
+    { id: '@apl', name: '@apl (Amazon Pay UPI)', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
+    { id: '@barodampay', name: '@barodampay (Bank of Baroda)', count: 75000, success: 67500, failed: 7500, amount: 26000000, successAmt: 23400000, failedAmt: 2600000 }
+  ];
+
+  let pspList = JSON.parse(JSON.stringify(defaultDemoPsp));
+  let upiAppList = JSON.parse(JSON.stringify(defaultDemoUpiApp));
+  let upiHandleList = JSON.parse(JSON.stringify(defaultDemoUpiHandle));
+
+  // Default Demo Merchants
   const defaultDemoMerchants = [
     {
       id: 'MERCH_AMAZON',
@@ -323,6 +367,292 @@
     }
   }
 
+  // ==========================================
+  // Analysis Reports Engine (PSP, UPI App, UPI Handle)
+  // ==========================================
+  function extractUpiHandle(identifier) {
+    if (!identifier || typeof identifier !== 'string') return '';
+    const atIdx = identifier.indexOf('@');
+    if (atIdx === -1) return '';
+    let handle = identifier.substring(atIdx).toLowerCase();
+    handle = handle.split('/')[0].split('?')[0].split(' ')[0].trim();
+    return handle;
+  }
+
+  function getActiveAnalysisDataset() {
+    let list = [];
+    if (activeAnalysisTab === 'psp') list = pspList;
+    else if (activeAnalysisTab === 'app') list = upiAppList;
+    else if (activeAnalysisTab === 'handle') list = upiHandleList;
+
+    const mult = dataMode === 'demo' ? (TIME_MULTIPLIERS[currentTimeRange] || 1.0) : 1.0;
+
+    let processed = list.map(item => {
+      const totCount = Math.round(item.count * mult);
+      const succCount = Math.round(item.success * mult);
+      const failCount = Math.round(item.failed * mult);
+      const rate = totCount > 0 ? (succCount / totCount) * 100 : 0;
+      const totAmt = item.amount * mult;
+      const succAmt = item.successAmt * mult;
+      const failAmt = item.failedAmt * mult;
+
+      return {
+        id: item.id,
+        name: item.name || item.id,
+        totalCount: totCount,
+        successCount: succCount,
+        failedCount: failCount,
+        successRate: rate,
+        totalAmount: totAmt,
+        successAmount: succAmt,
+        failedAmount: failAmt
+      };
+    });
+
+    if (analysisFilter === 'healthy') processed = processed.filter(x => x.successRate >= 95.0);
+    else if (analysisFilter === 'warning') processed = processed.filter(x => x.successRate < 95.0 && x.successRate >= 90.0);
+    else if (analysisFilter === 'alert') processed = processed.filter(x => x.successRate < 90.0);
+
+    if (analysisSearchQuery) {
+      const q = analysisSearchQuery.toLowerCase();
+      processed = processed.filter(x => x.id.toLowerCase().includes(q) || x.name.toLowerCase().includes(q));
+    }
+
+    processed.sort((a, b) => {
+      let valA = a[analysisSortField];
+      let valB = b[analysisSortField];
+      if (typeof valA === 'string') {
+        return analysisSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return analysisSortDirection === 'asc' ? valA - valB : valB - valA;
+    });
+
+    return processed;
+  }
+
+  function renderAnalysisSection() {
+    const titleEl = document.getElementById('analysisTabTitle');
+    const badgeEl = document.getElementById('analysisCountBadge');
+    const colNameEl = document.getElementById('analysisColEntityName');
+    const tbody = document.getElementById('analysisTableBody');
+
+    if (activeAnalysisTab === 'psp') {
+      titleEl.textContent = 'Payment Service Providers (PSPs)';
+      colNameEl.textContent = 'Payment Gateway / PSP (pgProvider)';
+    } else if (activeAnalysisTab === 'app') {
+      titleEl.textContent = 'UPI Applications Telemetry';
+      colNameEl.textContent = 'UPI Application (upiAppName)';
+    } else {
+      titleEl.textContent = 'UPI VPA Handle Performance';
+      colNameEl.textContent = 'UPI Handle (@vpa)';
+    }
+
+    const data = getActiveAnalysisDataset();
+    badgeEl.textContent = `${data.length} Entities`;
+
+    tbody.innerHTML = '';
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 1.5rem; color: var(--text-dim);">No entities matching filter criteria.</td></tr>';
+      renderAnalysisChart([]);
+      return;
+    }
+
+    data.forEach(item => {
+      let statusClass = 'healthy';
+      let statusLabel = 'Optimal';
+      let progressColor = '#10b981';
+
+      if (item.successRate < 90.0) {
+        statusClass = 'alert';
+        statusLabel = 'Degraded';
+        progressColor = '#f43f5e';
+      } else if (item.successRate < 95.0) {
+        statusClass = 'warning';
+        statusLabel = 'Watch';
+        progressColor = '#f59e0b';
+      }
+
+      const isHandle = item.id.startsWith('@');
+      const avatarInitial = isHandle ? '@' : item.id.substring(0, 2).toUpperCase();
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div style="display: flex; align-items: center;">
+            <span class="entity-avatar">${avatarInitial}</span>
+            <div>
+              ${isHandle ? `<span class="handle-tag">${item.id}</span>` : `<strong>${item.name}</strong>`}
+              <div style="font-size: 0.7rem; color: var(--text-dim);">${item.id}</div>
+            </div>
+          </div>
+        </td>
+        <td><strong>${formatNumber(item.totalCount)}</strong></td>
+        <td class="text-success">${formatNumber(item.successCount)}</td>
+        <td class="text-failed">${formatNumber(item.failedCount)}</td>
+        <td>
+          <div class="rate-cell-wrap">
+            <div class="rate-val-row">
+              <span style="color: ${progressColor}">${item.successRate.toFixed(2)}%</span>
+            </div>
+            <div class="table-progress">
+              <div class="table-progress-fill" style="width: ${item.successRate}%; background: ${progressColor};"></div>
+            </div>
+          </div>
+        </td>
+        <td><strong>${formatCurrency(item.totalAmount)}</strong></td>
+        <td class="text-success">${formatCurrency(item.successAmount)}</td>
+        <td class="text-failed">${formatCurrency(item.failedAmount)}</td>
+        <td>
+          <span class="status-chip ${statusClass}">${statusLabel}</span>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    renderAnalysisChart(data);
+  }
+
+  function renderAnalysisChart(data) {
+    const canvas = document.getElementById('analysisChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const topItems = data.slice(0, 6);
+    if (topItems.length === 0) return;
+
+    const padding = { top: 20, right: 30, bottom: 20, left: 140 };
+    const chartW = w - padding.left - padding.right;
+    const chartH = h - padding.top - padding.bottom;
+
+    const rowH = chartH / topItems.length;
+    const barH = rowH * 0.55;
+
+    topItems.forEach((item, idx) => {
+      const y = padding.top + rowH * idx + (rowH - barH) / 2;
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#001626' : '#f0f6fc';
+      ctx.font = '500 12px sans-serif';
+      const label = item.id.length > 16 ? item.id.substring(0, 14) + '..' : item.id;
+      ctx.fillText(label, padding.left - 12, y + barH / 2 + 4);
+
+      // Track
+      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#e2ecf5' : '#0f2d49';
+      ctx.fillRect(padding.left, y, chartW, barH);
+
+      // Success rate bar
+      const barW = (item.successRate / 100) * chartW;
+      const rateColor = item.successRate >= 95 ? '#10b981' : item.successRate >= 90 ? '#f59e0b' : '#f43f5e';
+      ctx.fillStyle = rateColor;
+      ctx.fillRect(padding.left, y, barW, barH);
+
+      // Value label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${item.successRate.toFixed(1)}% (${formatCurrency(item.totalAmount)})`, padding.left + barW - 8, y + barH / 2 + 4);
+    });
+  }
+
+  function exportAnalysisCSV() {
+    const data = getActiveAnalysisDataset();
+    const cur = CURRENCIES[currentCurrency];
+
+    const tabName = activeAnalysisTab === 'psp' ? 'PSP_Gateway' : activeAnalysisTab === 'app' ? 'UPI_App' : 'UPI_Handle';
+    const headers = [
+      'Entity Identifier',
+      'Entity Name',
+      'Total Transactions',
+      'Success Count',
+      'Failed Count',
+      'Success Rate %',
+      `Total Amount (${currentCurrency})`,
+      `Success Amount (${currentCurrency})`,
+      `Failed Amount (${currentCurrency})`,
+      'Status'
+    ];
+
+    const rows = data.map(item => {
+      const status = item.successRate >= 95.0 ? 'Optimal' : item.successRate >= 90.0 ? 'Watch' : 'Degraded';
+      return [
+        `"${item.id}"`,
+        `"${item.name}"`,
+        item.totalCount,
+        item.successCount,
+        item.failedCount,
+        item.successRate.toFixed(2),
+        (item.totalAmount * cur.rate).toFixed(2),
+        (item.successAmount * cur.rate).toFixed(2),
+        (item.failedAmount * cur.rate).toFixed(2),
+        status
+      ];
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `TransactBridge_${tabName}_Report_${currentTimeRange}_${currentCurrency}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  document.getElementById('exportAnalysisCsvBtn').addEventListener('click', exportAnalysisCSV);
+
+  // Analysis Tabs Switcher
+  document.querySelectorAll('.analysis-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.analysis-nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeAnalysisTab = btn.getAttribute('data-atab');
+      renderAnalysisSection();
+    });
+  });
+
+  document.getElementById('analysisSearchInput').addEventListener('input', (e) => {
+    analysisSearchQuery = e.target.value.trim();
+    renderAnalysisSection();
+  });
+
+  document.querySelectorAll('.analysis-filter-pill-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.analysis-filter-pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      analysisFilter = btn.getAttribute('data-af');
+      renderAnalysisSection();
+    });
+  });
+
+  document.querySelectorAll('#analysisTable th[data-asort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const field = th.getAttribute('data-asort');
+      if (analysisSortField === field) {
+        analysisSortDirection = analysisSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        analysisSortField = field;
+        analysisSortDirection = 'desc';
+      }
+
+      document.querySelectorAll('#analysisTable th').forEach(h => {
+        h.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      th.classList.add(analysisSortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      renderAnalysisSection();
+    });
+  });
+
+  // Render Merchant Table
   function renderMerchantTable() {
     const tbody = document.getElementById('merchantTableBody');
     const mult = dataMode === 'demo' ? (TIME_MULTIPLIERS[currentTimeRange] || 1.0) : 1.0;
@@ -361,7 +691,7 @@
       return sortDirection === 'asc' ? valA - valB : valB - valA;
     });
 
-    document.getElementById('merchantTotalBadge').textContent = filtered.length + ' of ' + merchants.length + ' Merchants';
+    document.getElementById('merchantTotalBadge').textContent = `${filtered.length} of ${merchants.length} Merchants`;
 
     tbody.innerHTML = '';
     if (filtered.length === 0) {
@@ -446,7 +776,7 @@
     const succAmt = m.successAmount * mult;
     const failAmt = m.failedAmount * mult;
 
-    document.getElementById('modalMerchantTitle').innerHTML = '<span>🏢</span> ' + (m.name || m.id) + ' — Diagnostics &amp; Health';
+    document.getElementById('modalMerchantTitle').innerHTML = `<span>🏢</span> ${m.name || m.id} — Diagnostics &amp; Health`;
 
     const reasons = m.failureReasons || { timeout: 40, insufficient: 30, auth3ds: 15, expired: 10, fraud: 5 };
 
@@ -649,6 +979,15 @@
     const payMethod = row['paymentDetails.payMethod'] || row['paymentDetails.payMethodGroup'] || row['paymentDetails.upiChannel'] || 'UPI';
     const bankName = row['paymentDetails.BankName'] || row['paymentDetails.CardName'] || '';
 
+    // Payment Provider (PSP)
+    const pgProvider = (row['paymentDetails.pgProvider'] || row['paymentDetails.pgCode'] || 'UNKNOWN_PSP').toUpperCase().trim();
+
+    // UPI App
+    const upiApp = (row['paymentDetails.upiAppName'] || row['paymentDetails.upiChannel'] || 'Direct / Other').trim();
+
+    // UPI Handle (after @)
+    const upiHandle = extractUpiHandle(row['paymentDetails.payMethodIdentifier']);
+
     const failState = (row['failedInfo.failedState'] || row['failedInfo.responseCode'] || row.remark || '').toUpperCase();
     let failCategory = 'timeout';
     if (failState.includes('INSUFFICIENT') || failState.includes('BALANCE')) failCategory = 'insufficient';
@@ -665,6 +1004,9 @@
       currency: row.currId || row.quoteCurrCode || 'INR',
       payMethod,
       bankName,
+      pgProvider,
+      upiApp,
+      upiHandle,
       failCategory,
       rawFailState: row['failedInfo.failedState'] || row['failedInfo.responseCode'] || row.remark || 'DECLINED',
       createdDate: row.createdDate || row.updatedDate || new Date().toISOString()
@@ -710,8 +1052,12 @@
 
   function recomputeDashboardFromTransactions(txns) {
     const merchantMap = {};
+    const pspMap = {};
+    const upiAppMap = {};
+    const upiHandleMap = {};
 
     txns.forEach(t => {
+      // 1. Merchant Aggregation
       if (!merchantMap[t.merchantId]) {
         merchantMap[t.merchantId] = {
           id: t.merchantId,
@@ -728,11 +1074,9 @@
           failureReasons: { timeout: 0, insufficient: 0, auth3ds: 0, expired: 0, fraud: 0 }
         };
       }
-
       const m = merchantMap[t.merchantId];
       m.totalCount += 1;
       m.totalAmount += t.amount;
-
       if (t.isSuccess) {
         m.successCount += 1;
         m.successAmount += t.amount;
@@ -740,6 +1084,53 @@
         m.failedCount += 1;
         m.failedAmount += t.amount;
         m.failureReasons[t.failCategory] = (m.failureReasons[t.failCategory] || 0) + 1;
+      }
+
+      // 2. PSP Aggregation
+      const pspKey = t.pgProvider || 'UNKNOWN_PSP';
+      if (!pspMap[pspKey]) {
+        pspMap[pspKey] = { id: pspKey, name: pspKey, count: 0, success: 0, failed: 0, amount: 0, successAmt: 0, failedAmt: 0 };
+      }
+      pspMap[pspKey].count += 1;
+      pspMap[pspKey].amount += t.amount;
+      if (t.isSuccess) {
+        pspMap[pspKey].success += 1;
+        pspMap[pspKey].successAmt += t.amount;
+      } else {
+        pspMap[pspKey].failed += 1;
+        pspMap[pspKey].failedAmt += t.amount;
+      }
+
+      // 3. UPI App Aggregation
+      const appKey = t.upiApp || 'Other UPI';
+      if (!upiAppMap[appKey]) {
+        upiAppMap[appKey] = { id: appKey, name: appKey, count: 0, success: 0, failed: 0, amount: 0, successAmt: 0, failedAmt: 0 };
+      }
+      upiAppMap[appKey].count += 1;
+      upiAppMap[appKey].amount += t.amount;
+      if (t.isSuccess) {
+        upiAppMap[appKey].success += 1;
+        upiAppMap[appKey].successAmt += t.amount;
+      } else {
+        upiAppMap[appKey].failed += 1;
+        upiAppMap[appKey].failedAmt += t.amount;
+      }
+
+      // 4. UPI Handle Aggregation (after @)
+      if (t.upiHandle && t.upiHandle.startsWith('@')) {
+        const handleKey = t.upiHandle;
+        if (!upiHandleMap[handleKey]) {
+          upiHandleMap[handleKey] = { id: handleKey, name: handleKey, count: 0, success: 0, failed: 0, amount: 0, successAmt: 0, failedAmt: 0 };
+        }
+        upiHandleMap[handleKey].count += 1;
+        upiHandleMap[handleKey].amount += t.amount;
+        if (t.isSuccess) {
+          upiHandleMap[handleKey].success += 1;
+          upiHandleMap[handleKey].successAmt += t.amount;
+        } else {
+          upiHandleMap[handleKey].failed += 1;
+          upiHandleMap[handleKey].failedAmt += t.amount;
+        }
       }
     });
 
@@ -755,6 +1146,9 @@
     });
 
     merchants = Object.values(merchantMap);
+    pspList = Object.values(pspMap);
+    upiAppList = Object.values(upiAppMap);
+    upiHandleList = Object.values(upiHandleMap);
 
     feedItems.length = 0;
     txns.slice(-8).reverse().forEach(t => {
@@ -762,7 +1156,7 @@
         txnId: t.id,
         merchantName: t.merchantId,
         timeStr: t.createdDate.includes('T') ? t.createdDate.split('T')[1].substring(0, 8) : t.createdDate.split(' ')[1] || '10:00:00',
-        method: t.payMethod,
+        method: t.payMethod + (t.upiHandle ? ' (' + t.upiHandle + ')' : ''),
         amount: t.amount.toFixed(2),
         isSuccess: t.isSuccess,
         failReason: t.rawFailState
@@ -770,13 +1164,13 @@
     });
 
     renderKPIs();
+    renderAnalysisSection();
     renderMerchantTable();
     initCharts();
     renderFeed();
   }
 
   function updateStatusBanner() {
-    const banner = document.getElementById('dataStatusBanner');
     const tag = document.getElementById('dataModeTag');
     const msg = document.getElementById('dataStatusMessage');
     const resetBtn = document.getElementById('resetDataBtn');
@@ -805,6 +1199,10 @@
     dataMode = 'demo';
     activeBatchId = 'demo';
     merchants = JSON.parse(JSON.stringify(defaultDemoMerchants));
+    pspList = JSON.parse(JSON.stringify(defaultDemoPsp));
+    upiAppList = JSON.parse(JSON.stringify(defaultDemoUpiApp));
+    upiHandleList = JSON.parse(JSON.stringify(defaultDemoUpiHandle));
+
     feedItems.length = 0;
     for (let i = 0; i < 5; i++) {
       generateMockTransaction();
@@ -813,6 +1211,7 @@
     updateBatchSelector();
     startSimulation();
     renderKPIs();
+    renderAnalysisSection();
     renderMerchantTable();
     initCharts();
   }
@@ -889,7 +1288,7 @@
       if (dataMode === 'uploaded' && activeBatchId === 'all') optAll.selected = true;
       sel.appendChild(optAll);
 
-      uploadedBatches.forEach((b, idx) => {
+      uploadedBatches.forEach((b) => {
         const opt = document.createElement('option');
         opt.value = b.id;
         opt.textContent = `${b.name} (${b.count} txns)`;
@@ -967,9 +1366,7 @@
     });
   }
 
-  // ==========================================
-  // File Upload & Paste Event Handlers
-  // ==========================================
+  // File Upload Handlers
   const openUploadBtn = document.getElementById('openUploadBtn');
   const uploadModal = document.getElementById('uploadModal');
   const uploadModalCloseBtn = document.getElementById('uploadModalCloseBtn');
@@ -979,7 +1376,6 @@
   const dropzone = document.getElementById('dropzone');
   const selectedFileInfo = document.getElementById('selectedFileInfo');
   let loadedFileContent = null;
-  let loadedFileName = '';
 
   openUploadBtn.addEventListener('click', () => {
     uploadModal.classList.add('active');
@@ -1034,7 +1430,6 @@
   });
 
   function handleFile(file) {
-    loadedFileName = file.name;
     selectedFileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
     const ext = file.name.split('.').pop().toLowerCase();
 
@@ -1052,7 +1447,7 @@
             alert('Failed to parse Excel file: ' + err.message);
           }
         } else {
-          alert('Excel parsing library is initializing. Please save the sheet as CSV or try again.');
+          alert('Excel parsing library is initializing. Please save as CSV or try again.');
         }
       };
       reader.readAsArrayBuffer(file);
@@ -1107,14 +1502,13 @@
   document.getElementById('downloadSampleBtn').addEventListener('click', downloadSampleTemplate);
   document.getElementById('downloadSampleInModalBtn').addEventListener('click', downloadSampleTemplate);
 
-  // ==========================================
-  // Canvas Charts Rendering Engine
-  // ==========================================
+  // Canvas Charts
   function initCharts() {
     renderTimelineChart();
     renderFailureDonutChart();
     renderPaymentMethodChart();
     renderMerchantRankChart();
+    renderAnalysisSection();
   }
 
   function renderTimelineChart() {
@@ -1423,7 +1817,7 @@
     if (!merchant) return;
     const isSuccess = Math.random() < 0.948;
     const amount = (150 + Math.random() * 2800).toFixed(2);
-    const methods = ['UPI (PhonePe)', 'Visa Debit', 'Mastercard Regalia', 'Google Pay UPI', 'HDFC NetBanking'];
+    const methods = ['UPI (PhonePe @ybl)', 'Visa Debit', 'UPI (GPay @okaxis)', 'UPI (Paytm @paytm)', 'HDFC NetBanking'];
     const method = methods[Math.floor(Math.random() * methods.length)];
     const now = new Date();
     const timeStr = now.toLocaleTimeString();
@@ -1460,6 +1854,7 @@
 
     renderFeed();
     renderKPIs();
+    renderAnalysisSection();
     renderMerchantTable();
   }
 
@@ -1524,6 +1919,7 @@
   document.getElementById('timeRangeSelect').addEventListener('change', (e) => {
     currentTimeRange = e.target.value;
     renderKPIs();
+    renderAnalysisSection();
     renderMerchantTable();
     initCharts();
   });
@@ -1531,6 +1927,7 @@
   document.getElementById('currencySelect').addEventListener('change', (e) => {
     currentCurrency = e.target.value;
     renderKPIs();
+    renderAnalysisSection();
     renderMerchantTable();
     initCharts();
     renderFeed();
@@ -1591,6 +1988,7 @@
   loadBatchesFromStorage();
 
   renderKPIs();
+  renderAnalysisSection();
   renderMerchantTable();
   initCharts();
 
