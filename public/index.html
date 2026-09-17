@@ -89,14 +89,6 @@
         <span class="data-status-tag tag-simulated" id="dataModeTag">Demo Mode</span>
         <span id="dataStatusMessage">Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest your Excel (.xlsx) or CSV reports.</span>
       </div>
-      <div class="data-status-actions">
-        <button class="btn-small" id="downloadSampleBtn" title="Download Excel/CSV template with your exact schema">
-          📄 Download Schema Template
-        </button>
-        <button class="btn-small" id="resetDataBtn" style="display: none;">
-          🔄 Reset to Demo
-        </button>
-      </div>
     </div>
 
     <!-- Overall KPI Metrics Section -->
@@ -266,6 +258,26 @@
               </div>
             </div>
           </div>
+          <!-- Bar Graph Filters Toolbar -->
+          <div class="timeline-controls-bar">
+            <div class="timeline-btn-group" id="timelineWindowGroup">
+              <button class="timeline-filter-btn active" data-twindow="all">All 24h</button>
+              <button class="timeline-filter-btn" data-twindow="peak" title="Filter to peak volume hours (12:00 - 18:00)">🔥 Peak (12h-18h)</button>
+              <button class="timeline-filter-btn" data-twindow="morning" title="Morning hours (06:00 - 12:00)">🌅 Morning (06h-12h)</button>
+              <button class="timeline-filter-btn" data-twindow="evening" title="Evening hours (18:00 - 24:00)">🌆 Evening (18h-24h)</button>
+              <button class="timeline-filter-btn" data-twindow="night" title="Night hours (00:00 - 06:00)">🌙 Night (00h-06h)</button>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <div class="timeline-btn-group" id="timelineBucketGroup">
+                <button class="timeline-bucket-btn active" data-tbucket="1h" title="Hourly aggregation (24 clean readable bars)">Hourly (1h)</button>
+                <button class="timeline-bucket-btn" data-tbucket="30m" title="30-minute intervals">30m</button>
+                <button class="timeline-bucket-btn" data-tbucket="15m" title="15-minute granular intervals">15m Detail</button>
+              </div>
+              <select id="timelinePspSelect" class="timeline-psp-select" title="Filter timeline by gateway">
+                <option value="all">All Gateways</option>
+              </select>
+            </div>
+          </div>
           <div class="canvas-container">
             <canvas id="timelineChart"></canvas>
           </div>
@@ -275,7 +287,7 @@
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">
-              <span>🔍</span> Failure Reasons Distribution (failedInfo)
+              <span>🔍</span> Error Code Breakdown (failedInfo.responseCode)
             </h3>
           </div>
           <div class="canvas-container">
@@ -415,6 +427,7 @@
         <div class="rec-actions">
           <div class="filter-pills" id="recFilterGroup">
             <button class="rec-filter-btn active" data-rf="all">All</button>
+            <button class="rec-filter-btn" data-rf="error_code">Error Codes</button>
             <button class="rec-filter-btn" data-rf="psp">PSP Health</button>
             <button class="rec-filter-btn" data-rf="app">App Failure</button>
             <button class="rec-filter-btn" data-rf="routing">Routing</button>

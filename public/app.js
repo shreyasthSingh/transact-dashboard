@@ -729,11 +729,11 @@
         if (dimension === 'psp' && t.pgProvider.toUpperCase() === entity.id.toUpperCase()) matches = true;
         else if (dimension === 'app' && (t.upiApp.toUpperCase() === entity.id.toUpperCase() || t.upiApp === entity.id)) matches = true;
         else if (dimension === 'handle' && t.upiHandle && t.upiHandle.toLowerCase() === entity.id.toLowerCase()) matches = true;
-        else if (dimension === 'merchant' && (t.merchantId.toUpperCase() === entity.id.toUpperCase() || t.merchantId === entity.id)) matches = true;
+        else if (dimension === 'merchant' && (t.merchantId.toUpperCase() === entity.id.toUpperCase() || t.merchantId === entity.id || (t.merchantName && t.merchantName.toUpperCase() === entity.id.toUpperCase()))) matches = true;
 
         if (matches) {
           if (!t.isSuccess) {
-            const code = t.rawFailState || 'ISSUER_UNAVAILABLE';
+            const code = (t.responseCode || t.rawFailState || 'USER_DROP_PAYMENT_REQUEST').trim().toUpperCase();
             failCodeCounts[code] = (failCodeCounts[code] || 0) + 1;
           }
 
@@ -754,20 +754,20 @@
     if (Object.keys(failCodeCounts).length === 0) {
       if (entity.failedCount > 0) {
         if (dimension === 'merchant') {
-          failCodeCounts['BANK_ISSUER_TIMEOUT (E104)'] = Math.round(entity.failedCount * 0.38);
-          failCodeCounts['3DS_MPIN_CANCELLED (E303)'] = Math.round(entity.failedCount * 0.28);
-          failCodeCounts['INSUFFICIENT_FUNDS (E101)'] = Math.round(entity.failedCount * 0.20);
-          failCodeCounts['PAYMENT_WINDOW_EXPIRED'] = Math.round(entity.failedCount * 0.09);
-          failCodeCounts['PSP_LIMIT_EXCEEDED (E502)'] = Math.max(1, entity.failedCount - Math.round(entity.failedCount * 0.95));
+          failCodeCounts['USER_DROP_PAYMENT_REQUEST'] = Math.round(entity.failedCount * 0.42);
+          failCodeCounts['ISSUER_TIMEOUT'] = Math.round(entity.failedCount * 0.28);
+          failCodeCounts['INSUFFICIENT_FUNDS'] = Math.round(entity.failedCount * 0.16);
+          failCodeCounts['AUTHENTICATION_FAILED'] = Math.round(entity.failedCount * 0.09);
+          failCodeCounts['PAYMENT_EXPIRED'] = Math.max(1, entity.failedCount - Math.round(entity.failedCount * 0.95));
 
           crossSplitCounts['Razorpay Gateway'] = { total: Math.round(entity.totalCount * 0.45), failed: Math.round(entity.failedCount * 0.25) };
           crossSplitCounts['Cashfree Payments'] = { total: Math.round(entity.totalCount * 0.30), failed: Math.round(entity.failedCount * 0.35) };
           crossSplitCounts['PayU Payments'] = { total: Math.round(entity.totalCount * 0.25), failed: Math.round(entity.failedCount * 0.40) };
         } else {
-          failCodeCounts['BANK_ISSUER_TIMEOUT (E104)'] = Math.round(entity.failedCount * 0.42);
-          failCodeCounts['3DS_MPIN_CANCELLED (E303)'] = Math.round(entity.failedCount * 0.28);
-          failCodeCounts['INSUFFICIENT_FUNDS (E101)'] = Math.round(entity.failedCount * 0.18);
-          failCodeCounts['PSP_LIMIT_EXCEEDED (E502)'] = Math.max(1, entity.failedCount - Math.round(entity.failedCount * 0.88));
+          failCodeCounts['USER_DROP_PAYMENT_REQUEST'] = Math.round(entity.failedCount * 0.42);
+          failCodeCounts['ISSUER_TIMEOUT'] = Math.round(entity.failedCount * 0.28);
+          failCodeCounts['INSUFFICIENT_FUNDS'] = Math.round(entity.failedCount * 0.18);
+          failCodeCounts['AUTHENTICATION_FAILED'] = Math.max(1, entity.failedCount - Math.round(entity.failedCount * 0.88));
         }
       } else {
         failCodeCounts['NO_FAILURE_RECORDED'] = 0;
@@ -1001,6 +1001,50 @@
 
   function getRecommendationsList() {
     const list = [];
+
+    // 0. Error Code Diagnostics (failedInfo.responseCode)
+    let topErrorCodeEntry = null;
+    let totalCodeFails = 0;
+    if (dataMode === 'uploaded' && uploadedFailureCodeCounts && Object.keys(uploadedFailureCodeCounts).length > 0) {
+      const entries = Object.entries(uploadedFailureCodeCounts).sort((a, b) => b[1] - a[1]);
+      topErrorCodeEntry = entries[0];
+      totalCodeFails = entries.reduce((s, [, v]) => s + v, 0);
+    } else {
+      const demoFails = getAggregates().failedCount || 1240;
+      topErrorCodeEntry = ['USER_DROP_PAYMENT_REQUEST', Math.round(demoFails * 0.42)];
+      totalCodeFails = demoFails;
+    }
+
+    if (topErrorCodeEntry && topErrorCodeEntry[1] > 0) {
+      const topCode = topErrorCodeEntry[0];
+      const topCodeCount = formatNumber(topErrorCodeEntry[1]);
+      const topCodePct = totalCodeFails > 0 ? ((topErrorCodeEntry[1] / totalCodeFails) * 100).toFixed(1) : '42.0';
+
+      let resolutionMsg = '';
+      if (topCode.includes('USER_DROP') || topCode.includes('DROP')) {
+        resolutionMsg = 'Primary checkout friction occurs when users cancel or dismiss the UPI intent sheet. Implement fast OTP auto-read, deep-link intent direct launch, and 1-click retry banners to recover up to ~45% of drops.';
+      } else if (topCode.includes('TIMEOUT') || topCode.includes('TIME_OUT')) {
+        resolutionMsg = 'Failures are dominated by bank issuer connection latency. Configure automated dynamic retry on secondary payment gateways (e.g. Cashfree/Razorpay) after a 4-second timeout threshold.';
+      } else if (topCode.includes('PIN') || topCode.includes('AUTH') || topCode.includes('3DS')) {
+        resolutionMsg = 'Failures stem from customer authentication and MPIN input issues. Add pre-payment validation prompts and 1-click retry flows without forcing customers to recreate cart orders.';
+      } else if (topCode.includes('INSUFFICIENT')) {
+        resolutionMsg = 'Customer bank balance insufficiency. Offer alternative payment options (secondary UPI VPA, cards, or pay-later) immediately upon failure response.';
+      } else {
+        resolutionMsg = `Investigate root-cause response "${topCode}" with upstream banking partners and configure automated routing failover rules to minimize revenue loss.`;
+      }
+
+      list.push({
+        priority: 1,
+        category: 'error_code',
+        tag: 'ROOT CAUSE · failedInfo.responseCode',
+        statusClass: 'status-alert',
+        statusLabel: 'Critical Analysis',
+        title: `Mitigate ${topCode} (${topCodePct}% of all failures)`,
+        desc: `Error analysis of uploaded telemetry confirms <strong>${topCode}</strong> is the primary source of failure, totaling ${topCodeCount} dropped transactions (${topCodePct}% of all failures). ${resolutionMsg}`,
+        impact: `📉 Impact: Recovers ~${formatNumber(Math.round(topErrorCodeEntry[1] * 0.4))} dropped payments`,
+        owner: 'Owner: Checkout SDK & Gateway Ops'
+      });
+    }
 
     // 1. Dynamic PSP Health / Outages Analysis
     const activePsps = pspList.filter(p => p.count > 0);
@@ -1384,7 +1428,27 @@
       return '';
     };
 
-    const merchantId = getVal('merchantId', 'mid', 'MERCHANT_ID', 'merchant_id') || 'MERCH_DEFAULT';
+    // 1. Merchant Identification & Display Name (handles hex IDs like 6880a1c1e1066f594dba492a or user-changed names)
+    let nestedMerchantName = '';
+    if (row.merchant && typeof row.merchant === 'object') {
+      nestedMerchantName = row.merchant.name || row.merchant.businessName || '';
+    }
+    const rawMerchantId = getVal('merchantId', 'mid', 'MERCHANT_ID', 'merchant_id') || 'MERCH_DEFAULT';
+    const rawMerchantName = nestedMerchantName || getVal('merchantName', 'merchant_name', 'merchant', 'businessName', 'name', 'legalEntityCode');
+
+    let merchantName = '';
+    const merchantId = rawMerchantId;
+
+    if (rawMerchantName && !rawMerchantName.startsWith('http') && rawMerchantName !== rawMerchantId) {
+      merchantName = rawMerchantName.replace(/MERCH_|MID_/gi, '').replace(/_/g, ' ').trim();
+    } else {
+      const isHexId = /^[0-9a-fA-F]{16,}$/.test(rawMerchantId);
+      if (isHexId) {
+        merchantName = `Merchant ${rawMerchantId.substring(0, 6)}...${rawMerchantId.substring(rawMerchantId.length - 4)}`;
+      } else {
+        merchantName = rawMerchantId.replace(/MERCH_|MID_/gi, '').replace(/_/g, ' ').trim();
+      }
+    }
 
     const rawStatus = (getVal('status', 'txSubStatus', 'STATUS') || '').toUpperCase();
     const successDateVal = getVal('successDate', 'depositSuccessDate', 'SUCCESSDATE');
@@ -1434,6 +1498,17 @@
     const rawIdentifier = getVal('paymentDetails.payMethodIdentifier', 'paymentDetails.vpa', 'vpa', 'payerVpa', 'handle');
     const upiHandle = extractUpiHandle(rawIdentifier);
 
+    // Error Code Mapping: extract failedInfo.responseCode directly (e.g. USER_DROP_PAYMENT_REQUEST)
+    let nestedResponseCode = '';
+    let nestedFailState = '';
+    if (row.failedInfo && typeof row.failedInfo === 'object') {
+      nestedResponseCode = row.failedInfo.responseCode || '';
+      nestedFailState = row.failedInfo.failedState || '';
+    }
+    const rawResponseCode = nestedResponseCode || getVal('failedInfo.responseCode', 'responseCode', 'failed_response_code', 'failedResponseCode', 'failedinfo.responsecode');
+    const rawFailState = nestedFailState || getVal('failedInfo.failedState', 'failedState', 'remark', 'failedinfo.failedstate');
+    const responseCode = (rawResponseCode || rawFailState || 'USER_DROP_PAYMENT_REQUEST').trim().toUpperCase();
+
     const failState = (failedReasonVal || '').toUpperCase();
     let failCategory = 'timeout';
     if (failState.includes('INSUFFICIENT') || failState.includes('BALANCE')) failCategory = 'insufficient';
@@ -1444,6 +1519,7 @@
     return {
       id: getVal('_id', 'referenceId', 'referenceNo') || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase()),
       merchantId,
+      merchantName,
       customerId: getVal('customerId', 'CUSTOMER_ID'),
       isSuccess,
       amount,
@@ -1454,7 +1530,8 @@
       upiApp,
       upiHandle,
       failCategory,
-      rawFailState: failedReasonVal || 'DECLINED',
+      responseCode: !isSuccess ? responseCode : '',
+      rawFailState: rawResponseCode || rawFailState || 'DECLINED',
       createdDate: getVal('createdDate', 'updatedDate') || new Date().toISOString()
     };
   }
@@ -1503,6 +1580,7 @@
   }
 
   let uploadedFailureCounts = null;
+  let uploadedFailureCodeCounts = null;
 
   function recomputeDashboardFromTransactions(txns) {
     const merchantMap = {};
@@ -1511,15 +1589,16 @@
     const upiHandleMap = {};
     const payMethodMap = {};
     const failCounts = { timeout: 0, insufficient: 0, auth3ds: 0, expired: 0, fraud: 0 };
+    const dynamicFailCodeCounts = {};
 
     txns.forEach(t => {
       // 1. Merchant Aggregation
       if (!merchantMap[t.merchantId]) {
         merchantMap[t.merchantId] = {
           id: t.merchantId,
-          name: t.merchantId.replace(/MERCH_|MID_/gi, '').replace(/_/g, ' '),
+          name: t.merchantName || t.merchantId,
           category: 'Active Merchant',
-          avatar: t.merchantId.substring(0, 2).toUpperCase(),
+          avatar: '',
           totalCount: 0,
           successCount: 0,
           failedCount: 0,
@@ -1527,10 +1606,14 @@
           successAmount: 0,
           failedAmount: 0,
           avgLatency: 28 + Math.floor(Math.random() * 25),
+          failureCodes: {},
           failureReasons: { timeout: 0, insufficient: 0, auth3ds: 0, expired: 0, fraud: 0 }
         };
       }
       const m = merchantMap[t.merchantId];
+      if (t.merchantName && (!m.name || m.name === m.id || /^[0-9a-fA-F]{16,}$/.test(m.name))) {
+        m.name = t.merchantName;
+      }
       m.totalCount += 1;
       m.totalAmount += t.amount;
       if (t.isSuccess) {
@@ -1539,6 +1622,9 @@
       } else {
         m.failedCount += 1;
         m.failedAmount += t.amount;
+        const respCode = (t.responseCode || t.rawFailState || 'USER_DROP_PAYMENT_REQUEST').trim().toUpperCase();
+        m.failureCodes[respCode] = (m.failureCodes[respCode] || 0) + 1;
+        dynamicFailCodeCounts[respCode] = (dynamicFailCodeCounts[respCode] || 0) + 1;
         m.failureReasons[t.failCategory] = (m.failureReasons[t.failCategory] || 0) + 1;
         failCounts[t.failCategory] = (failCounts[t.failCategory] || 0) + 1;
       }
@@ -1546,7 +1632,7 @@
       // 2. PSP Aggregation (paymentDetails.pgProvider)
       const pspKey = t.pgProvider || 'UNKNOWN_PSP';
       if (!pspMap[pspKey]) {
-        pspMap[pspKey] = { id: pspKey, name: pspKey, count: 0, success: 0, failed: 0, amount: 0, successAmt: 0, failedAmt: 0 };
+        pspMap[pspKey] = { id: pspKey, name: pspKey, count: 0, success: 0, failed: 0, amount: 0, successAmt: 0, failedAmt: 0, failureCodes: {} };
       }
       pspMap[pspKey].count += 1;
       pspMap[pspKey].amount += t.amount;
@@ -1556,6 +1642,8 @@
       } else {
         pspMap[pspKey].failed += 1;
         pspMap[pspKey].failedAmt += t.amount;
+        const respCode = (t.responseCode || t.rawFailState || 'USER_DROP_PAYMENT_REQUEST').trim().toUpperCase();
+        pspMap[pspKey].failureCodes[respCode] = (pspMap[pspKey].failureCodes[respCode] || 0) + 1;
       }
 
       // 3. UPI App Aggregation (paymentDetails.upiAppName)
@@ -1636,18 +1724,19 @@
     }
 
     uploadedFailureCounts = failCounts;
+    uploadedFailureCodeCounts = dynamicFailCodeCounts;
 
     // Update Live Stream Feed with actual uploaded rows
     feedItems.length = 0;
     txns.slice(-10).reverse().forEach(t => {
       feedItems.push({
         txnId: t.id,
-        merchantName: t.merchantId,
+        merchantName: t.merchantName || t.merchantId,
         timeStr: t.createdDate.includes('T') ? t.createdDate.split('T')[1].substring(0, 8) : (t.createdDate.split(' ')[1] || '10:00:00'),
         method: t.payMethod + (t.upiHandle ? ' (' + t.upiHandle + ')' : ''),
         amount: t.amount.toFixed(2),
         isSuccess: t.isSuccess,
-        failReason: t.rawFailState
+        failReason: t.responseCode || t.rawFailState
       });
     });
 
@@ -1738,7 +1827,8 @@
     initCharts();
   }
 
-  document.getElementById('resetDataBtn').addEventListener('click', resetToDemo);
+  const resetBtnEl = document.getElementById('resetDataBtn');
+  if (resetBtnEl) resetBtnEl.addEventListener('click', resetToDemo);
 
   const DB_NAME = 'TransactBridgeStorage';
   const DB_VERSION = 1;
@@ -2050,11 +2140,144 @@
     URL.revokeObjectURL(url);
   }
 
-  document.getElementById('downloadSampleBtn').addEventListener('click', downloadSampleTemplate);
-  document.getElementById('downloadSampleInModalBtn').addEventListener('click', downloadSampleTemplate);
+  const dlSampleBtn = document.getElementById('downloadSampleBtn');
+  if (dlSampleBtn) dlSampleBtn.addEventListener('click', downloadSampleTemplate);
+  const dlModalBtn = document.getElementById('downloadSampleInModalBtn');
+  if (dlModalBtn) dlModalBtn.addEventListener('click', downloadSampleTemplate);
+
+  // Timeline Filter State
+  let timelineWindow = 'all'; // 'all', 'peak', 'morning', 'evening', 'night'
+  let timelineBucket = '1h';  // '1h' (default clean bars), '30m', '15m'
+  let timelinePspFilter = 'all'; // 'all' or specific pgProvider
+
+  function updateTimelinePspDropdown() {
+    const sel = document.getElementById('timelinePspSelect');
+    if (!sel) return;
+    const currentVal = sel.value || 'all';
+    sel.innerHTML = '<option value="all">All Gateways</option>';
+
+    const pspSet = new Set();
+    if (pspList && pspList.length > 0) {
+      pspList.forEach(p => { if (p.id || p.name) pspSet.add(p.id || p.name); });
+    }
+    if (currentTransactions && currentTransactions.length > 0) {
+      currentTransactions.forEach(t => { if (t.pgProvider) pspSet.add(t.pgProvider); });
+    }
+    if (pspSet.size === 0) {
+      ['RAZORPAY', 'CASHFREE', 'PAYU', 'PHONEPE', 'PAYTM'].forEach(p => pspSet.add(p));
+    }
+
+    Array.from(pspSet).sort().forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      if (p === currentVal) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  function getTimelineDataset() {
+    let startHour = 0;
+    let endHour = 24;
+    if (timelineWindow === 'peak') { startHour = 12; endHour = 18; }
+    else if (timelineWindow === 'morning') { startHour = 6; endHour = 12; }
+    else if (timelineWindow === 'evening') { startHour = 18; endHour = 24; }
+    else if (timelineWindow === 'night') { startHour = 0; endHour = 6; }
+
+    let stepMinutes = 60;
+    if (timelineBucket === '30m') stepMinutes = 30;
+    else if (timelineBucket === '15m') stepMinutes = 15;
+
+    const bucketMap = {};
+    const orderedLabels = [];
+    for (let h = startHour; h < endHour; h++) {
+      for (let m = 0; m < 60; m += stepMinutes) {
+        const key = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        bucketMap[key] = { label: key, total: 0, success: 0, failed: 0, amount: 0 };
+        orderedLabels.push(key);
+      }
+    }
+
+    if (dataMode === 'uploaded' && currentTransactions && currentTransactions.length > 0) {
+      let matchedCount = 0;
+      currentTransactions.forEach(t => {
+        if (timelinePspFilter !== 'all') {
+          const psp = (t.pgProvider || '').toUpperCase();
+          if (psp !== timelinePspFilter.toUpperCase()) return;
+        }
+
+        let h = 12, m = 0;
+        if (t.createdDate) {
+          const match = t.createdDate.match(/(\d{1,2}):(\d{2})/);
+          if (match) {
+            h = parseInt(match[1], 10);
+            m = parseInt(match[2], 10);
+          }
+        }
+
+        if (h < startHour || h >= endHour) return;
+
+        const slotM = Math.floor(m / stepMinutes) * stepMinutes;
+        const key = `${String(h).padStart(2, '0')}:${String(slotM).padStart(2, '0')}`;
+
+        if (bucketMap[key]) {
+          matchedCount++;
+          bucketMap[key].total += 1;
+          bucketMap[key].amount += (t.amount || 0);
+          if (t.isSuccess) bucketMap[key].success += 1;
+          else bucketMap[key].failed += 1;
+        }
+      });
+
+      const labels = [];
+      const volumeData = [];
+      const rateData = [];
+      const failedData = [];
+
+      orderedLabels.forEach(k => {
+        const b = bucketMap[k];
+        labels.push(b.label);
+        volumeData.push(b.total);
+        failedData.push(b.failed);
+        rateData.push(b.total > 0 ? parseFloat(((b.success / b.total) * 100).toFixed(1)) : 100);
+      });
+
+      return { labels, volumeData, rateData, failedData, isReal: matchedCount > 0 };
+    }
+
+    // Demo simulation mode
+    const labels = [];
+    const volumeData = [];
+    const rateData = [];
+    const failedData = [];
+
+    const totalPoints = orderedLabels.length;
+    const baseAgg = getAggregates().totalCount;
+    const windowRatio = (endHour - startHour) / 24;
+    const baseVol = Math.max(15, (baseAgg * windowRatio) / totalPoints);
+
+    orderedLabels.forEach((label, idx) => {
+      labels.push(label);
+      const [hhStr] = label.split(':');
+      const hh = parseInt(hhStr, 10);
+      const timeCurve = Math.sin(((hh - 6) / 24) * Math.PI * 2);
+      const curveMult = 0.65 + Math.max(0, 0.45 * (1 + timeCurve));
+      const randomNoise = 0.92 + Math.random() * 0.16;
+      const vol = Math.round(baseVol * curveMult * randomNoise);
+      const rate = Math.min(99.2, Math.max(89.5, 94.6 + Math.sin(idx * 0.4) * 2.2 + (Math.random() * 0.6 - 0.3)));
+      const fails = Math.round(vol * (1 - rate / 100));
+
+      volumeData.push(vol);
+      rateData.push(parseFloat(rate.toFixed(1)));
+      failedData.push(fails);
+    });
+
+    return { labels, volumeData, rateData, failedData, isReal: false };
+  }
 
   // Canvas Charts
   function initCharts() {
+    updateTimelinePspDropdown();
     renderTimelineChart();
     renderFailureDonutChart();
     renderPaymentMethodChart();
@@ -2077,76 +2300,21 @@
     const h = rect.height;
     ctx.clearRect(0, 0, w, h);
 
-    const padding = { top: 30, right: 50, bottom: 40, left: 60 };
+    const padding = { top: 28, right: 55, bottom: 42, left: 60 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
 
-    let labels = [];
-    let volumeData = [];
-    let rateData = [];
-
-    // Derive timeline directly from uploaded transactions if in uploaded mode
-    if (dataMode === 'uploaded' && currentTransactions.length > 0) {
-      const bucketMap = {};
-      currentTransactions.forEach(t => {
-        let key = '12:00';
-        if (t.createdDate) {
-          const match = t.createdDate.match(/(\d{1,2}):(\d{2})/);
-          if (match) {
-            const h = match[1].padStart(2, '0');
-            const m = parseInt(match[2], 10);
-            const slot = String(Math.floor(m / 15) * 15).padStart(2, '0');
-            key = `${h}:${slot}`;
-          }
-        }
-        if (!bucketMap[key]) {
-          bucketMap[key] = { label: key, total: 0, success: 0, failed: 0 };
-        }
-        bucketMap[key].total += 1;
-        if (t.isSuccess) bucketMap[key].success += 1;
-        else bucketMap[key].failed += 1;
-      });
-
-      const sortedKeys = Object.keys(bucketMap).sort();
-      if (sortedKeys.length >= 2) {
-        sortedKeys.forEach(k => {
-          const b = bucketMap[k];
-          labels.push(b.label);
-          volumeData.push(b.total);
-          rateData.push(b.total > 0 ? (b.success / b.total) * 100 : 100);
-        });
-      }
-    }
-
-    // Default timeline simulation if not enough uploaded bucket intervals
-    if (labels.length === 0) {
-      labels = currentTimeRange === '15m'
-        ? ['-15m', '-12m', '-10m', '-8m', '-6m', '-5m', '-4m', '-3m', '-2m', '-1m', '-30s', 'Now']
-        : currentTimeRange === '1h'
-        ? ['-60m', '-50m', '-40m', '-30m', '-25m', '-20m', '-15m', '-10m', '-5m', '-3m', '-1m', 'Now']
-        : currentTimeRange === '7d'
-        ? ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Today']
-        : currentTimeRange === '30d'
-        ? ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
-        : ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
-
-      const numPoints = labels.length;
-      const baseVol = Math.max(10, getAggregates().totalCount / numPoints);
-      for (let i = 0; i < numPoints; i++) {
-        const variance = 0.85 + Math.sin(i * 0.7) * 0.25 + (Math.random() * 0.1 - 0.05);
-        const vol = baseVol * variance;
-        const rate = 93.5 + Math.sin(i * 0.5) * 2.2 + (Math.random() * 0.8 - 0.4);
-        volumeData.push(vol);
-        rateData.push(Math.min(99.2, Math.max(90.0, rate)));
-      }
-    }
-
+    const { labels, volumeData, rateData } = getTimelineDataset();
     const numPoints = labels.length;
-    const maxVol = Math.max(1, Math.max(...volumeData) * 1.25);
+    if (numPoints === 0) return;
 
-    ctx.strokeStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#e2ecf5' : '#13395c';
+    const maxVol = Math.max(5, Math.max(...volumeData) * 1.25);
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+    // Grid lines & Left Y-Axis (Volume)
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.07)' : '#e2ecf5';
     ctx.lineWidth = 1;
-    ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#7f99b2' : '#8ca3ba';
+    ctx.fillStyle = isDark ? '#8ca3ba' : '#7f99b2';
     ctx.font = '11px sans-serif';
 
     const yTicks = 4;
@@ -2160,12 +2328,18 @@
       ctx.stroke();
 
       ctx.textAlign = 'right';
-      ctx.fillText(formatNumber(val), padding.left - 8, y + 4);
+      ctx.fillText(formatNumber(Math.round(val)), padding.left - 8, y + 4);
     }
 
-    const barWidth = Math.max(6, (chartW / numPoints) * 0.5);
-    const step = chartW / numPoints;
+    // Determine smart label stepping to eliminate overlap completely
+    const minLabelPx = 46;
+    const maxLabelsThatFit = Math.max(2, Math.floor(chartW / minLabelPx));
+    const labelStep = Math.max(1, Math.ceil(numPoints / maxLabelsThatFit));
 
+    const step = chartW / numPoints;
+    const barWidth = Math.max(4, Math.min(step * 0.72, 32));
+
+    // Render Bars
     volumeData.forEach((vol, idx) => {
       const x = padding.left + step * idx + (step - barWidth) / 2;
       const rate = rateData[idx];
@@ -2174,55 +2348,81 @@
 
       const totalBarH = (vol / maxVol) * chartH;
       const failBarH = (failVol / maxVol) * chartH;
-      const succBarH = totalBarH - failBarH;
+      const succBarH = Math.max(0, totalBarH - failBarH);
 
       const barY = padding.top + chartH - totalBarH;
 
+      // Success section (Green)
       ctx.fillStyle = '#10b981';
       ctx.fillRect(x, barY + failBarH, barWidth, succBarH);
 
-      ctx.fillStyle = '#f43f5e';
-      ctx.fillRect(x, barY, barWidth, failBarH);
+      // Failure section (Red)
+      if (failBarH > 0) {
+        ctx.fillStyle = '#f43f5e';
+        ctx.fillRect(x, barY, barWidth, Math.max(2, failBarH));
+      }
 
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#7f99b2' : '#8ca3ba';
-      ctx.textAlign = 'center';
-      ctx.fillText(labels[idx], x + barWidth / 2, padding.top + chartH + 18);
+      // X-Axis Timestamp Label with intelligent stepping
+      const isSteppedLabel = (idx % labelStep === 0) || (idx === numPoints - 1);
+      if (isSteppedLabel) {
+        ctx.fillStyle = isDark ? '#8ca3ba' : '#64748b';
+        ctx.textAlign = 'center';
+        ctx.font = numPoints > 30 ? '10px sans-serif' : '11px sans-serif';
+        const labelX = padding.left + step * idx + step / 2;
+        ctx.fillText(labels[idx], labelX, padding.top + chartH + 18);
+
+        // Tick mark
+        ctx.beginPath();
+        ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.18)' : '#cbd5e1';
+        ctx.moveTo(labelX, padding.top + chartH);
+        ctx.lineTo(labelX, padding.top + chartH + 4);
+        ctx.stroke();
+      }
     });
+
+    // Right Y-Axis & Success Rate Line
+    const rateMin = 80;
+    const rateMax = 100;
 
     ctx.beginPath();
     ctx.strokeStyle = '#007aff';
-    ctx.lineWidth = 3;
-
-    const rateMin = 85;
-    const rateMax = 100;
+    ctx.lineWidth = 2.5;
 
     rateData.forEach((rate, idx) => {
       const x = padding.left + step * idx + step / 2;
-      const y = padding.top + chartH - ((rate - rateMin) / (rateMax - rateMin)) * chartH;
+      const clampedRate = Math.min(rateMax, Math.max(rateMin, rate));
+      const y = padding.top + chartH - ((clampedRate - rateMin) / (rateMax - rateMin)) * chartH;
       if (idx === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
     ctx.stroke();
 
-    rateData.forEach((rate, idx) => {
-      const x = padding.left + step * idx + step / 2;
-      const y = padding.top + chartH - ((rate - rateMin) / (rateMax - rateMin)) * chartH;
+    // Data points on the line (only if not overcrowded)
+    if (numPoints <= 36) {
+      rateData.forEach((rate, idx) => {
+        const x = padding.left + step * idx + step / 2;
+        const clampedRate = Math.min(rateMax, Math.max(rateMin, rate));
+        const y = padding.top + chartH - ((clampedRate - rateMin) / (rateMax - rateMin)) * chartH;
 
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#007aff';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    });
+        ctx.beginPath();
+        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#007aff';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
 
+    // Right Y-Axis labels (SR %)
     ctx.textAlign = 'left';
     ctx.fillStyle = '#007aff';
-    ctx.fillText('100%', padding.left + chartW + 8, padding.top + 8);
-    ctx.fillText('95%', padding.left + chartW + 8, padding.top + chartH * 0.33);
-    ctx.fillText('90%', padding.left + chartW + 8, padding.top + chartH * 0.66);
-    ctx.fillText('85%', padding.left + chartW + 8, padding.top + chartH);
+    ctx.font = '10px sans-serif';
+    ctx.fillText('100%', padding.left + chartW + 8, padding.top + 6);
+    ctx.fillText('95%', padding.left + chartW + 8, padding.top + chartH * 0.25);
+    ctx.fillText('90%', padding.left + chartW + 8, padding.top + chartH * 0.5);
+    ctx.fillText('85%', padding.left + chartW + 8, padding.top + chartH * 0.75);
+    ctx.fillText('80%', padding.left + chartW + 8, padding.top + chartH);
   }
 
   function renderFailureDonutChart() {
@@ -2240,31 +2440,29 @@
     const h = rect.height;
     ctx.clearRect(0, 0, w, h);
 
-    const centerX = w * 0.35;
+    const centerX = w * 0.32;
     const centerY = h * 0.5;
-    const outerRadius = Math.min(centerX, centerY) * 0.75;
-    const innerRadius = outerRadius * 0.55;
+    const outerRadius = Math.min(centerX, centerY) * 0.78;
+    const innerRadius = outerRadius * 0.56;
 
-    const totals = { timeout: 0, insufficient: 0, auth3ds: 0, expired: 0, fraud: 0 };
-    let sum = 0;
-
-    if (dataMode === 'uploaded' && uploadedFailureCounts) {
-      Object.keys(totals).forEach(k => {
-        totals[k] = uploadedFailureCounts[k] || 0;
-        sum += totals[k];
-      });
+    // Collect response code counts
+    const codeMap = {};
+    if (dataMode === 'uploaded' && uploadedFailureCodeCounts && Object.keys(uploadedFailureCodeCounts).length > 0) {
+      Object.assign(codeMap, uploadedFailureCodeCounts);
     } else {
-      merchants.forEach(m => {
-        Object.keys(totals).forEach(k => {
-          const val = (m.failedCount || 1) * ((m.failureReasons && m.failureReasons[k]) || 20);
-          totals[k] += val;
-          sum += val;
-        });
-      });
+      // Demo simulated response codes
+      const demoFails = getAggregates().failedCount || 1240;
+      codeMap['USER_DROP_PAYMENT_REQUEST'] = Math.round(demoFails * 0.42);
+      codeMap['ISSUER_TIMEOUT'] = Math.round(demoFails * 0.28);
+      codeMap['INSUFFICIENT_FUNDS'] = Math.round(demoFails * 0.16);
+      codeMap['AUTHENTICATION_FAILED'] = Math.round(demoFails * 0.09);
+      codeMap['PAYMENT_EXPIRED'] = Math.max(1, demoFails - Object.values(codeMap).reduce((a,b)=>a+b, 0));
     }
 
-    if (sum === 0) {
-      // Show optimal state if no failures
+    const sortedEntries = Object.entries(codeMap).sort((a, b) => b[1] - a[1]);
+    const totalFailures = sortedEntries.reduce((acc, [, val]) => acc + val, 0);
+
+    if (totalFailures === 0) {
       ctx.beginPath();
       ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
       ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true);
@@ -2275,53 +2473,115 @@
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 13px sans-serif';
-      ctx.fillText('100% HEALTH', centerX, centerY);
+      ctx.fillText('100% SUCCESS', centerX, centerY);
       return;
     }
 
+    // Top 5 error codes + Others
+    const topLimit = 5;
+    const slices = [];
+    const colors = ['#f43f5e', '#f59e0b', '#007aff', '#8b5cf6', '#00d2ff', '#ec4899', '#64748b'];
+
+    let otherSum = 0;
+    sortedEntries.forEach(([code, count], idx) => {
+      if (idx < topLimit) {
+        slices.push({ code, count, color: colors[idx % colors.length] });
+      } else {
+        otherSum += count;
+      }
+    });
+    if (otherSum > 0) {
+      slices.push({ code: 'OTHER_ERROR_CODES', count: otherSum, color: colors[colors.length - 1] });
+    }
+
+    // Render Donut Slices
     let currentAngle = -Math.PI / 2;
-
-    Object.entries(totals).forEach(([key, val]) => {
-      if (val === 0) return;
-      const sliceAngle = (val / sum) * Math.PI * 2;
-      const info = FAILURE_TYPES[key];
-
+    slices.forEach(s => {
+      const sliceAngle = (s.count / totalFailures) * Math.PI * 2;
       ctx.beginPath();
       ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + sliceAngle);
       ctx.arc(centerX, centerY, innerRadius, currentAngle + sliceAngle, currentAngle, true);
       ctx.closePath();
-
-      ctx.fillStyle = info.color;
+      ctx.fillStyle = s.color;
       ctx.fill();
-
       currentAngle += sliceAngle;
     });
 
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+    // Donut Center Text
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#001626' : '#ffffff';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.fillText('DROP-OFF', centerX, centerY - 8);
-    ctx.font = '11px sans-serif';
-    ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#7f99b2' : '#8ca3ba';
-    ctx.fillText('Attribution', centerX, centerY + 10);
+    ctx.fillStyle = isDark ? '#ffffff' : '#001626';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText(formatNumber(totalFailures), centerX, centerY - 8);
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = isDark ? '#8ca3ba' : '#7f99b2';
+    ctx.fillText('Failed Txns', centerX, centerY + 9);
 
-    const legendX = w * 0.65;
-    let legendY = h * 0.18;
+    // Legend on Right
+    const legendX = w * 0.58;
+    const itemHeight = Math.min(30, (h - 20) / slices.length);
+    let legendY = Math.max(16, (h - (slices.length * itemHeight)) / 2 + 8);
+
     ctx.textAlign = 'left';
-    ctx.font = '12px sans-serif';
+    ctx.textBaseline = 'alphabetic';
 
-    Object.entries(totals).forEach(([key, val]) => {
-      const info = FAILURE_TYPES[key];
-      const pct = ((val / sum) * 100).toFixed(1);
+    slices.forEach(s => {
+      const pct = ((s.count / totalFailures) * 100).toFixed(1);
 
-      ctx.fillStyle = info.color;
-      ctx.fillRect(legendX, legendY, 10, 10);
+      // Color badge
+      ctx.fillStyle = s.color;
+      ctx.beginPath();
+      ctx.arc(legendX + 5, legendY + 5, 4.5, 0, Math.PI * 2);
+      ctx.fill();
 
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#001626' : '#f0f6fc';
-      ctx.fillText(`${pct}% ${info.label}`, legendX + 16, legendY + 9);
+      // Label text
+      ctx.fillStyle = isDark ? '#f0f6fc' : '#001626';
+      ctx.font = 'bold 11px sans-serif';
 
-      legendY += 28;
+      // Truncate code if too wide
+      let dispCode = s.code;
+      const maxTextWidth = w - legendX - 75;
+      while (ctx.measureText(dispCode).width > maxTextWidth && dispCode.length > 8) {
+        dispCode = dispCode.substring(0, dispCode.length - 4) + '...';
+      }
+
+      ctx.fillText(`${pct}% ${dispCode}`, legendX + 15, legendY + 7);
+
+      // Count badge
+      ctx.font = '10px sans-serif';
+      ctx.fillStyle = isDark ? '#8ca3ba' : '#64748b';
+      ctx.fillText(`(${formatNumber(s.count)})`, legendX + 15, legendY + 19);
+
+      legendY += itemHeight;
+    });
+  }
+
+  // Timeline Filter Event Listeners
+  document.querySelectorAll('.timeline-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.timeline-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      timelineWindow = btn.getAttribute('data-twindow') || 'all';
+      renderTimelineChart();
+    });
+  });
+
+  document.querySelectorAll('.timeline-bucket-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.timeline-bucket-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      timelineBucket = btn.getAttribute('data-tbucket') || '1h';
+      renderTimelineChart();
+    });
+  });
+
+  const timelinePspSelect = document.getElementById('timelinePspSelect');
+  if (timelinePspSelect) {
+    timelinePspSelect.addEventListener('change', () => {
+      timelinePspFilter = timelinePspSelect.value || 'all';
+      renderTimelineChart();
     });
   }
 
