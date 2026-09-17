@@ -1311,6 +1311,11 @@
   // In-Browser Robust Parser for 83-Column Schema
   // ==========================================
   function parseCSV(text) {
+    if (!text || typeof text !== 'string') return [];
+    // Strip UTF-8 BOM if present from Excel exports
+    text = text.replace(/^\uFEFF/, '').trim();
+    if (!text) return [];
+
     const firstLine = text.split('\n')[0];
     let delimiter = ',';
     if (firstLine.includes('\t')) delimiter = '\t';
@@ -1319,7 +1324,7 @@
     const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
     if (lines.length < 2) return [];
 
-    const headers = splitLine(lines[0], delimiter).map(h => h.trim());
+    const headers = splitLine(lines[0], delimiter).map(h => h.trim().replace(/^["']|["']$/g, ''));
     const rows = [];
 
     for (let i = 1; i < lines.length; i++) {
@@ -1327,7 +1332,7 @@
       if (values.length === 0) continue;
       const obj = {};
       headers.forEach((h, idx) => {
-        obj[h] = values[idx] !== undefined ? values[idx].trim() : '';
+        obj[h] = values[idx] !== undefined ? values[idx].trim().replace(/^["']|["']$/g, '') : '';
       });
       rows.push(obj);
     }
@@ -1359,12 +1364,36 @@
   }
 
   function normalizeRow(row) {
-    const merchantId = row.merchantId || row.mid || 'MERCH_DEFAULT';
+    // Clean keys for flexible case-insensitive lookup
+    const clean = {};
+    for (const k in row) {
+      if (Object.prototype.hasOwnProperty.call(row, k)) {
+        clean[k.trim()] = row[k];
+        clean[k.trim().toLowerCase()] = row[k];
+      }
+    }
+    const getVal = (...keys) => {
+      for (const k of keys) {
+        if (clean[k] !== undefined && clean[k] !== null && String(clean[k]).trim() !== '') {
+          return String(clean[k]).trim();
+        }
+        if (clean[k.toLowerCase()] !== undefined && clean[k.toLowerCase()] !== null && String(clean[k.toLowerCase()]).trim() !== '') {
+          return String(clean[k.toLowerCase()]).trim();
+        }
+      }
+      return '';
+    };
 
-    const rawStatus = (row.status || row.txSubStatus || '').toUpperCase();
-    const hasSuccessDate = Boolean(row.successDate && row.successDate.trim() !== '');
-    const hasFailedDate = Boolean(row.failedDate && row.failedDate.trim() !== '');
-    const hasFailedReason = Boolean((row['failedInfo.failedState'] || row['failedInfo.responseCode'] || '').trim() !== '');
+    const merchantId = getVal('merchantId', 'mid', 'MERCHANT_ID', 'merchant_id') || 'MERCH_DEFAULT';
+
+    const rawStatus = (getVal('status', 'txSubStatus', 'STATUS') || '').toUpperCase();
+    const successDateVal = getVal('successDate', 'depositSuccessDate', 'SUCCESSDATE');
+    const failedDateVal = getVal('failedDate', 'FAILEDDATE');
+    const failedReasonVal = getVal('failedInfo.failedState', 'failedInfo.responseCode', 'remark', 'FAILEDREASON');
+
+    const hasSuccessDate = Boolean(successDateVal !== '');
+    const hasFailedDate = Boolean(failedDateVal !== '');
+    const hasFailedReason = Boolean(failedReasonVal !== '');
 
     let isSuccess = false;
     if (rawStatus === 'SUCCESS' || rawStatus === 'SETTLED' || rawStatus === 'COMPLETED' || rawStatus === 'CHARGED' || rawStatus === 'PAID' || hasSuccessDate) {
@@ -1372,25 +1401,26 @@
     } else if (rawStatus === 'FAILED' || rawStatus === 'DECLINED' || rawStatus === 'DROPPED' || rawStatus === 'REJECTED' || hasFailedDate || hasFailedReason) {
       isSuccess = false;
     } else {
-      isSuccess = row.code === '00' || row.code === 'SUCCESS';
+      const codeVal = getVal('code', 'responseCode', 'CODE');
+      isSuccess = codeVal === '00' || codeVal === 'SUCCESS';
     }
 
-    let amtStr = row.totalAmount || row.amount || row.quoteAmount || row.quoteAmt || row.settleAmount || '0';
+    let amtStr = getVal('totalAmount', 'amount', 'quoteAmount', 'quoteAmt', 'settleAmount') || '0';
     if (typeof amtStr === 'string') {
       amtStr = amtStr.replace(/[^0-9.-]+/g, '');
     }
     const amount = parseFloat(amtStr) || 0;
 
-    const payMethod = row['paymentDetails.payMethod'] || row['paymentDetails.payMethodGroup'] || row['paymentDetails.upiChannel'] || 'UPI';
-    const bankName = row['paymentDetails.BankName'] || row['paymentDetails.CardName'] || '';
+    const payMethod = getVal('paymentDetails.payMethod', 'paymentDetails.payMethodGroup', 'paymentDetails.upiChannel', 'payMethod') || 'UPI';
+    const bankName = getVal('paymentDetails.BankName', 'paymentDetails.CardName', 'bankName');
 
     // Payment Provider (PSP)
-    const pgProvider = (row['paymentDetails.pgProvider'] || row['paymentDetails.pgCode'] || row.pgProvider || row.gateway || 'UNKNOWN_PSP').toUpperCase().trim();
+    const pgProvider = (getVal('paymentDetails.pgProvider', 'paymentDetails.pgCode', 'pgProvider', 'gateway') || 'UNKNOWN_PSP').toUpperCase().trim();
 
     // UPI App
-    let upiApp = (row['paymentDetails.upiAppName'] || row['paymentDetails.upiChannel'] || row.upiAppName || '').trim();
+    let upiApp = (getVal('paymentDetails.upiAppName', 'paymentDetails.upiChannel', 'upiAppName') || '').trim();
     if (!upiApp) {
-      const vpa = (row['paymentDetails.payMethodIdentifier'] || row['paymentDetails.vpa'] || row.vpa || row.payerVpa || '').toLowerCase();
+      const vpa = (getVal('paymentDetails.payMethodIdentifier', 'paymentDetails.vpa', 'vpa', 'payerVpa') || '').toLowerCase();
       if (vpa.includes('@ybl') || vpa.includes('@ibl') || vpa.includes('@axl')) upiApp = 'PhonePe';
       else if (vpa.includes('@ok')) upiApp = 'Google Pay';
       else if (vpa.includes('@paytm')) upiApp = 'Paytm';
@@ -1401,10 +1431,10 @@
     }
 
     // UPI Handle (after @ in paymentDetails.payMethodIdentifier)
-    const rawIdentifier = row['paymentDetails.payMethodIdentifier'] || row['paymentDetails.vpa'] || row.vpa || row.payerVpa || row.handle || '';
+    const rawIdentifier = getVal('paymentDetails.payMethodIdentifier', 'paymentDetails.vpa', 'vpa', 'payerVpa', 'handle');
     const upiHandle = extractUpiHandle(rawIdentifier);
 
-    const failState = (row['failedInfo.failedState'] || row['failedInfo.responseCode'] || row.remark || '').toUpperCase();
+    const failState = (failedReasonVal || '').toUpperCase();
     let failCategory = 'timeout';
     if (failState.includes('INSUFFICIENT') || failState.includes('BALANCE')) failCategory = 'insufficient';
     else if (failState.includes('3DS') || failState.includes('OTP') || failState.includes('PIN')) failCategory = 'auth3ds';
@@ -1412,20 +1442,20 @@
     else if (failState.includes('FRAUD') || failState.includes('RISK') || failState.includes('BANNED')) failCategory = 'fraud';
 
     return {
-      id: row._id || row.referenceId || row.referenceNo || 'TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
+      id: getVal('_id', 'referenceId', 'referenceNo') || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase()),
       merchantId,
-      customerId: row.customerId || '',
+      customerId: getVal('customerId', 'CUSTOMER_ID'),
       isSuccess,
       amount,
-      currency: row.currId || row.quoteCurrCode || 'INR',
+      currency: getVal('currId', 'quoteCurrCode') || 'INR',
       payMethod,
       bankName,
       pgProvider,
       upiApp,
       upiHandle,
       failCategory,
-      rawFailState: row['failedInfo.failedState'] || row['failedInfo.responseCode'] || row.remark || 'DECLINED',
-      createdDate: row.createdDate || row.updatedDate || new Date().toISOString()
+      rawFailState: failedReasonVal || 'DECLINED',
+      createdDate: getVal('createdDate', 'updatedDate') || new Date().toISOString()
     };
   }
 
@@ -1435,35 +1465,41 @@
       return;
     }
 
-    const normalized = rawRows.map(normalizeRow);
+    try {
+      const normalized = rawRows.map(normalizeRow);
 
-    const batchObj = {
-      id: 'batch_' + Date.now(),
-      name: batchName || `Batch ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-      uploadedAt: new Date().toISOString(),
-      count: normalized.length,
-      transactions: normalized
-    };
+      const batchObj = {
+        id: 'batch_' + Date.now(),
+        name: batchName || `Batch ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        uploadedAt: new Date().toISOString(),
+        count: normalized.length,
+        transactions: normalized
+      };
 
-    if (mode === 'replace') {
-      uploadedBatches = [batchObj];
-      currentTransactions = normalized;
-    } else {
-      uploadedBatches.push(batchObj);
-      currentTransactions = currentTransactions.concat(normalized);
+      if (mode === 'replace') {
+        uploadedBatches = [batchObj];
+        currentTransactions = normalized;
+      } else {
+        uploadedBatches.push(batchObj);
+        currentTransactions = currentTransactions.concat(normalized);
+      }
+
+      saveBatchesToStorage();
+
+      dataMode = 'uploaded';
+      activeBatchId = 'all';
+
+      recomputeDashboardFromTransactions(currentTransactions);
+      updateStatusBanner();
+      updateBatchSelector();
+      stopSimulation();
+
+      closeUploadModal();
+      showToast(`✅ Successfully ingested ${normalized.length} transactions into "${batchObj.name}"!`);
+    } catch (err) {
+      console.error('Ingestion failed:', err);
+      alert('Error during data processing: ' + err.message);
     }
-
-    saveBatchesToStorage();
-
-    dataMode = 'uploaded';
-    activeBatchId = 'all';
-
-    recomputeDashboardFromTransactions(currentTransactions);
-    updateStatusBanner();
-    updateBatchSelector();
-    stopSimulation();
-
-    document.getElementById('uploadModal').classList.remove('active');
   }
 
   let uploadedFailureCounts = null;
@@ -1623,29 +1659,61 @@
     renderFeed();
   }
 
+  function showToast(message) {
+    let toast = document.getElementById('dashboardToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'dashboardToast';
+      toast.className = 'dashboard-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('visible');
+    setTimeout(() => {
+      toast.classList.remove('visible');
+    }, 3800);
+  }
+
   function updateStatusBanner() {
     const tag = document.getElementById('dataModeTag');
     const msg = document.getElementById('dataStatusMessage');
     const resetBtn = document.getElementById('resetDataBtn');
     const liveBadge = document.getElementById('gatewayLiveBadge');
+    const feedModeLabel = document.getElementById('feedModeLabel');
 
     if (dataMode === 'uploaded') {
-      tag.className = 'data-status-tag tag-uploaded';
-      tag.textContent = 'Live Uploaded Data';
+      if (tag) {
+        tag.className = 'data-status-tag tag-uploaded';
+        tag.textContent = 'Live Uploaded Data';
+      }
       const activeName = (uploadedBatches && uploadedBatches[uploadedBatches.length - 1]?.name) || 'Current Dataset';
-      msg.innerHTML = `✅ Viewing <strong>${currentTransactions.length} ingested transactions</strong> (${activeName}). All KPIs, Routing Reports &amp; Recommendations are displaying this uploaded data.`;
-      resetBtn.style.display = 'inline-block';
-      liveBadge.className = 'badge-pill badge-upload-mode';
-      liveBadge.innerHTML = '<span>📁</span> File Active';
-      document.getElementById('feedModeLabel').textContent = 'Displaying transactions from uploaded file';
+      if (msg) {
+        msg.innerHTML = `✅ Viewing <strong>${currentTransactions.length} ingested transactions</strong> (${activeName}). All KPIs, Routing Reports &amp; Recommendations are displaying this uploaded data.`;
+      }
+      if (resetBtn) resetBtn.style.display = 'inline-block';
+      if (liveBadge) {
+        liveBadge.className = 'badge-pill badge-upload-mode';
+        liveBadge.innerHTML = '<span>📁</span> File Active';
+      }
+      if (feedModeLabel) {
+        feedModeLabel.textContent = 'Displaying transactions from uploaded file';
+      }
     } else {
-      tag.className = 'data-status-tag tag-simulated';
-      tag.textContent = 'Demo Mode';
-      msg.innerHTML = `Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest your Excel (.xlsx) or CSV file.`;
-      resetBtn.style.display = 'none';
-      liveBadge.className = 'badge-pill badge-live';
-      liveBadge.innerHTML = '<span class="pulse-dot"></span> Live Gateway';
-      document.getElementById('feedModeLabel').textContent = 'Displaying simulated real-time gateway pipeline';
+      if (tag) {
+        tag.className = 'data-status-tag tag-simulated';
+        tag.textContent = 'Demo Mode';
+      }
+      if (msg) {
+        msg.innerHTML = `Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest your Excel (.xlsx) or CSV file.`;
+      }
+      if (resetBtn) resetBtn.style.display = 'none';
+      if (liveBadge) {
+        liveBadge.className = 'badge-pill badge-live';
+        liveBadge.innerHTML = '<span class="pulse-dot"></span> Live Gateway';
+      }
+      if (feedModeLabel) {
+        feedModeLabel.textContent = 'Displaying simulated real-time gateway pipeline';
+      }
     }
   }
 
@@ -1841,7 +1909,9 @@
     uploadModal.classList.remove('active');
     loadedFileContent = null;
     selectedFileInfo.textContent = '';
-    document.getElementById('pasteTextarea').value = '';
+    const pasteArea = document.getElementById('pasteTextarea');
+    if (pasteArea) pasteArea.value = '';
+    if (fileInput) fileInput.value = '';
   }
 
   uploadModalCloseBtn.addEventListener('click', closeUploadModal);
@@ -1855,6 +1925,13 @@
       const tabId = btn.getAttribute('data-tab');
       document.getElementById(tabId).style.display = 'block';
     });
+  });
+
+  // Clicking anywhere on dropzone triggers file picker
+  dropzone.addEventListener('click', (e) => {
+    if (e.target !== fileInput) {
+      fileInput.click();
+    }
   });
 
   ['dragenter', 'dragover'].forEach(eventName => {
@@ -1921,25 +1998,41 @@
   }
 
   processUploadBtn.addEventListener('click', () => {
-    const activeTab = document.querySelector('.modal-tab-btn.active').getAttribute('data-tab');
-    const batchLabel = document.getElementById('batchLabelInput').value.trim() || `Hour ${new Date().toLocaleTimeString()}`;
-    const mode = document.getElementById('ingestModeSelect').value;
+    const activeTabBtn = document.querySelector('.modal-tab-btn.active');
+    const activeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : 'tab-file';
+    const batchLabelInput = document.getElementById('batchLabelInput');
+    const batchLabel = (batchLabelInput && batchLabelInput.value.trim()) || `Hour ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const modeSelect = document.getElementById('ingestModeSelect');
+    const mode = modeSelect ? modeSelect.value : 'replace';
 
     let rowsToIngest = [];
 
     if (activeTab === 'tab-paste') {
-      const pasted = document.getElementById('pasteTextarea').value.trim();
+      const pasteArea = document.getElementById('pasteTextarea');
+      const pasted = pasteArea ? pasteArea.value.trim() : '';
       if (!pasted) {
-        alert('Please paste copied Excel cells into the box.');
-        return;
+        if (loadedFileContent && loadedFileContent.length > 0) {
+          rowsToIngest = loadedFileContent;
+        } else {
+          alert('Please paste copied Excel cells into the box or switch to the Upload tab to choose a file.');
+          return;
+        }
+      } else {
+        rowsToIngest = parseCSV(pasted);
       }
-      rowsToIngest = parseCSV(pasted);
     } else {
       if (!loadedFileContent || loadedFileContent.length === 0) {
-        alert('Please select an Excel or CSV file first.');
-        return;
+        const pasteArea = document.getElementById('pasteTextarea');
+        const pasted = pasteArea ? pasteArea.value.trim() : '';
+        if (pasted) {
+          rowsToIngest = parseCSV(pasted);
+        } else {
+          alert('Please select an Excel (.xlsx, .xls) or CSV file first, or paste copied cells.');
+          return;
+        }
+      } else {
+        rowsToIngest = loadedFileContent;
       }
-      rowsToIngest = loadedFileContent;
     }
 
     ingestTransactions(rowsToIngest, batchLabel, mode);
