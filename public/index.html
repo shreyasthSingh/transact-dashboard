@@ -190,30 +190,54 @@
           </div>
         </div>
 
-        <!-- 7. Failed Amount -->
+        <!-- 7. Revenue at Risk (Failed Volume) -->
         <div class="kpi-card failed-theme">
           <div class="kpi-top">
-            <span class="kpi-label">Failed Amount</span>
+            <span class="kpi-label">Revenue at Risk</span>
             <div class="kpi-icon-wrap">⚠️</div>
           </div>
           <div class="kpi-value text-failed" id="kpiFailedAmount">₹0.00</div>
           <div class="kpi-footer">
             <span id="kpiFailedAmtShare">0% uncollected</span>
-            <span class="kpi-badge down">Drop-off</span>
+            <span class="kpi-badge down">Failed Volume</span>
           </div>
         </div>
 
-        <!-- 8. Average Transaction Value -->
-        <div class="kpi-card">
+        <!-- 8. Recoverable Routing Opportunity -->
+        <div class="kpi-card opportunity-theme">
           <div class="kpi-top">
-            <span class="kpi-label">Avg Transaction Value</span>
-            <div class="kpi-icon-wrap">📈</div>
+            <span class="kpi-label">Recoverable Volume</span>
+            <div class="kpi-icon-wrap">💡</div>
           </div>
-          <div class="kpi-value" id="kpiAvgTicket">₹0.00</div>
+          <div class="kpi-value text-accent" id="kpiRecoverableVolume">₹0.00</div>
           <div class="kpi-footer">
-            <span id="kpiMerchCount">Merchants Active</span>
-            <span class="kpi-badge neutral">Ticket Size</span>
+            <span id="kpiRecoverableShare">via Smart Re-routing</span>
+            <span class="kpi-badge up">Uplift Opportunity</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Keyholder Strategic Intelligence Strip -->
+      <div class="executive-insights-bar">
+        <div class="exec-insight-item">
+          <span class="exec-dot green"></span>
+          <span class="exec-title">Systemic Health:</span>
+          <span class="exec-val" id="execHealthStatus">Optimal Gateway Throughput</span>
+        </div>
+        <div class="exec-insight-item">
+          <span class="exec-dot red"></span>
+          <span class="exec-title">Failure Split:</span>
+          <span class="exec-val" id="execFailureSplit">58.4% Bank/PSP Downtime (Resolvable) vs 41.6% User Decline</span>
+        </div>
+        <div class="exec-insight-item">
+          <span class="exec-dot blue"></span>
+          <span class="exec-title">Top Converting Route:</span>
+          <span class="exec-val" id="execTopRoute">Razorpay + @paytm (96.4% SR)</span>
+        </div>
+        <div class="exec-insight-item">
+          <span class="exec-dot amber"></span>
+          <span class="exec-title">Prioritized Action Items:</span>
+          <span class="exec-val" id="execActionItemCount">4 Strategic Recommendations</span>
         </div>
       </div>
     </section>
@@ -274,15 +298,16 @@
           </div>
         </div>
 
-        <!-- Top Merchants By Processing Volume -->
+        <!-- Smart Routing Conversion Matrix (Gateway vs Handle Uplift) -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">
-              <span>🏆</span> Top Merchants by Gross Volume
+              <span>⚡</span> Smart Routing Benchmark (Gateway Uplift Delta)
             </h3>
+            <span style="font-size: 0.75rem; color: var(--accent-cyan);">Keyholder Intelligence</span>
           </div>
           <div class="canvas-container" style="min-height: 220px;">
-            <canvas id="merchantRankChart"></canvas>
+            <canvas id="routingBenchmarkChart"></canvas>
           </div>
         </div>
       </div>
@@ -356,10 +381,12 @@
                 <th data-asort="successCount">Success Count</th>
                 <th data-asort="failedCount">Failed Count</th>
                 <th data-asort="successRate" class="sorted-desc">Success Rate %</th>
+                <th data-asort="failedRate">Failed %</th>
                 <th data-asort="totalAmount">Total Amount</th>
                 <th data-asort="successAmount">Success Amount</th>
                 <th data-asort="failedAmount">Failed Amount</th>
                 <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="analysisTableBody">
@@ -371,53 +398,34 @@
     </section>
 
 
-    <!-- Merchant-Wise Monitoring Section -->
-    <section class="merchant-section">
-      <div class="table-toolbar">
-        <div class="table-title-area">
-          <h3 class="table-title">🏢 Merchant-Wise Performance &amp; Settlement</h3>
-          <span class="table-count-badge" id="merchantTotalBadge">12 Merchants</span>
+    <!-- Executive Recommendations Section (Prioritized Strategic Next Steps) -->
+    <section class="recommendations-section">
+      <div class="section-header-row">
+        <div>
+          <h2 class="section-title">
+            <span class="section-title-icon">🎯</span> Recommendations
+          </h2>
+          <p class="section-subtitle">
+            Suggested next steps based on the patterns above, for engineering, PSP relationship, and product owners to prioritize.
+          </p>
         </div>
-
-        <div class="table-filters">
-          <!-- Search Input -->
-          <div class="search-input-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="merchantSearch" class="search-input" placeholder="Search merchantId or category...">
+        <div class="rec-actions">
+          <div class="filter-pills" id="recFilterGroup">
+            <button class="rec-filter-btn active" data-rf="all">All</button>
+            <button class="rec-filter-btn" data-rf="psp">PSP Health</button>
+            <button class="rec-filter-btn" data-rf="app">App Failure</button>
+            <button class="rec-filter-btn" data-rf="routing">Routing</button>
+            <button class="rec-filter-btn" data-rf="quality">Data Quality</button>
           </div>
-
-          <!-- Status Filter Pills -->
-          <div class="filter-pills">
-            <button class="filter-pill-btn active" data-filter="all">All</button>
-            <button class="filter-pill-btn" data-filter="healthy">&gt;95% Healthy</button>
-            <button class="filter-pill-btn" data-filter="warning">90-95% Watch</button>
-            <button class="filter-pill-btn" data-filter="alert">&lt;90% Degraded</button>
-          </div>
+          <button class="btn-action btn-primary" id="exportRecsBtn" title="Export Action Items as Report">
+            <span>📋</span> Export Action Items
+          </button>
         </div>
       </div>
 
-      <!-- Data Table -->
-      <div class="table-wrapper">
-        <table class="data-table" id="merchantTable">
-          <thead>
-            <tr>
-              <th data-sort="name">Merchant (merchantId)</th>
-              <th data-sort="totalCount">Total Txns</th>
-              <th data-sort="successCount">Success Count</th>
-              <th data-sort="failedCount">Failed Count</th>
-              <th data-sort="successRate" class="sorted-desc">Success Rate %</th>
-              <th data-sort="totalAmount">Total Amount</th>
-              <th data-sort="successAmount">Success Amount</th>
-              <th data-sort="failedAmount">Failed Amount</th>
-              <th data-sort="avgLatency">Latency</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="merchantTableBody">
-            <!-- Populated dynamically by app.js -->
-          </tbody>
-        </table>
+      <!-- Dynamic & Prioritized Recommendations Container -->
+      <div class="recommendations-list" id="recommendationsList">
+        <!-- Rendered dynamically by app.js matching Screenshot 2 -->
       </div>
     </section>
 
@@ -543,13 +551,13 @@
         <div class="upload-options-row">
           <div style="flex: 1; min-width: 200px;">
             <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Batch Label</label>
-            <input type="text" id="batchLabelInput" class="input-field" placeholder="e.g. Hour 11:00 - 12:00 | 17-Sep">
+            <input type="text" id="batchLabelInput" class="input-field" placeholder="e.g. Hourly Transactions (11:00 - 12:00)">
           </div>
-          <div style="min-width: 180px;">
-            <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Ingestion Mode</label>
+          <div style="min-width: 220px;">
+            <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Ingestion Scope</label>
             <select id="ingestModeSelect" class="input-field" style="height: 38px;">
-              <option value="append" selected>Append to today's data</option>
-              <option value="replace">Replace all current data</option>
+              <option value="replace" selected>⚡ Show only this data across everything</option>
+              <option value="append">Append to existing uploaded batches</option>
             </select>
           </div>
         </div>
@@ -561,7 +569,7 @@
           <div style="display: flex; gap: 8px;">
             <button class="btn-action" id="cancelUploadBtn">Cancel</button>
             <button class="btn-action btn-primary" id="processUploadBtn">
-              Process &amp; Ingest Batch
+              ⚡ Ingest &amp; Show in Everything
             </button>
           </div>
         </div>
@@ -570,17 +578,24 @@
     </div>
   </div>
 
-  <!-- Merchant Drill-Down Modal -->
-  <div class="modal-overlay" id="merchantModal">
-    <div class="modal-card">
+  <!-- Detailed Entity Diagnostics & Inspection Modal -->
+  <div class="modal-overlay" id="analysisInspectModal">
+    <div class="modal-card" style="max-width: 680px;">
       <div class="modal-header">
-        <h3 class="modal-title" id="modalMerchantTitle">
-          <span>🏢</span> Merchant Deep-Dive
-        </h3>
-        <button class="modal-close-btn" id="modalCloseBtn">&times;</button>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="inspectModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px;">🔍</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="modal-title" id="inspectModalTitle" style="margin: 0; font-size: 1.2rem;">Entity Deep Dive</h3>
+              <span id="inspectModalBadge" class="status-chip healthy">Optimal</span>
+            </div>
+            <div id="inspectModalSubtitle" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">Diagnostics &amp; Failure Attribution</div>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="inspectModalCloseBtn">&times;</button>
       </div>
-      <div class="modal-body" id="modalMerchantBody">
-        <!-- Filled dynamically -->
+      <div class="modal-body" id="inspectModalBody">
+        <!-- Content populated dynamically by openAnalysisInspectModal in app.js -->
       </div>
     </div>
   </div>
