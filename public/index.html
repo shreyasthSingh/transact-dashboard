@@ -323,7 +323,7 @@
               <span>📊</span> Payment Routing &amp; Ecosystem Analysis Reports
             </h3>
             <p class="analysis-subtitle">
-              Granular breakdown of success vs. failed transactions across <strong>Gateways (PSP)</strong>, <strong>UPI Apps</strong>, and <strong>UPI Handles (@vpa)</strong>.
+              Granular breakdown of success vs. failed transactions across <strong>Gateways (PSP)</strong>, <strong>UPI Apps</strong>, <strong>UPI Handles (@vpa)</strong>, and <strong>Merchants (merchantId)</strong>.
             </p>
           </div>
           <button id="exportAnalysisCsvBtn" class="btn-action btn-primary" title="Export Current Analysis Report as CSV">
@@ -331,7 +331,7 @@
           </button>
         </div>
 
-        <!-- 3 Dimension Tabs -->
+        <!-- 4 Dimension Tabs (PSP, UPI App, UPI Handle, Merchant-Wise) -->
         <div class="analysis-tabs-nav">
           <button class="analysis-nav-btn active" data-atab="psp">
             <span>🏛️</span> PSP / Gateway Wise <code>paymentDetails.pgProvider</code>
@@ -341,6 +341,9 @@
           </button>
           <button class="analysis-nav-btn" data-atab="handle">
             <span>⚡</span> UPI Handle Wise <code>@paytm, @okaxis...</code>
+          </button>
+          <button class="analysis-nav-btn" data-atab="merchant">
+            <span>🏪</span> Merchant Wise <code>merchantId</code>
           </button>
         </div>
 
@@ -354,14 +357,14 @@
           <div class="table-filters">
             <div class="search-input-wrap">
               <span class="search-icon">🔍</span>
-              <input type="text" id="analysisSearchInput" class="search-input" placeholder="Search provider, app, or @handle...">
+              <input type="text" id="analysisSearchInput" class="search-input" placeholder="Search provider, app, merchant or @handle...">
             </div>
 
             <div class="filter-pills">
               <button class="analysis-filter-pill-btn active" data-af="all">All</button>
-              <button class="analysis-filter-pill-btn" data-af="healthy">&gt;95% Optimal</button>
-              <button class="analysis-filter-pill-btn" data-af="warning">90-95% Watch</button>
-              <button class="analysis-filter-pill-btn" data-af="alert">&lt;90% Degraded</button>
+              <button class="analysis-filter-pill-btn" data-af="healthy"><span class="pill-dot green"></span> &gt;95% Optimal</button>
+              <button class="analysis-filter-pill-btn" data-af="warning"><span class="pill-dot amber"></span> 90-95% Watch</button>
+              <button class="analysis-filter-pill-btn" data-af="alert"><span class="pill-dot red"></span> &lt;90% Degraded</button>
             </div>
           </div>
         </div>
@@ -385,7 +388,7 @@
                 <th data-asort="totalAmount">Total Amount</th>
                 <th data-asort="successAmount">Success Amount</th>
                 <th data-asort="failedAmount">Failed Amount</th>
-                <th>Status</th>
+                <th data-asort="successRate" id="analysisColStatus">Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -426,22 +429,6 @@
       <!-- Dynamic & Prioritized Recommendations Container -->
       <div class="recommendations-list" id="recommendationsList">
         <!-- Rendered dynamically by app.js matching Screenshot 2 -->
-      </div>
-    </section>
-
-    <!-- Real-Time Transaction Stream -->
-    <section class="stream-grid">
-      <div class="live-feed-card">
-        <div class="chart-header">
-          <h3 class="chart-title">
-            <span class="pulse-dot"></span>
-            <span>Transaction Stream &amp; Ingested Records</span>
-          </h3>
-          <span style="font-size: 0.78rem; color: var(--text-dim);" id="feedModeLabel">Displaying recent payment pipeline</span>
-        </div>
-        <div class="feed-list" id="feedList">
-          <!-- Populated by app.js -->
-        </div>
       </div>
     </section>
 

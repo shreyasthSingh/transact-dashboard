@@ -435,6 +435,19 @@
     if (activeAnalysisTab === 'psp') list = pspList;
     else if (activeAnalysisTab === 'app') list = upiAppList;
     else if (activeAnalysisTab === 'handle') list = upiHandleList;
+    else if (activeAnalysisTab === 'merchant') {
+      list = merchants.map(m => ({
+        id: m.id,
+        name: m.name || m.id,
+        count: m.totalCount || 0,
+        success: m.successCount || 0,
+        failed: m.failedCount || 0,
+        amount: m.totalAmount || 0,
+        successAmt: m.successAmount || 0,
+        failedAmt: m.failedAmount || 0,
+        failureReasons: m.failureReasons || {}
+      }));
+    }
 
     const mult = dataMode === 'demo' ? (TIME_MULTIPLIERS[currentTimeRange] || 1.0) : 1.0;
 
@@ -458,7 +471,8 @@
         failedRate: failRate,
         totalAmount: totAmt,
         successAmount: succAmt,
-        failedAmount: failAmt
+        failedAmount: failAmt,
+        failureReasons: item.failureReasons || {}
       };
     });
 
@@ -487,21 +501,34 @@
     const titleEl = document.getElementById('analysisTabTitle');
     const badgeEl = document.getElementById('analysisCountBadge');
     const colNameEl = document.getElementById('analysisColEntityName');
+    const colStatusEl = document.getElementById('analysisColStatus');
     const tbody = document.getElementById('analysisTableBody');
 
+    let tabLabel = 'Gateways';
     if (activeAnalysisTab === 'psp') {
       titleEl.textContent = 'Payment Service Providers (PSPs)';
       colNameEl.textContent = 'Payment Gateway / PSP (pgProvider)';
+      if (colStatusEl) colStatusEl.textContent = 'Status';
+      tabLabel = 'Gateways';
     } else if (activeAnalysisTab === 'app') {
       titleEl.textContent = 'UPI Applications Telemetry';
       colNameEl.textContent = 'UPI Application (upiAppName)';
-    } else {
+      if (colStatusEl) colStatusEl.textContent = 'Status';
+      tabLabel = 'UPI Apps';
+    } else if (activeAnalysisTab === 'handle') {
       titleEl.textContent = 'UPI VPA Handle Performance';
       colNameEl.textContent = 'UPI Handle (@vpa)';
+      if (colStatusEl) colStatusEl.textContent = 'Status';
+      tabLabel = 'UPI Handles';
+    } else if (activeAnalysisTab === 'merchant') {
+      titleEl.textContent = 'Merchant-Wise Performance & Conversions';
+      colNameEl.textContent = 'Merchant Account (merchantId)';
+      if (colStatusEl) colStatusEl.textContent = 'Merchant Health';
+      tabLabel = 'Merchants';
     }
 
     const data = getActiveAnalysisDataset();
-    badgeEl.textContent = `Showing all ${data.length} ${activeAnalysisTab === 'psp' ? 'Gateways' : activeAnalysisTab === 'app' ? 'UPI Apps' : 'UPI Handles'}`;
+    badgeEl.textContent = `Showing all ${data.length} ${tabLabel}`;
 
     tbody.innerHTML = '';
     if (data.length === 0) {
@@ -526,7 +553,11 @@
       }
 
       const isHandle = item.id.startsWith('@');
-      const avatarInitial = isHandle ? '@' : item.id.substring(0, 2).toUpperCase();
+      let avatarInitial = isHandle ? '@' : item.id.substring(0, 2).toUpperCase();
+      if (activeAnalysisTab === 'merchant') {
+        const words = item.name.split(' ').filter(w => w.length > 0);
+        avatarInitial = words.length > 1 ? (words[0][0] + words[1][0]).toUpperCase() : item.id.substring(0, 2).toUpperCase();
+      }
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -673,6 +704,7 @@
     let dimLabel = 'Payment Gateway (paymentDetails.pgProvider)';
     if (dimension === 'app') dimLabel = 'UPI Application (paymentDetails.upiAppName)';
     else if (dimension === 'handle') dimLabel = 'UPI Handle (paymentDetails.payMethodIdentifier)';
+    else if (dimension === 'merchant') dimLabel = 'Merchant Account (merchantId)';
     subtitleEl.textContent = `${dimLabel} · Identifier: ${entity.id}`;
 
     let statusClass = 'healthy';
@@ -697,6 +729,7 @@
         if (dimension === 'psp' && t.pgProvider.toUpperCase() === entity.id.toUpperCase()) matches = true;
         else if (dimension === 'app' && (t.upiApp.toUpperCase() === entity.id.toUpperCase() || t.upiApp === entity.id)) matches = true;
         else if (dimension === 'handle' && t.upiHandle && t.upiHandle.toLowerCase() === entity.id.toLowerCase()) matches = true;
+        else if (dimension === 'merchant' && (t.merchantId.toUpperCase() === entity.id.toUpperCase() || t.merchantId === entity.id)) matches = true;
 
         if (matches) {
           if (!t.isSuccess) {
@@ -707,7 +740,8 @@
           let crossKey = '';
           if (dimension === 'psp') crossKey = t.upiApp || 'Other UPI';
           else if (dimension === 'app') crossKey = t.pgProvider || 'Primary Gateway';
-          else crossKey = t.pgProvider || 'Primary Gateway';
+          else if (dimension === 'handle') crossKey = t.pgProvider || 'Primary Gateway';
+          else if (dimension === 'merchant') crossKey = t.pgProvider ? 'Gateway: ' + t.pgProvider : (t.upiApp || 'UPI Checkout');
 
           if (!crossSplitCounts[crossKey]) crossSplitCounts[crossKey] = { total: 0, failed: 0 };
           crossSplitCounts[crossKey].total++;
@@ -719,10 +753,22 @@
     // Default synthetic failure codes if demo mode or sparse failure states
     if (Object.keys(failCodeCounts).length === 0) {
       if (entity.failedCount > 0) {
-        failCodeCounts['BANK_ISSUER_TIMEOUT (E104)'] = Math.round(entity.failedCount * 0.42);
-        failCodeCounts['3DS_MPIN_CANCELLED (E303)'] = Math.round(entity.failedCount * 0.28);
-        failCodeCounts['INSUFFICIENT_FUNDS (E101)'] = Math.round(entity.failedCount * 0.18);
-        failCodeCounts['PSP_LIMIT_EXCEEDED (E502)'] = Math.max(1, entity.failedCount - Math.round(entity.failedCount * 0.88));
+        if (dimension === 'merchant') {
+          failCodeCounts['BANK_ISSUER_TIMEOUT (E104)'] = Math.round(entity.failedCount * 0.38);
+          failCodeCounts['3DS_MPIN_CANCELLED (E303)'] = Math.round(entity.failedCount * 0.28);
+          failCodeCounts['INSUFFICIENT_FUNDS (E101)'] = Math.round(entity.failedCount * 0.20);
+          failCodeCounts['PAYMENT_WINDOW_EXPIRED'] = Math.round(entity.failedCount * 0.09);
+          failCodeCounts['PSP_LIMIT_EXCEEDED (E502)'] = Math.max(1, entity.failedCount - Math.round(entity.failedCount * 0.95));
+
+          crossSplitCounts['Razorpay Gateway'] = { total: Math.round(entity.totalCount * 0.45), failed: Math.round(entity.failedCount * 0.25) };
+          crossSplitCounts['Cashfree Payments'] = { total: Math.round(entity.totalCount * 0.30), failed: Math.round(entity.failedCount * 0.35) };
+          crossSplitCounts['PayU Payments'] = { total: Math.round(entity.totalCount * 0.25), failed: Math.round(entity.failedCount * 0.40) };
+        } else {
+          failCodeCounts['BANK_ISSUER_TIMEOUT (E104)'] = Math.round(entity.failedCount * 0.42);
+          failCodeCounts['3DS_MPIN_CANCELLED (E303)'] = Math.round(entity.failedCount * 0.28);
+          failCodeCounts['INSUFFICIENT_FUNDS (E101)'] = Math.round(entity.failedCount * 0.18);
+          failCodeCounts['PSP_LIMIT_EXCEEDED (E502)'] = Math.max(1, entity.failedCount - Math.round(entity.failedCount * 0.88));
+        }
       } else {
         failCodeCounts['NO_FAILURE_RECORDED'] = 0;
       }
@@ -734,7 +780,15 @@
 
     // 4. Strategic Advice Generation
     let recAdvice = '';
-    if (entity.successRate >= 95.0) {
+    if (dimension === 'merchant') {
+      if (entity.successRate >= 95.0) {
+        recAdvice = `<strong>Healthy Merchant Health:</strong> ${entity.name || entity.id} is operating with an optimal success rate of ${entity.successRate.toFixed(2)}% with only ${entity.failedRate.toFixed(2)}% failure rate. Checkout latency and gateway allocations are performing within enterprise SLAs.`;
+      } else if (entity.successRate >= 90.0) {
+        recAdvice = `<strong>Merchant Conversion Watch:</strong> ${entity.name || entity.id} has ${formatCurrency(entity.failedAmount)} uncollected (${formatNumber(entity.failedCount)} dropped checkouts). Primary root-cause: <em>${sortedFailCodes[0] ? sortedFailCodes[0][0] : 'Timeouts'}</em>. Recommend enabling smart auto-retry and multi-gateway failover for this merchant to recover ~65% of dropped checkouts.`;
+      } else {
+        recAdvice = `<strong>Critical Merchant Health Alert:</strong> Steep failure rate of ${entity.failedRate.toFixed(2)}% on ${entity.name || entity.id}, leaving ${formatCurrency(entity.failedAmount)} in sales uncaptured. Issues are concentrated in <em>${sortedFailCodes[0] ? sortedFailCodes[0][0] : 'Gateway Outages'}</em>. Recommended action: Immediately rebalance this merchant's volume to higher-performing secondary gateways.`;
+      }
+    } else if (entity.successRate >= 95.0) {
       recAdvice = `<strong>Optimal Health Verified:</strong> ${entity.name || entity.id} is maintaining a healthy conversion of ${entity.successRate.toFixed(2)}% with only ${entity.failedRate.toFixed(2)}% failure rate. Maintain primary routing allocation. Consider testing higher throughput volumes during low-latency windows.`;
     } else if (entity.successRate >= 90.0) {
       recAdvice = `<strong>Traffic Watch Notice:</strong> Conversion sits at ${entity.successRate.toFixed(2)}% with ${formatCurrency(entity.failedAmount)} at risk (${formatNumber(entity.failedCount)} failed transactions). Primary root cause points to <em>${sortedFailCodes[0] ? sortedFailCodes[0][0] : 'Timeouts'}</em>. Enable automated dynamic retry on secondary gateway fallback to recover ~65% of dropped attempts.`;
@@ -854,10 +908,10 @@
     const data = getActiveAnalysisDataset();
     const cur = CURRENCIES[currentCurrency];
 
-    const tabName = activeAnalysisTab === 'psp' ? 'PSP_Gateway' : activeAnalysisTab === 'app' ? 'UPI_App' : 'UPI_Handle';
+    const tabName = activeAnalysisTab === 'psp' ? 'PSP_Gateway' : activeAnalysisTab === 'app' ? 'UPI_App' : activeAnalysisTab === 'handle' ? 'UPI_Handle' : 'Merchant_Performance';
     const headers = [
-      'Entity Identifier',
-      'Entity Name',
+      activeAnalysisTab === 'merchant' ? 'Merchant Identifier' : 'Entity Identifier',
+      activeAnalysisTab === 'merchant' ? 'Merchant Name' : 'Entity Name',
       'Total Transactions',
       'Success Count',
       'Failed Count',
@@ -866,7 +920,7 @@
       `Total Amount (${currentCurrency})`,
       `Success Amount (${currentCurrency})`,
       `Failed Amount (${currentCurrency})`,
-      'Status'
+      activeAnalysisTab === 'merchant' ? 'Merchant Health' : 'Status'
     ];
 
     const rows = data.map(item => {
@@ -2321,11 +2375,12 @@
     renderFeed();
     renderKPIs();
     renderAnalysisSection();
-    renderMerchantTable();
   }
 
   function renderFeed() {
-    feedList.innerHTML = '';
+    const listEl = document.getElementById('feedList');
+    if (!listEl) return;
+    listEl.innerHTML = '';
     feedItems.forEach(item => {
       const div = document.createElement('div');
       div.className = 'feed-item';
@@ -2349,7 +2404,7 @@
           </span>
         </div>
       `;
-      feedList.appendChild(div);
+      listEl.appendChild(div);
     });
   }
 
