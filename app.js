@@ -727,23 +727,34 @@
     const coords = points.map((p, i) => {
       const x = 2 + i * step;
       const y = height - padding - ((p - min) / range) * usableHeight;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
+      return { x, y };
     });
 
-    const polylinePoints = coords.join(' ');
-    const areaPoints = `2,${height} ${polylinePoints} ${width - 2},${height}`;
+    // Build smooth cubic bezier curve
+    let pathD = `M ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const p0 = coords[i];
+      const p1 = coords[i + 1];
+      const cp1x = (p0.x + (p1.x - p0.x) / 2).toFixed(1);
+      const cp1y = p0.y.toFixed(1);
+      const cp2x = (p0.x + (p1.x - p0.x) / 2).toFixed(1);
+      const cp2y = p1.y.toFixed(1);
+      pathD += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+    }
+
+    const areaD = `${pathD} L ${width - 2} ${height} L 2 ${height} Z`;
     const gradId = 'grad-' + containerId.replace(/[^a-zA-Z0-9]/g, '');
 
     container.innerHTML = `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width: 100%; height: 28px; overflow: visible;">
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width: 100%; height: 30px; overflow: visible;">
         <defs>
           <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="${fillColor || strokeColor}" stop-opacity="0.32" />
+            <stop offset="0%" stop-color="${fillColor || strokeColor}" stop-opacity="0.18" />
             <stop offset="100%" stop-color="${fillColor || strokeColor}" stop-opacity="0.0" />
           </linearGradient>
         </defs>
-        <polygon points="${areaPoints}" fill="url(#${gradId})" />
-        <polyline fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${polylinePoints}" />
+        <path d="${areaD}" fill="url(#${gradId})" />
+        <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     `;
   }
@@ -759,11 +770,11 @@
       const succData = volData.map((v, i) => Math.max(0, v - (failedData[i] || 0)));
       const rateData = timeline.rateData;
 
-      // Sparklines for Cards 1-4
-      renderSparklineSvg('sparkline-total', volData, '#6366f1', '#5227ff');
-      renderSparklineSvg('sparkline-success', succData, '#10b981', '#10b981');
-      renderSparklineSvg('sparkline-failed', failedData, '#f43f5e', '#f43f5e');
-      renderSparklineSvg('sparkline-rate', rateData, '#818cf8', '#6366f1');
+      // Sparklines for Cards 1-4 with Shopeers palette
+      renderSparklineSvg('sparkline-total', volData, '#1132fc', '#1132fc');
+      renderSparklineSvg('sparkline-success', succData, '#16a34a', '#16a34a');
+      renderSparklineSvg('sparkline-failed', failedData, '#ef4444', '#ef4444');
+      renderSparklineSvg('sparkline-rate', rateData, '#1132fc', '#1132fc');
 
       // Sparklines for Cards 5-7 (Amount variations)
       const agg = getAggregates();
@@ -772,9 +783,9 @@
       const succAmtData = succData.map(v => Math.round(v * avgTicket));
       const failAmtData = failedData.map(v => Math.round(v * avgTicket));
 
-      renderSparklineSvg('sparkline-amount', volAmtData, '#6366f1', '#5227ff');
-      renderSparklineSvg('sparkline-succ-amount', succAmtData, '#10b981', '#10b981');
-      renderSparklineSvg('sparkline-fail-amount', failAmtData, '#f43f5e', '#f43f5e');
+      renderSparklineSvg('sparkline-amount', volAmtData, '#1132fc', '#1132fc');
+      renderSparklineSvg('sparkline-succ-amount', succAmtData, '#16a34a', '#16a34a');
+      renderSparklineSvg('sparkline-fail-amount', failAmtData, '#ef4444', '#ef4444');
     } catch (e) {
       console.warn('Sparkline rendering notice:', e);
     }
@@ -3013,11 +3024,11 @@
     // Highlight hovered bucket column
     if (hoveredTimelineIdx !== null && hoveredTimelineIdx >= 0 && hoveredTimelineIdx < numPoints) {
       const hx = padding.left + step * hoveredTimelineIdx;
-      ctx.fillStyle = isDark ? 'rgba(82, 39, 255, 0.14)' : 'rgba(82, 39, 255, 0.08)';
+      ctx.fillStyle = isDark ? 'rgba(59, 130, 246, 0.12)' : 'rgba(17, 50, 252, 0.06)';
       ctx.fillRect(hx, padding.top, step, chartH);
 
       // Subtle vertical guideline
-      ctx.strokeStyle = isDark ? 'rgba(99, 102, 241, 0.45)' : 'rgba(82, 39, 255, 0.35)';
+      ctx.strokeStyle = isDark ? 'rgba(59, 130, 246, 0.4)' : 'rgba(17, 50, 252, 0.3)';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       ctx.beginPath();
@@ -3028,9 +3039,9 @@
     }
 
     // Grid lines & Left Y-Axis (Volume)
-    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.07)' : '#e2ecf5';
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.06)' : '#f0f2f5';
     ctx.lineWidth = 1;
-    ctx.fillStyle = isDark ? '#8ca3ba' : '#7f99b2';
+    ctx.fillStyle = isDark ? '#9ca3af' : '#9ca3af';
     ctx.font = '11px sans-serif';
 
     const yTicks = 4;
@@ -3065,20 +3076,20 @@
 
       const barY = padding.top + chartH - totalBarH;
 
-      // Success section (Green)
-      ctx.fillStyle = '#10b981';
+      // Success section (Natural Leaf Green)
+      ctx.fillStyle = '#16a34a';
       ctx.fillRect(x, barY + failBarH, barWidth, succBarH);
 
-      // Failure section (Red)
+      // Failure section (Soft Red)
       if (failBarH > 0) {
-        ctx.fillStyle = '#f43f5e';
+        ctx.fillStyle = '#ef4444';
         ctx.fillRect(x, barY, barWidth, Math.max(2, failBarH));
       }
 
       // X-Axis Timestamp Label with intelligent stepping
       const isSteppedLabel = (idx % labelStep === 0) || (idx === numPoints - 1);
       if (isSteppedLabel) {
-        ctx.fillStyle = isDark ? '#8ca3ba' : '#64748b';
+        ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
         ctx.textAlign = 'center';
         ctx.font = numPoints > 30 ? '10px sans-serif' : '11px sans-serif';
         const labelX = padding.left + step * idx + step / 2;
@@ -3086,56 +3097,63 @@
 
         // Tick mark
         ctx.beginPath();
-        ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.18)' : '#cbd5e1';
+        ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.18)' : '#e5e7eb';
         ctx.moveTo(labelX, padding.top + chartH);
         ctx.lineTo(labelX, padding.top + chartH + 4);
         ctx.stroke();
       }
     });
 
-    // Right Y-Axis & Success Rate Line
+    // Right Y-Axis & Success Rate Line (Smooth Spline Curve)
     const rateMin = 80;
     const rateMax = 100;
 
-    ctx.beginPath();
-    ctx.strokeStyle = '#6366f1';
-    ctx.lineWidth = 2.5;
-
-    rateData.forEach((rate, idx) => {
+    const rateCoords = rateData.map((rate, idx) => {
       const x = padding.left + step * idx + step / 2;
       const clampedRate = Math.min(rateMax, Math.max(rateMin, rate));
       const y = padding.top + chartH - ((clampedRate - rateMin) / (rateMax - rateMin)) * chartH;
-      if (idx === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      return { x, y };
     });
-    ctx.stroke();
+
+    if (rateCoords.length > 0) {
+      ctx.beginPath();
+      ctx.strokeStyle = isDark ? '#3b82f6' : '#1132fc';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.moveTo(rateCoords[0].x, rateCoords[0].y);
+      for (let i = 0; i < rateCoords.length - 1; i++) {
+        const xc = (rateCoords[i].x + rateCoords[i + 1].x) / 2;
+        const yc = (rateCoords[i].y + rateCoords[i + 1].y) / 2;
+        ctx.quadraticCurveTo(rateCoords[i].x, rateCoords[i].y, xc, yc);
+      }
+      ctx.lineTo(rateCoords[rateCoords.length - 1].x, rateCoords[rateCoords.length - 1].y);
+      ctx.stroke();
+    }
 
     // Data points on the line (only if not overcrowded or hovered)
-    rateData.forEach((rate, idx) => {
+    rateCoords.forEach((pt, idx) => {
       const isHovered = (idx === hoveredTimelineIdx);
       if (numPoints > 36 && !isHovered) return;
 
-      const x = padding.left + step * idx + step / 2;
-      const clampedRate = Math.min(rateMax, Math.max(rateMin, rate));
-      const y = padding.top + chartH - ((clampedRate - rateMin) / (rateMax - rateMin)) * chartH;
-
       if (isHovered) {
         ctx.beginPath();
-        ctx.arc(x, y, 7.5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(99, 102, 241, 0.35)';
+        ctx.arc(pt.x, pt.y, 7.5, 0, Math.PI * 2);
+        ctx.fillStyle = isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(17, 50, 252, 0.2)';
         ctx.fill();
 
         ctx.beginPath();
-        ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
-        ctx.strokeStyle = '#5227ff';
+        ctx.strokeStyle = isDark ? '#3b82f6' : '#1132fc';
         ctx.lineWidth = 2.5;
         ctx.stroke();
       } else {
         ctx.beginPath();
-        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#6366f1';
+        ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = isDark ? '#3b82f6' : '#1132fc';
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
@@ -3796,16 +3814,21 @@
 
   const themeToggleBtn = document.getElementById('themeToggleBtn');
   const themeIcon = document.getElementById('themeIcon');
+  if (themeIcon) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    themeIcon.textContent = isDark ? '☀️ Light' : '🌙 Dark Mode';
+  }
   themeToggleBtn.addEventListener('click', () => {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     if (isDark) {
       document.documentElement.setAttribute('data-theme', 'light');
-      themeIcon.textContent = '🌙 Midnight Navy';
+      if (themeIcon) themeIcon.textContent = '🌙 Dark Mode';
     } else {
       document.documentElement.setAttribute('data-theme', 'dark');
-      themeIcon.textContent = '☀️ Light';
+      if (themeIcon) themeIcon.textContent = '☀️ Light';
     }
     initCharts();
+    if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
   });
 
   window.addEventListener('resize', () => {
