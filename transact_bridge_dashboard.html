@@ -5990,7 +5990,9 @@ body.modal-open {
 
     if (dataMode === 'uploaded' && currentTransactions && currentTransactions.length > 0) {
       const dateGroups = {};
-      currentTransactions.forEach(t => {
+      const countedTxns = currentTransactions.filter(t => t.isCountedInTotal);
+      const txnsToUse = countedTxns.length > 0 ? countedTxns : currentTransactions;
+      txnsToUse.forEach(t => {
         const dStr = (t.createdDate || '').split('T')[0].split(' ')[0];
         if (dStr) {
           if (!dateGroups[dStr]) dateGroups[dStr] = [];
@@ -6002,7 +6004,7 @@ body.modal-open {
       if (dates.length >= 2) {
         const yDateKey = dates[dates.length - 2];
         const yTxns = dateGroups[yDateKey];
-        let totCount = yTxns.length;
+        let totCount = 0;
         let succCount = 0;
         let failCount = 0;
         let totAmt = 0;
@@ -6010,6 +6012,7 @@ body.modal-open {
         let failAmt = 0;
 
         yTxns.forEach(t => {
+          totCount++;
           totAmt += t.amount;
           if (t.isSuccess) {
             succCount++;
@@ -6845,6 +6848,7 @@ body.modal-open {
 
     if (currentTransactions && currentTransactions.length > 0) {
       currentTransactions.forEach(t => {
+        if (!t.isCountedInTotal) return;
         let matches = false;
         if (dimension === 'psp' && t.pgProvider.toUpperCase() === entity.id.toUpperCase()) matches = true;
         else if (dimension === 'app' && (t.upiApp.toUpperCase() === entity.id.toUpperCase() || t.upiApp === entity.id)) matches = true;
@@ -7657,18 +7661,23 @@ body.modal-open {
       return undefined;
     };
 
-    // 1. Merchant Identification & Display Name (Rule 2: "Merchant Name & ID - merchantId")
-    const rawMerchantId = getVal('merchantId', 'mid', 'MERCHANT_ID', 'merchant_id', 'merchantCode', 'merchantName', 'businessName', 'merchant', 'legalEntityCode') || 'MERCH_DEFAULT';
+    // 1. Merchant Identification & Display Name (Rule 1: "Merchant Name & ID - Take column merchantId")
+    let nestedMerchantId = '';
+    if (row.merchant && typeof row.merchant === 'object') {
+      nestedMerchantId = row.merchant.id || row.merchant.merchantId || '';
+    }
+    const rawMerchantId = nestedMerchantId || getVal('merchantId', 'merchant_id', 'MERCHANT_ID', 'mid', 'merchantCode') || getVal('merchantName', 'merchant', 'businessName') || 'MERCH_DEFAULT';
     const merchantId = rawMerchantId;
-    const merchantName = rawMerchantId; // Directly use merchantId from uploaded Excel for both ID & Name
+    const merchantName = rawMerchantId; // Strictly take merchantId for both Merchant Name and Merchant ID
 
-    // 2. Status & Success Evaluation (Rule 1 & 4: "Success Count / Amount - status - SUCCESS")
+    // 2. Status & Success Evaluation (Rule 3: "Total Amount - Take column totalAmount, and status - 'SUCCESS' 'FAILED'")
     const rawStatus = (getVal('status', 'txSubStatus', 'txnStatus', 'STATUS') || '').toUpperCase().trim();
     const isSuccess = (rawStatus === 'SUCCESS');
-    const isFailedStatus = !isSuccess && (rawStatus === 'FAILED' || rawStatus === 'DECLINED' || rawStatus === 'DROPPED' || rawStatus === 'REJECTED' || rawStatus !== '');
+    const isFailedStatus = (rawStatus === 'FAILED' || rawStatus === 'DECLINED' || rawStatus === 'DROPPED' || rawStatus === 'REJECTED' || rawStatus === 'FAIL' || rawStatus === 'FAILURE');
+    const isCountedInTotal = isSuccess || isFailedStatus;
 
-    // 3. Amount Extraction (Rule 1: "Success Amount - from uploaded excel take totalAmount")
-    let rawAmt = getRaw('totalAmount', 'total_amount', 'Total Amount', 'amount', 'Amount', 'quoteAmount', 'quoteAmt', 'settleAmount', 'transactionAmount', 'txnAmount', 'totalAmt');
+    // 3. Amount Extraction (Rule 3: "Total Amount - Take column totalAmount, and status - 'SUCCESS' 'FAILED'")
+    let rawAmt = getRaw('totalAmount', 'total_amount', 'Total Amount', 'totalAmt', 'amount', 'Amount', 'quoteAmount', 'quoteAmt', 'settleAmount', 'transactionAmount', 'txnAmount');
     if (rawAmt === undefined) {
       // Fallback: search for any key containing 'totalamount' or 'amount'
       for (const ck in norm) {
@@ -7686,7 +7695,7 @@ body.modal-open {
       amount = parseFloat(cleanedStr) || 0;
     }
 
-    // 4. Date & Time (Rule 3: "Date & Time - successDate, failedDate")
+    // 4. Date & Time (Rule: "Date & Time - successDate, failedDate")
     let successDateVal = getVal('successDate', 'depositSuccessDate', 'success_date', 'SUCCESSDATE');
     let failedDateVal = getVal('failedDate', 'failed_date', 'FAILEDDATE');
     const parseExcelDate = (val) => {
@@ -7709,7 +7718,7 @@ body.modal-open {
       txnDate = successDateVal || failedDateVal || getVal('createdDate', 'updatedDate', 'createdAt', 'timestamp', 'date') || new Date().toISOString();
     }
 
-    // 5. Error Code & Revenue at Risk (Rule 5: "Revenue at Risk - status - Failed and failedInfo.responseCode")
+    // 5. Error Code & Revenue at Risk (Rule: "Revenue at Risk - status - Failed and failedInfo.responseCode")
     let nestedResponseCode = '';
     let nestedFailState = '';
     if (row.failedInfo && typeof row.failedInfo === 'object') {
@@ -7734,7 +7743,13 @@ body.modal-open {
     else if (failState.includes('EXPIRED') || failState.includes('CARD') || failState.includes('INVALID')) failCategory = 'expired';
     else if (failState.includes('FRAUD') || failState.includes('RISK') || failState.includes('BANNED')) failCategory = 'fraud';
 
-    const payMethod = (getVal('paymentDetails.payMethod', 'paymentDetails.payMethodGroup', 'paymentDetails.upiChannel', 'payMethod', 'paymentMethod', 'rail') || 'UPI').trim();
+    // 6. Payment Method / Rail (Rule 2: "Payment Method / Rail - Take column paymentDetails.payMethod")
+    let nestedPayMethod = '';
+    if (row.paymentDetails && typeof row.paymentDetails === 'object') {
+      nestedPayMethod = row.paymentDetails.payMethod || row.paymentDetails.payMethodGroup || '';
+    }
+    const rawPayMethod = nestedPayMethod || getVal('paymentDetails.payMethod', 'paymentdetailspaymethod', 'paymentDetails.payMethodGroup', 'payMethod', 'paymentMethod', 'rail', 'payment_method');
+    const payMethod = (rawPayMethod || 'UPI').trim().toUpperCase();
     const sourceDevice = getVal('paymentDetails.sourceDevice', 'sourceDevice', 'device', 'SourceDevice') || 'Mobile';
     const sourceOS = getVal('paymentDetails.sourceOS', 'sourceOS', 'os', 'SourceOS') || 'Android';
     const bankName = getVal('paymentDetails.BankName', 'paymentDetails.CardName', 'bankName');
@@ -7765,6 +7780,7 @@ body.modal-open {
       status: rawStatus,
       isSuccess,
       isFailed: isFailedStatus,
+      isCountedInTotal,
       isRevenueAtRisk,
       amount,
       totalAmount: amount,
@@ -7843,12 +7859,16 @@ body.modal-open {
     const failCounts = { timeout: 0, insufficient: 0, auth3ds: 0, expired: 0, fraud: 0 };
     const dynamicFailCodeCounts = {};
 
-    txns.forEach(t => {
-      // 1. Merchant Aggregation
+    // Rule: Total Amount strictly takes status SUCCESS and FAILED
+    const countedTxns = txns.filter(t => t.isCountedInTotal);
+    const txnsToAggregate = countedTxns.length > 0 ? countedTxns : txns;
+
+    txnsToAggregate.forEach(t => {
+      // 1. Merchant Aggregation (Rule 1: Merchant Name & ID - Take column merchantId)
       if (!merchantMap[t.merchantId]) {
         merchantMap[t.merchantId] = {
           id: t.merchantId,
-          name: t.merchantName || t.merchantId,
+          name: t.merchantId,
           category: 'Active Merchant',
           avatar: '',
           totalCount: 0,
@@ -7863,7 +7883,7 @@ body.modal-open {
         };
       }
       const m = merchantMap[t.merchantId];
-      m.name = t.merchantName || t.merchantId;
+      m.name = t.merchantId;
       m.totalCount += 1;
       m.totalAmount += t.amount;
       if (t.isSuccess) {
@@ -8001,7 +8021,7 @@ body.modal-open {
       paymentMethods = Object.values(payMethodMap).map(pm => ({
         name: pm.name,
         successRate: pm.totalCount > 0 ? parseFloat(((pm.successCount / pm.totalCount) * 100).toFixed(1)) : 0,
-        volumeShare: txns.length > 0 ? parseFloat(((pm.totalCount / txns.length) * 100).toFixed(1)) : 0,
+        volumeShare: txnsToAggregate.length > 0 ? parseFloat(((pm.totalCount / txnsToAggregate.length) * 100).toFixed(1)) : 0,
         totalAmount: pm.totalAmount,
         totalCount: pm.totalCount
       })).sort((a, b) => b.totalCount - a.totalCount);
@@ -8012,10 +8032,10 @@ body.modal-open {
 
     // Update Live Stream Feed with actual uploaded rows
     feedItems.length = 0;
-    txns.slice(-10).reverse().forEach(t => {
+    txnsToAggregate.slice(-10).reverse().forEach(t => {
       feedItems.push({
         txnId: t.id,
-        merchantName: t.merchantName || t.merchantId,
+        merchantName: t.merchantId,
         timeStr: t.createdDate.includes('T') ? t.createdDate.split('T')[1].substring(0, 8) : (t.createdDate.split(' ')[1] || '10:00:00'),
         method: t.payMethod + (t.upiHandle ? ' (' + t.upiHandle + ')' : ''),
         amount: t.amount.toFixed(2),
@@ -8507,6 +8527,7 @@ body.modal-open {
     if (dataMode === 'uploaded' && currentTransactions && currentTransactions.length > 0) {
       let matchedCount = 0;
       currentTransactions.forEach(t => {
+        if (!t.isCountedInTotal) return;
         if (timelinePspFilter !== 'all') {
           const psp = (t.pgProvider || '').toUpperCase();
           if (psp !== timelinePspFilter.toUpperCase()) return;
@@ -12829,7 +12850,8 @@ Incident Timestamp: ${timeStr}`;
 
     let dataset = [];
     if (typeof currentTransactions !== 'undefined' && currentTransactions && currentTransactions.length > 0) {
-      dataset = currentTransactions;
+      const counted = currentTransactions.filter(t => t.isCountedInTotal);
+      dataset = counted.length > 0 ? counted : currentTransactions;
     }
 
     let filteredTxns = [];
