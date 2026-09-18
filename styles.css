@@ -1154,15 +1154,77 @@ canvas {
 #chart-tooltip {
   position: absolute;
   pointer-events: none;
-  background: #001626;
+  background: rgba(0, 22, 38, 0.95);
   color: #f0f6fc;
-  border: 1px solid #007aff;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 0.75rem;
+  border: 1px solid rgba(0, 122, 255, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 10px rgba(0, 122, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
   display: none;
   z-index: 1000;
+  transition: opacity 0.12s ease-out;
+  min-width: 175px;
+  max-width: 280px;
+}
+
+[data-theme="light"] #chart-tooltip {
+  background: rgba(255, 255, 255, 0.97);
+  color: #0f172a;
+  border: 1px solid rgba(0, 122, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 122, 255, 0.1);
+}
+
+.tooltip-header {
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+[data-theme="light"] .tooltip-header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 0.76rem;
+}
+
+.tooltip-row:last-child {
+  margin-bottom: 0;
+}
+
+.tooltip-row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+}
+
+.tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.tooltip-dot.success { background: #10b981; }
+.tooltip-dot.failed { background: #f43f5e; }
+.tooltip-dot.rate { background: #007aff; }
+.tooltip-dot.dod { background: #a855f7; }
+
+.tooltip-val {
+  font-weight: 700;
 }
 
 
@@ -2389,3 +2451,203 @@ canvas {
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-muted);
 }
+
+/* ==========================================
+   Recoverable Volume Solution & Playbook UI
+   ========================================== */
+.opportunity-theme {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.opportunity-theme:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 210, 255, 0.2);
+  border-color: rgba(0, 210, 255, 0.5) !important;
+}
+
+.btn-kpi-inspect {
+  transition: all 0.2s ease;
+  font-size: 0.72rem;
+  padding: 3px 8px;
+}
+
+.btn-kpi-inspect:hover {
+  filter: brightness(1.2);
+  transform: scale(1.05);
+}
+
+.recoverable-modal-card {
+  max-width: 900px;
+}
+
+.recovery-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.recovery-stat-card {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.recovery-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.recovery-stat-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-color);
+}
+
+.recovery-stat-sub {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.recovery-pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+  margin-top: 1rem;
+}
+
+.pillar-card {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--card-bg);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.pillar-card:hover {
+  border-color: #007aff;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.12);
+}
+
+.pillar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.pillar-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pillar-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.pillar-desc {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.pillar-action-box {
+  background: var(--bg-hover);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recovery-slider-card {
+  margin-top: 1.5rem;
+  padding: 16px 20px;
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(0, 210, 255, 0.04);
+}
+
+.recovery-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.recovery-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  accent-color: #007aff;
+  cursor: pointer;
+}
+
+/* ==========================================
+   PSP-Wise Smart Routing Analysis Modal UI
+   ========================================== */
+.psp-routing-modal-card {
+  max-width: 880px;
+}
+
+.psp-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.psp-hero-stat {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.psp-hero-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.psp-hero-val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.psp-failover-card {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--card-bg);
+  margin-top: 1.25rem;
+}
+
+.psp-rebalance-box {
+  margin-top: 1.25rem;
+  padding: 14px 18px;
+  border: 1px solid rgba(0, 122, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(0, 122, 255, 0.05);
+}
+
