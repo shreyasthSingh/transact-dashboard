@@ -17,6 +17,7 @@
     <!-- Top Header -->
     <header class="dashboard-header">
       <div class="brand-section">
+        <div class="brand-logo-card">
           <img src="assets/logo.png" alt="Transact Bridge Logo">
         </div>
         <div class="brand-titles">
@@ -230,7 +231,7 @@
         <div class="kpi-card rate-theme">
           <div class="kpi-top">
             <span class="kpi-label">Overall Success Rate</span>
-            <div class="kpi-icon-wrap">🎯</div>
+            <div class="kpi-icon-wrap" id="kpiSlaSettingsTrigger" title="Click to Configure KPI &amp; SLA Thresholds" style="cursor: pointer;">🎯</div>
           </div>
           <div class="kpi-value" id="kpiSuccessRate">0.00%</div>
           <div class="kpi-sparkline-svg" id="sparkline-rate"></div>
@@ -238,7 +239,10 @@
             <div class="rate-progress-bar-fill" id="kpiRateBar" style="width: 0%;"></div>
           </div>
           <div class="kpi-footer" style="margin-top: 0.6rem;">
-            <span>Target SLA: &gt;95.00%</span>
+            <div id="kpiTargetSlaWrapper" class="clickable-target-sla" title="Click to adjust Target SLA and KPI thresholds">
+              <span id="kpiTargetSlaLabel">Target SLA: &gt;95.00%</span>
+              <span class="kpi-edit-icon">✏️</span>
+            </div>
             <span class="kpi-badge neutral" id="kpiSlaBadge">Optimal</span>
           </div>
         </div>
@@ -1088,6 +1092,19 @@
             </div>
           </div>
 
+          <!-- Target SLA Benchmark Row -->
+          <div class="alert-form-field" style="background: rgba(0, 102, 255, 0.04); border: 1px solid rgba(0, 102, 255, 0.18); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px;">
+            <label class="alert-label" style="font-weight: 600; color: var(--accent-primary); display: flex; justify-content: space-between; align-items: center;">
+              <span>🎯 Target SLA Benchmark (KPI Target: &gt;X%)</span>
+              <span class="alert-val-badge" id="targetSlaValDisplay" style="background: var(--accent-primary); color: #ffffff; font-weight: 700;">95.00%</span>
+            </label>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+              <input type="range" id="targetSlaSlider" min="50" max="99.9" step="0.1" value="95.0" class="recovery-slider" />
+              <input type="number" id="targetSlaInput" min="50" max="99.9" step="0.1" value="95.0" class="alert-num-input" style="width: 85px;" />
+            </div>
+            <span class="alert-field-hint">Defines the benchmark target on the Overall Success Rate KPI card and status metrics.</span>
+          </div>
+
           <div class="alert-grid-2col">
             <div class="alert-form-field">
               <label class="alert-label">
@@ -1095,22 +1112,22 @@
                 <span class="alert-val-badge" id="srCritValDisplay">90.0%</span>
               </label>
               <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="range" id="srCritSlider" min="70" max="98" step="0.5" value="90" class="recovery-slider" />
-                <input type="number" id="srCritInput" min="70" max="98" step="0.5" value="90" class="alert-num-input" />
+                <input type="range" id="srCritSlider" min="40" max="98" step="0.5" value="90" class="recovery-slider" />
+                <input type="number" id="srCritInput" min="40" max="98" step="0.5" value="90" class="alert-num-input" />
               </div>
-              <span class="alert-field-hint">Triggers high-urgency WhatsApp &amp; Email incident dispatch.</span>
+              <span class="alert-field-hint">Triggers high-urgency WhatsApp, Email &amp; Dashboard Emergency Banner.</span>
             </div>
 
             <div class="alert-form-field">
               <label class="alert-label">
                 Warning Threshold (Success Rate &lt; X%)
-                <span class="alert-val-badge" id="srWarnValDisplay">95.0%</span>
+                <span class="alert-val-badge" id="srWarnValDisplay">92.0%</span>
               </label>
               <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="range" id="srWarnSlider" min="75" max="99" step="0.5" value="95" class="recovery-slider" />
-                <input type="number" id="srWarnInput" min="75" max="99" step="0.5" value="95" class="alert-num-input" />
+                <input type="range" id="srWarnSlider" min="50" max="99" step="0.5" value="92" class="recovery-slider" />
+                <input type="number" id="srWarnInput" min="50" max="99" step="0.5" value="92" class="alert-num-input" />
               </div>
-              <span class="alert-field-hint">Generates advisory watchlist notifications and dashboard status change.</span>
+              <span class="alert-field-hint">Generates advisory watchlist notifications and Guarded KPI badge.</span>
             </div>
           </div>
 
