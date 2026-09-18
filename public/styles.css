@@ -1,40 +1,41 @@
 /* ==========================================
-   Transact Bridge - Shopeers B2B Analytics Design System
-   Modeled after Shopeers by Dipa Inhouse (Dribbble)
+   Transact Bridge - Enterprise Design System
+   Themed to Official Brand Logo Palette:
+   Electric Azure Blue (#0066FF) & Obsidian Navy (#080C14)
    ========================================== */
 :root {
-  --bg-primary: #f4f5f7;
-  --bg-secondary: #ebedf0;
-  --bg-canvas: #f4f5f7;
+  --bg-primary: #f5f8ff;
+  --bg-secondary: #eef3fc;
+  --bg-canvas: #f5f8ff;
   --card-bg: #ffffff;
-  --card-hover: #f9fafb;
-  --card-subtle: #f8fafc;
-  --border-color: #e5e7eb;
-  --border-subtle: #f0f2f5;
-  --border-highlight: rgba(0, 0, 0, 0.04);
-  --accent-primary: #1132fc; /* Shopeers signature royal blue */
-  --accent-hover: #0d26c4;
-  --accent-secondary: #2563eb;
-  --accent-blue: #1132fc;
-  --accent-soft: #eff3fe;
-  --accent-blue-glow: rgba(17, 50, 252, 0.12);
-  --accent-cyan: #0284c7;
-  --text-main: #08090b;
-  --text-muted: #6b7280;
-  --text-dim: #9ca3af;
-  --success-green: #16a34a;
-  --success-bg: #edf7ed;
-  --success-border: rgba(22, 163, 74, 0.22);
-  --failed-red: #ef4444;
-  --failed-bg: #fef2f2;
-  --failed-border: rgba(239, 68, 68, 0.22);
+  --card-hover: #f8faff;
+  --card-subtle: #f9fbff;
+  --border-color: #e2e8f0;
+  --border-subtle: #edf2f7;
+  --border-highlight: rgba(0, 102, 255, 0.15);
+  --accent-primary: #0066FF; /* Transact Bridge Electric Azure Blue */
+  --accent-hover: #0052CC;
+  --accent-secondary: #0284c7;
+  --accent-blue: #0066FF;
+  --accent-soft: #eef4ff;
+  --accent-blue-glow: rgba(0, 102, 255, 0.15);
+  --accent-cyan: #00b4d8;
+  --text-main: #0a111f; /* Transact Bridge Deep Brand Navy */
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --success-green: #10b981;
+  --success-bg: #ecfdf5;
+  --success-border: rgba(16, 185, 129, 0.25);
+  --failed-red: #f43f5e;
+  --failed-bg: #fff1f2;
+  --failed-border: rgba(244, 63, 94, 0.25);
   --warning-amber: #f59e0b;
   --warning-bg: #fffbeb;
-  --warning-border: rgba(245, 158, 11, 0.22);
+  --warning-border: rgba(245, 158, 11, 0.25);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 4px 14px -2px rgba(0, 0, 0, 0.04);
-  --shadow-float: 0 8px 24px -4px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 0 18px rgba(17, 50, 252, 0.12);
+  --shadow-card: 0 1px 3px 0 rgba(0, 102, 255, 0.04), 0 4px 16px -2px rgba(10, 17, 31, 0.06);
+  --shadow-float: 0 10px 25px -4px rgba(0, 102, 255, 0.1), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 0 20px rgba(0, 102, 255, 0.2);
   --font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Inter", "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --radius-sm: 8px;
@@ -44,24 +45,24 @@
 }
 
 [data-theme="dark"] {
-  --bg-primary: #0b0d13;
-  --bg-secondary: #121520;
-  --bg-canvas: #0b0d13;
-  --card-bg: #141721;
-  --card-hover: #1a1e2b;
-  --card-subtle: #161924;
-  --border-color: #202433;
-  --border-subtle: #181b26;
-  --border-highlight: rgba(255, 255, 255, 0.05);
-  --accent-primary: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-secondary: #60a5fa;
-  --accent-blue: #3b82f6;
-  --accent-soft: rgba(59, 130, 246, 0.14);
-  --accent-blue-glow: rgba(59, 130, 246, 0.2);
+  --bg-primary: #080c14; /* Transact Bridge Obsidian Midnight */
+  --bg-secondary: #0d1320;
+  --bg-canvas: #080c14;
+  --card-bg: #0f1626; /* Midnight Slate Cards */
+  --card-hover: #151e33;
+  --card-subtle: #12192b;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-highlight: rgba(0, 102, 255, 0.25);
+  --accent-primary: #0066FF; /* Transact Bridge Electric Azure */
+  --accent-hover: #1a75ff;
+  --accent-secondary: #38bdf8;
+  --accent-blue: #0066FF;
+  --accent-soft: rgba(0, 102, 255, 0.16);
+  --accent-blue-glow: rgba(0, 102, 255, 0.28);
   --accent-cyan: #38bdf8;
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
   --text-dim: #64748b;
   --success-green: #10b981;
   --success-bg: rgba(16, 185, 129, 0.12);
@@ -72,10 +73,10 @@
   --warning-amber: #f59e0b;
   --warning-bg: rgba(245, 158, 11, 0.12);
   --warning-border: rgba(245, 158, 11, 0.25);
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 4px 16px -2px rgba(0, 0, 0, 0.35);
-  --shadow-float: 0 10px 30px -4px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.2);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 4px 18px -2px rgba(0, 102, 255, 0.08);
+  --shadow-float: 0 12px 32px -4px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 22px rgba(0, 102, 255, 0.3);
 }
 
 * {
@@ -121,24 +122,33 @@ body {
 }
 
 .brand-logo-card {
-  background: var(--card-bg);
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
+  background: #ffffff !important;
+  padding: 6px 14px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 102, 255, 0.08);
   display: flex;
   align-items: center;
-  border: 1px solid var(--border-color);
-  transition: border-color 0.2s ease;
+  border: 1px solid rgba(0, 102, 255, 0.22);
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .brand-logo-card {
+  background: #ffffff !important;
+  box-shadow: 0 2px 14px rgba(0, 102, 255, 0.25);
+  border: 1px solid rgba(0, 102, 255, 0.4);
 }
 
 .brand-logo-card:hover {
   border-color: var(--accent-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 102, 255, 0.3);
 }
 
 .brand-logo-card img {
-  height: 34px;
+  height: 38px;
   width: auto;
   display: block;
+  object-fit: contain;
 }
 
 .brand-titles {
@@ -1101,17 +1111,19 @@ canvas {
 
 .footer-logo-badge {
   background: #ffffff;
-  padding: 8px 16px;
+  padding: 8px 18px;
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 18px rgba(0, 102, 255, 0.2);
+  border: 1px solid rgba(0, 102, 255, 0.3);
 }
 
 .footer-logo-badge img {
-  height: 44px;
+  height: 42px;
   width: auto;
   display: block;
+  object-fit: contain;
 }
 
 .footer-brand-text {

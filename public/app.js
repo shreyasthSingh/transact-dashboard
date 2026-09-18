@@ -51,7 +51,12 @@
       emails: ['ops@transactbridge.io', 'lead-devops@payments.com'],
       phones: ['+91 98765 43210']
     },
-    webhookUrl: ''
+    webhookUrl: '',
+    emailjs: {
+      serviceId: '',
+      templateId: '',
+      publicKey: ''
+    }
   };
 
   let alertSettings = JSON.parse(JSON.stringify(defaultAlertSettings));
@@ -70,7 +75,8 @@
           ...parsed,
           enabledChannels: { ...defaultAlertSettings.enabledChannels, ...(parsed.enabledChannels || {}) },
           thresholds: { ...defaultAlertSettings.thresholds, ...(parsed.thresholds || {}) },
-          recipients: { ...defaultAlertSettings.recipients, ...(parsed.recipients || {}) }
+          recipients: { ...defaultAlertSettings.recipients, ...(parsed.recipients || {}) },
+          emailjs: { ...defaultAlertSettings.emailjs, ...(parsed.emailjs || {}) }
         };
       }
     } catch (e) {
@@ -2067,59 +2073,63 @@
       return '';
     };
 
-    // 1. Merchant Identification & Display Name (handles hex IDs like 6880a1c1e1066f594dba492a or user-changed names)
-    let nestedMerchantName = '';
-    if (row.merchant && typeof row.merchant === 'object') {
-      nestedMerchantName = row.merchant.name || row.merchant.businessName || '';
-    }
-    const rawMerchantId = getVal('merchantId', 'mid', 'MERCHANT_ID', 'merchant_id') || 'MERCH_DEFAULT';
-    const rawMerchantName = nestedMerchantName || getVal('merchantName', 'merchant_name', 'merchant', 'businessName', 'name', 'legalEntityCode');
-
-    let merchantName = '';
+    // 1. Merchant Identification & Display Name (Rule 2: "Merchant Name & ID - merchantId")
+    const rawMerchantId = getVal('merchantId', 'mid', 'MERCHANT_ID', 'merchant_id') || getVal('merchantName', 'merchant_name', 'merchant', 'businessName', 'name', 'legalEntityCode') || 'MERCH_DEFAULT';
     const merchantId = rawMerchantId;
+    const merchantName = rawMerchantId; // Directly use merchantId from uploaded Excel for both ID & Name
 
-    if (rawMerchantName && !rawMerchantName.startsWith('http') && rawMerchantName !== rawMerchantId) {
-      merchantName = rawMerchantName.replace(/MERCH_|MID_/gi, '').replace(/_/g, ' ').trim();
-    } else {
-      const isHexId = /^[0-9a-fA-F]{16,}$/.test(rawMerchantId);
-      if (isHexId) {
-        merchantName = `Merchant ${rawMerchantId.substring(0, 6)}...${rawMerchantId.substring(rawMerchantId.length - 4)}`;
-      } else {
-        merchantName = rawMerchantId.replace(/MERCH_|MID_/gi, '').replace(/_/g, ' ').trim();
-      }
-    }
+    // 2. Status & Success Evaluation (Rule 1 & 4: "Success Count / Amount - status - SUCCESS")
+    const rawStatus = (getVal('status', 'txSubStatus', 'STATUS') || '').toUpperCase().trim();
+    const isSuccess = (rawStatus === 'SUCCESS');
 
-    const rawStatus = (getVal('status', 'txSubStatus', 'STATUS') || '').toUpperCase();
-    const successDateVal = getVal('successDate', 'depositSuccessDate', 'SUCCESSDATE');
-    const failedDateVal = getVal('failedDate', 'FAILEDDATE');
-    const failedReasonVal = getVal('failedInfo.failedState', 'failedInfo.responseCode', 'remark', 'FAILEDREASON');
-
-    const hasSuccessDate = Boolean(successDateVal !== '');
-    const hasFailedDate = Boolean(failedDateVal !== '');
-    const hasFailedReason = Boolean(failedReasonVal !== '');
-
-    let isSuccess = false;
-    if (rawStatus === 'SUCCESS' || rawStatus === 'SETTLED' || rawStatus === 'COMPLETED' || rawStatus === 'CHARGED' || rawStatus === 'PAID' || hasSuccessDate) {
-      isSuccess = true;
-    } else if (rawStatus === 'FAILED' || rawStatus === 'DECLINED' || rawStatus === 'DROPPED' || rawStatus === 'REJECTED' || hasFailedDate || hasFailedReason) {
-      isSuccess = false;
-    } else {
-      const codeVal = getVal('code', 'responseCode', 'CODE');
-      isSuccess = codeVal === '00' || codeVal === 'SUCCESS';
-    }
-
+    // 3. Amount Extraction (Rule 1: "Success Amount - from uploaded excel take totalAmount")
     let amtStr = getVal('totalAmount', 'amount', 'quoteAmount', 'quoteAmt', 'settleAmount') || '0';
     if (typeof amtStr === 'string') {
       amtStr = amtStr.replace(/[^0-9.-]+/g, '');
     }
     const amount = parseFloat(amtStr) || 0;
 
+    // 4. Date & Time (Rule 3: "Date & Time - successDate, failedDate")
+    const successDateVal = getVal('successDate', 'depositSuccessDate', 'SUCCESSDATE');
+    const failedDateVal = getVal('failedDate', 'FAILEDDATE');
+    let txnDate = '';
+    if (isSuccess) {
+      txnDate = successDateVal || getVal('createdDate', 'updatedDate');
+    } else {
+      txnDate = failedDateVal || getVal('createdDate', 'updatedDate');
+    }
+    if (!txnDate) {
+      txnDate = successDateVal || failedDateVal || getVal('createdDate', 'updatedDate') || new Date().toISOString();
+    }
+
+    // 5. Error Code & Revenue at Risk (Rule 5: "Revenue at Risk - status - Failed and failedInfo.responseCode")
+    let nestedResponseCode = '';
+    let nestedFailState = '';
+    if (row.failedInfo && typeof row.failedInfo === 'object') {
+      nestedResponseCode = row.failedInfo.responseCode || '';
+      nestedFailState = row.failedInfo.failedState || '';
+    }
+    const rawResponseCode = nestedResponseCode || getVal('failedInfo.responseCode', 'responseCode', 'failed_response_code', 'failedResponseCode', 'failedinfo.responsecode');
+    const rawFailState = nestedFailState || getVal('failedInfo.failedState', 'failedState', 'remark', 'failedinfo.failedstate');
+    const hasResponseCode = Boolean(rawResponseCode && rawResponseCode.trim() !== '');
+
+    const isFailedStatus = (rawStatus === 'FAILED' || rawStatus === 'DECLINED' || rawStatus === 'DROPPED' || rawStatus === 'REJECTED' || !isSuccess);
+    // Revenue at Risk strictly evaluates: status is Failed AND failedInfo.responseCode is present
+    const isRevenueAtRisk = isFailedStatus && hasResponseCode;
+    const responseCode = (rawResponseCode || rawFailState || (isFailedStatus ? 'FAILED_TRANSACTION' : '')).trim().toUpperCase();
+
+    const failedReasonVal = getVal('failedInfo.failedState', 'failedInfo.responseCode', 'remark', 'FAILEDREASON');
+    const failState = (failedReasonVal || '').toUpperCase();
+    let failCategory = 'timeout';
+    if (failState.includes('INSUFFICIENT') || failState.includes('BALANCE')) failCategory = 'insufficient';
+    else if (failState.includes('3DS') || failState.includes('OTP') || failState.includes('PIN')) failCategory = 'auth3ds';
+    else if (failState.includes('EXPIRED') || failState.includes('CARD') || failState.includes('INVALID')) failCategory = 'expired';
+    else if (failState.includes('FRAUD') || failState.includes('RISK') || failState.includes('BANNED')) failCategory = 'fraud';
+
     const payMethod = (getVal('paymentDetails.payMethod', 'paymentDetails.payMethodGroup', 'paymentDetails.upiChannel', 'payMethod') || 'UPI').trim();
     const sourceDevice = getVal('paymentDetails.sourceDevice', 'sourceDevice', 'device', 'SourceDevice') || 'Mobile';
     const sourceOS = getVal('paymentDetails.sourceOS', 'sourceOS', 'os', 'SourceOS') || 'Android';
     const bankName = getVal('paymentDetails.BankName', 'paymentDetails.CardName', 'bankName');
-
-    // Payment Provider (PSP)
     const pgProvider = (getVal('paymentDetails.pgProvider', 'paymentDetails.pgCode', 'pgProvider', 'gateway') || 'UNKNOWN_PSP').toUpperCase().trim();
 
     // UPI App
@@ -2139,31 +2149,17 @@
     const rawIdentifier = getVal('paymentDetails.payMethodIdentifier', 'paymentDetails.vpa', 'vpa', 'payerVpa', 'handle');
     const upiHandle = extractUpiHandle(rawIdentifier);
 
-    // Error Code Mapping: extract failedInfo.responseCode directly (e.g. USER_DROP_PAYMENT_REQUEST)
-    let nestedResponseCode = '';
-    let nestedFailState = '';
-    if (row.failedInfo && typeof row.failedInfo === 'object') {
-      nestedResponseCode = row.failedInfo.responseCode || '';
-      nestedFailState = row.failedInfo.failedState || '';
-    }
-    const rawResponseCode = nestedResponseCode || getVal('failedInfo.responseCode', 'responseCode', 'failed_response_code', 'failedResponseCode', 'failedinfo.responsecode');
-    const rawFailState = nestedFailState || getVal('failedInfo.failedState', 'failedState', 'remark', 'failedinfo.failedstate');
-    const responseCode = (rawResponseCode || rawFailState || 'USER_DROP_PAYMENT_REQUEST').trim().toUpperCase();
-
-    const failState = (failedReasonVal || '').toUpperCase();
-    let failCategory = 'timeout';
-    if (failState.includes('INSUFFICIENT') || failState.includes('BALANCE')) failCategory = 'insufficient';
-    else if (failState.includes('3DS') || failState.includes('OTP') || failState.includes('PIN')) failCategory = 'auth3ds';
-    else if (failState.includes('EXPIRED') || failState.includes('CARD') || failState.includes('INVALID')) failCategory = 'expired';
-    else if (failState.includes('FRAUD') || failState.includes('RISK') || failState.includes('BANNED')) failCategory = 'fraud';
-
     return {
       id: getVal('_id', 'referenceId', 'referenceNo') || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase()),
       merchantId,
       merchantName,
       customerId: getVal('customerId', 'CUSTOMER_ID'),
+      status: rawStatus,
       isSuccess,
+      isFailed: isFailedStatus,
+      isRevenueAtRisk,
       amount,
+      totalAmount: amount,
       currency: getVal('currId', 'quoteCurrCode') || 'INR',
       payMethod,
       sourceDevice,
@@ -2175,7 +2171,10 @@
       failCategory,
       responseCode: !isSuccess ? responseCode : '',
       rawFailState: rawResponseCode || rawFailState || 'DECLINED',
-      createdDate: getVal('createdDate', 'updatedDate') || new Date().toISOString()
+      successDate: successDateVal,
+      failedDate: failedDateVal,
+      createdDate: txnDate,
+      dateTime: txnDate
     };
   }
 
@@ -2254,9 +2253,7 @@
         };
       }
       const m = merchantMap[t.merchantId];
-      if (t.merchantName && (!m.name || m.name === m.id || /^[0-9a-fA-F]{16,}$/.test(m.name))) {
-        m.name = t.merchantName;
-      }
+      m.name = t.merchantName || t.merchantId;
       m.totalCount += 1;
       m.totalAmount += t.amount;
       if (t.isSuccess) {
@@ -2264,7 +2261,10 @@
         m.successAmount += t.amount;
       } else {
         m.failedCount += 1;
-        m.failedAmount += t.amount;
+        // Revenue at Risk strictly accumulates: status - Failed AND failedInfo.responseCode
+        if (t.isRevenueAtRisk) {
+          m.failedAmount += t.amount;
+        }
         const respCode = (t.responseCode || t.rawFailState || 'USER_DROP_PAYMENT_REQUEST').trim().toUpperCase();
         m.failureCodes[respCode] = (m.failureCodes[respCode] || 0) + 1;
         dynamicFailCodeCounts[respCode] = (dynamicFailCodeCounts[respCode] || 0) + 1;
@@ -2284,7 +2284,9 @@
         pspMap[pspKey].successAmt += t.amount;
       } else {
         pspMap[pspKey].failed += 1;
-        pspMap[pspKey].failedAmt += t.amount;
+        if (t.isRevenueAtRisk) {
+          pspMap[pspKey].failedAmt += t.amount;
+        }
         const respCode = (t.responseCode || t.rawFailState || 'USER_DROP_PAYMENT_REQUEST').trim().toUpperCase();
         pspMap[pspKey].failureCodes[respCode] = (pspMap[pspKey].failureCodes[respCode] || 0) + 1;
       }
@@ -2318,7 +2320,9 @@
         upiAppMap[appKey].successAmt += t.amount;
       } else {
         upiAppMap[appKey].failed += 1;
-        upiAppMap[appKey].failedAmt += t.amount;
+        if (t.isRevenueAtRisk) {
+          upiAppMap[appKey].failedAmt += t.amount;
+        }
       }
 
       // 4. UPI Handle Aggregation (after @ in paymentDetails.payMethodIdentifier)
@@ -2334,7 +2338,9 @@
           upiHandleMap[handleKey].successAmt += t.amount;
         } else {
           upiHandleMap[handleKey].failed += 1;
-          upiHandleMap[handleKey].failedAmt += t.amount;
+          if (t.isRevenueAtRisk) {
+            upiHandleMap[handleKey].failedAmt += t.amount;
+          }
         }
       }
 
@@ -5620,11 +5626,83 @@
     return { topErrorCode, topErrorCount, topPsp, topPspFailed };
   }
 
+  function formatCleanErrorReason(code) {
+    if (!code) return 'General Gateway Timeout';
+    const c = String(code).toUpperCase();
+    if (c.includes('USER_DROP') || c.includes('CANCEL')) return 'Customer Checkout Abandonment (User Drop-off)';
+    if (c.includes('BANK_SERVER') || c.includes('ISSUER_DOWN') || c.includes('DOWNTIME')) return 'Bank Core Issuer Outage (Bank Server Down)';
+    if (c.includes('TIMEOUT') || c.includes('LATENCY')) return 'Gateway Connection Timeout (High Latency)';
+    if (c.includes('AUTH') || c.includes('MPIN') || c.includes('PIN')) return 'Authentication Failure (Incorrect MPIN / OTP)';
+    if (c.includes('LIMIT') || c.includes('INSUFFICIENT')) return 'Customer Account Limits / Insufficient Balance';
+    if (c.includes('GATEWAY') || c.includes('PG_')) return 'PSP Gateway Processing Failure';
+    return c.replace(/_/g, ' ');
+  }
+
+  function buildReportAnalysisRecommendations(sr, agg, diag) {
+    const worstRoute = (lastCustomAnalysisResult && lastCustomAnalysisResult.worstRoute) || diag.topPsp || 'Razorpay Gateway';
+    const fallbackRoutes = worstRoute.toLowerCase().includes('cashfree') ? 'PayU / Razorpay' : 'Cashfree / PayU';
+    const rawErrorCode = (lastCustomAnalysisResult && lastCustomAnalysisResult.topReason) || diag.topErrorCode || 'USER_DROP_PAYMENT_REQUEST';
+    const cleanError = formatCleanErrorReason(rawErrorCode);
+    const recoverableAmt = Math.round(agg.failedAmount * 0.78);
+
+    let pspAdvice = `Rebalance active checkout allocation away from <strong>${worstRoute}</strong> to standby routes (<strong>${fallbackRoutes}</strong>) to isolate degraded gateway latency.`;
+    let rootCauseAdvice = `Deploy targeted mitigation for <strong>${cleanError}</strong>: configure automated dynamic retry and optimize checkout handoff to prevent user drops.`;
+    let revAdvice = `Trigger automated retry pipeline for eligible soft declines to salvage estimated <strong>${formatCurrency(recoverableAmt)}</strong> in recoverable revenue.`;
+
+    try {
+      if (typeof getRecommendationsList === 'function') {
+        const recList = getRecommendationsList();
+        if (recList && recList.length > 0) {
+          const errRec = recList.find(r => r.category === 'error_code') || recList[0];
+          if (errRec && errRec.desc) {
+            let desc = errRec.desc.replace(/<[^>]*>/g, '');
+            if (desc.length > 190) desc = desc.slice(0, 190) + '...';
+            rootCauseAdvice = desc;
+          }
+          const pspRec = recList.find(r => r.category === 'psp');
+          if (pspRec && pspRec.desc) {
+            let pDesc = pspRec.desc.replace(/<[^>]*>/g, '');
+            if (pDesc.length > 190) pDesc = pDesc.slice(0, 190) + '...';
+            pspAdvice = pDesc;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading recommendation list:', e);
+    }
+
+    if (lastCustomAnalysisResult) {
+      const r = lastCustomAnalysisResult;
+      if (r.worstRoute) {
+        pspAdvice = `Diagnostic Report confirmed <strong>${r.worstRoute}</strong> as primary disruption gateway. Shift 35% checkout volume to <strong>${fallbackRoutes}</strong> immediately.`;
+      }
+      if (r.topReason) {
+        rootCauseAdvice = `Forensic analysis isolates <strong>${r.topReason}</strong> (${r.topReasonPct}% of failures). Activate 1-click fallback & prompt partner bank ops.`;
+      }
+      if (r.recoverableAmount > 0) {
+        revAdvice = `Salvage protocol: <strong>${formatCurrency(r.recoverableAmount)}</strong> identified as recoverable volume via instant intelligent rerouting.`;
+      }
+    }
+
+    return {
+      worstRoute,
+      cleanError,
+      pspAdvice,
+      rootCauseAdvice,
+      revAdvice
+    };
+  }
+
   function buildIncidentMessages(sr, agg, reason) {
     const diag = getTopFailureDiagnostics();
     const timeStr = new Date().toLocaleString();
     const critThreshold = alertSettings.thresholds.criticalSr || 90.0;
     const isSimulation = reason && reason.includes('Simulation');
+    const cleanError = formatCleanErrorReason(diag.topErrorCode);
+    const recoverableAmt = Math.round(agg.failedAmount * 0.78);
+    const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
+    const recs = buildReportAnalysisRecommendations(sr, agg, diag);
+    const topGateway = diag.topPsp || 'Razorpay Gateway';
 
     const waText = 
 `🚨 *TRANSACT-BRIDGE SLA ALERT: SUCCESS RATE DROP* 🚨
@@ -5634,47 +5712,475 @@ ${isSimulation ? '*(SIMULATION / VERIFICATION TEST)*\n' : ''}
 📊 *Total Processed:* ${formatNumber(agg.totalCount)} transactions
 ❌ *Failed Count:* ${formatNumber(agg.failedCount)} (${agg.failureRate.toFixed(2)}%)
 💸 *Revenue at Risk:* ₹${formatNumber(Math.round(agg.failedAmount))}
-🔍 *Dominant Error:* ${diag.topErrorCode}
-⚡ *Impacted Gateway:* ${diag.topPsp} (${formatNumber(diag.topPspFailed)} failures)
+🔍 *Dominant Cause:* ${cleanError}
+⚡ *Impacted Gateway:* ${topGateway} (${formatNumber(diag.topPspFailed)} failures)
 🕒 *Dispatched At:* ${timeStr}
 
 👉 *Action Required:* Review PSP failover routing and initiate Recoverable Volume mitigation immediately.
 _TransactBridge Automated SLA Watchdog_`;
 
-    const emailSubject = `[SLA CRITICAL ALERT] Platform Success Rate Dropped to ${sr.toFixed(2)}% (Target: ${critThreshold.toFixed(1)}%)`;
+    const emailSubject = `[SLA CRITICAL ALERT] Platform Conversion at ${sr.toFixed(2)}% (Target: ≥ ${critThreshold.toFixed(1)}%)`;
     const emailBody = 
-`TRANSACT-BRIDGE REAL-TIME SLA INCIDENT REPORT
-==================================================================
-Incident Type: SLA Success Rate Degradation
-Status: CRITICAL PERFORMANCE ALERT
-Dispatched At: ${timeStr}
-Trigger Reason: ${reason || `Success rate (${sr.toFixed(2)}%) dropped below the ${critThreshold.toFixed(1)}% threshold`}
-
-INCIDENT TELEMETRY & METRICS:
+`EXECUTIVE INCIDENT BRIEF
 ------------------------------------------------------------------
-- Current Success Rate:    ${sr.toFixed(2)}%
-- Target SLA Threshold:    ${critThreshold.toFixed(1)}%
-- Total Processed Volume:  ${formatNumber(agg.totalCount)} txns
-- Successful Transactions: ${formatNumber(agg.successCount)}
-- Failed Transactions:     ${formatNumber(agg.failedCount)} (${agg.failureRate.toFixed(2)}%)
-- Failed Revenue at Risk:  ₹${formatNumber(Math.round(agg.failedAmount))}
+During the active monitoring window, platform transaction conversion dropped to ${sr.toFixed(2)}%, trailing the defined SLA target of ${critThreshold.toFixed(1)}%. Primary disruption is concentrated on ${topGateway}, where ${formatNumber(diag.topPspFailed)} failures occurred, predominantly driven by ${cleanError}.
+
+FINANCIAL & OPERATIONAL IMPACT:
+• Platform Conversion:    ${sr.toFixed(2)}% (Target: ≥ ${critThreshold.toFixed(1)}%)
+• Gross Volume at Risk:   ₹${formatNumber(Math.round(agg.failedAmount))}
+• Est. Recoverable Loss:  ₹${formatNumber(recoverableAmt)} (via smart rerouting / retry)
+• Total Transactions:     ${formatNumber(agg.totalCount)}
+• Failed Transactions:    ${formatNumber(agg.failedCount)} (${agg.failureRate.toFixed(2)}%)
 
 ROOT CAUSE & ROUTE ATTRIBUTION:
-------------------------------------------------------------------
-- Dominant Error Code:     ${diag.topErrorCode} (failedInfo.responseCode)
-- Impacted PSP Provider:   ${diag.topPsp}
-- PSP Failure Volume:      ${formatNumber(diag.topPspFailed)} transactions
+• Impacted Gateway:       ${topGateway} (${formatNumber(diag.topPspFailed)} failures)
+• Dominant Failure Code:  ${cleanError}
+• Friction Breakdown:     ${techPct}% Technical / ${100 - techPct}% User Drop-off
 
-RECOMMENDED MITIGATION ACTIONS:
-------------------------------------------------------------------
-1. Divert traffic from degraded route (${diag.topPsp}) to primary backup PSP.
-2. Review failed response code patterns (${diag.topErrorCode}).
-3. Launch Recoverable Volume Playbook to recapture dropped volume.
+MITIGATION & IMMEDIATE ACTIONS (REPORT ANALYSIS):
+1. Dynamic Gateway Failover: ${recs.pspAdvice.replace(/<[^>]*>/g, '')}
+2. Root-Cause Mitigation (${recs.cleanError}): ${recs.rootCauseAdvice.replace(/<[^>]*>/g, '')}
+3. Recoverable Volume Pipeline: ${recs.revAdvice.replace(/<[^>]*>/g, '')}
 
-Access Dashboard: TransactBridge Telemetry Console
-(Automated alert generated by TransactBridge SLA Watchdog)`;
+Live Incident Console: https://tbmonitordashboard.vercel.app/
+Transact Bridge Automated SLA Watchdog
+Incident Timestamp: ${timeStr}`;
 
-    return { waText, emailSubject, emailBody };
+    const logoSrc = 'https://tbmonitordashboard.vercel.app/assets/logo.png';
+    const emailBodyHtml = `
+<div style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 20px 10px;">
+    <tr>
+      <td align="center">
+        <!-- Main Email Container Card -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 640px; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0, 102, 255, 0.08);">
+          
+          <!-- Top Accent Bar: Electric Azure Blue -->
+          <tr>
+            <td style="height: 5px; background: linear-gradient(90deg, #0066FF 0%, #0052CC 100%); line-height: 5px; font-size: 1px;">&nbsp;</td>
+          </tr>
+
+          <!-- Header Banner: Midnight Obsidian Navy Palette with Transact Bridge Brand Logo -->
+          <tr>
+            <td style="background-color: #0A111F; padding: 22px 24px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="left" style="vertical-align: middle;">
+                    <!-- Logo Card Pill -->
+                    <table border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; border: 1px solid rgba(0, 102, 255, 0.35); padding: 8px 14px; box-shadow: 0 2px 8px rgba(0, 102, 255, 0.15);">
+                      <tr>
+                        <td style="vertical-align: middle;">
+                          <img src="${logoSrc}" alt="Transact Bridge" height="28" style="height: 28px; width: auto; max-width: 150px; display: block; border: 0;" />
+                        </td>
+                      </tr>
+                    </table>
+                    <div style="color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 8px;">
+                      Enterprise Payment Observability · SLA Watchdog
+                    </div>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; display: inline-block;">
+                      🚨 CRITICAL SLA BREACH
+                    </span>
+                    <div style="color: #94a3b8; font-size: 11px; margin-top: 6px;">
+                      ${timeStr}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Executive Briefing Card -->
+          <tr>
+            <td style="padding: 24px 24px 16px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-left: 4px solid #0066FF; border-radius: 0 8px 8px 0; padding: 16px 20px;">
+                <tr>
+                  <td>
+                    <div style="font-size: 11px; font-weight: 700; color: #0066FF; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
+                      Executive Incident Brief
+                    </div>
+                    <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #0a111f;">
+                      Platform transaction conversion during the active window has dropped to <strong style="color: #e11d48;">${sr.toFixed(2)}%</strong>, breaching the benchmark SLA target threshold of <strong>${critThreshold.toFixed(1)}%</strong>. Primary traffic congestion is localized on <strong style="color: #0a111f;">${topGateway}</strong>, predominantly driven by <strong style="color: #0066FF;">${cleanError}</strong>.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- 4-Card Key Performance Indicators Grid -->
+          <tr>
+            <td style="padding: 0 24px 20px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <!-- Card 1: Active Conversion Rate -->
+                  <td width="48%" style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 14px 16px; vertical-align: top;">
+                    <div style="font-size: 10px; font-weight: 700; color: #e11d48; text-transform: uppercase; letter-spacing: 0.6px;">Conversion Rate</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #e11d48; margin: 4px 0 2px;">${sr.toFixed(2)}%</div>
+                    <div style="font-size: 11px; color: #9f1239;">Target SLA: ≥ ${critThreshold.toFixed(1)}%</div>
+                  </td>
+                  <td width="4%">&nbsp;</td>
+                  <!-- Card 2: Revenue at Risk -->
+                  <td width="48%" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; vertical-align: top;">
+                    <div style="font-size: 10px; font-weight: 700; color: #d97706; text-transform: uppercase; letter-spacing: 0.6px;">Revenue at Risk</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #b45309; margin: 4px 0 2px;">${formatCurrency(agg.failedAmount)}</div>
+                    <div style="font-size: 11px; color: #92400e;">Gross Uncollected Volume</div>
+                  </td>
+                </tr>
+                <tr><td colspan="3" style="height: 10px; font-size: 1px; line-height: 10px;">&nbsp;</td></tr>
+                <tr>
+                  <!-- Card 3: Dropped Transactions -->
+                  <td width="48%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; vertical-align: top;">
+                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px;">Dropped Checkouts</div>
+                    <div style="font-size: 22px; font-weight: 800; color: #0a111f; margin: 4px 0 2px;">${formatNumber(agg.failedCount)}</div>
+                    <div style="font-size: 11px; color: #64748b;">Failure Rate: ${agg.failureRate.toFixed(2)}%</div>
+                  </td>
+                  <td width="4%">&nbsp;</td>
+                  <!-- Card 4: Est. Recoverable Loss -->
+                  <td width="48%" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 16px; vertical-align: top;">
+                    <div style="font-size: 10px; font-weight: 700; color: #0066FF; text-transform: uppercase; letter-spacing: 0.6px;">Est. Recoverable Loss</div>
+                    <div style="font-size: 22px; font-weight: 800; color: #0052cc; margin: 4px 0 2px;">${formatCurrency(recoverableAmt)}</div>
+                    <div style="font-size: 11px; color: #0066FF;">Via Auto Failover Reroute</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Diagnostics Attribution Table -->
+          <tr>
+            <td style="padding: 0 24px 20px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <tr style="background-color: #0A111F; color: #ffffff;">
+                  <td colspan="2" style="padding: 10px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
+                    🔍 Forensic Telemetry &amp; Route Attribution
+                  </td>
+                </tr>
+                <tr style="background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b; width: 38%;">Impacted Gateway:</td>
+                  <td style="padding: 10px 16px; font-size: 13px; font-weight: 700; color: #0a111f;">${topGateway} <span style="font-size: 11px; font-weight: normal; color: #e11d48;">(${formatNumber(diag.topPspFailed)} failures)</span></td>
+                </tr>
+                <tr style="background-color: #f8fafc; border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b;">Dominant Error Code:</td>
+                  <td style="padding: 10px 16px; font-size: 13px; font-weight: 700; color: #0066FF;">${cleanError}</td>
+                </tr>
+                <tr style="background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b;">Friction Breakdown:</td>
+                  <td style="padding: 10px 16px; font-size: 13px; color: #334155;"><strong>${techPct}%</strong> Technical / <strong>${100 - techPct}%</strong> User Drop-off</td>
+                </tr>
+                <tr style="background-color: #f8fafc;">
+                  <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b;">Total Processed Volume:</td>
+                  <td style="padding: 10px 16px; font-size: 13px; color: #334155;"><strong>${formatNumber(agg.totalCount)}</strong> total attempts across active routes</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Mitigation Actions Checklist (Report Analysis) -->
+          <tr>
+            <td style="padding: 0 24px 24px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 18px 20px;">
+                <tr>
+                  <td>
+                    <div style="font-size: 11px; font-weight: 800; color: #15803d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
+                      ⚡ Recommended Mitigation Actions (Report Analysis)
+                    </div>
+                    
+                    <!-- Action Item 1: Gateway Rebalancing -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 10px; background-color: #ffffff; border: 1px solid #dcfce7; border-radius: 6px; padding: 10px 12px;">
+                      <tr>
+                        <td width="24" style="vertical-align: top; font-size: 14px; line-height: 1.4;">🔀</td>
+                        <td style="font-size: 13px; line-height: 1.5; color: #14532d; padding-left: 8px;">
+                          <strong>1. Dynamic Gateway Failover:</strong> ${recs.pspAdvice}
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Action Item 2: Root Cause Mitigation -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 10px; background-color: #ffffff; border: 1px solid #dcfce7; border-radius: 6px; padding: 10px 12px;">
+                      <tr>
+                        <td width="24" style="vertical-align: top; font-size: 14px; line-height: 1.4;">🛠️</td>
+                        <td style="font-size: 13px; line-height: 1.5; color: #14532d; padding-left: 8px;">
+                          <strong>2. Root-Cause Mitigation (${recs.cleanError}):</strong> ${recs.rootCauseAdvice}
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Action Item 3: Recoverable Revenue Pipeline -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #dcfce7; border-radius: 6px; padding: 10px 12px;">
+                      <tr>
+                        <td width="24" style="vertical-align: top; font-size: 14px; line-height: 1.4;">💰</td>
+                        <td style="font-size: 13px; line-height: 1.5; color: #14532d; padding-left: 8px;">
+                          <strong>3. Recoverable Volume Pipeline:</strong> ${recs.revAdvice}
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td align="center" style="padding: 0 24px 28px;">
+              <table border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="border-radius: 8px; background-color: #0066FF; box-shadow: 0 4px 14px rgba(0, 102, 255, 0.35);">
+                    <a href="https://tbmonitordashboard.vercel.app/" target="_blank" style="font-size: 14px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 12px 28px; display: inline-block; letter-spacing: 0.3px;">
+                      Open Live Incident Console &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer: Brand Midnight Obsidian Palette -->
+          <tr>
+            <td style="background-color: #0A111F; padding: 20px 24px; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+              <div style="color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
+                Transact Bridge Automated SLA Watchdog
+              </div>
+              <div style="color: #64748b; font-size: 11px; line-height: 1.5;">
+                Confidential Incident Escalation · Dispatched automatically based on your real-time payment health thresholds.<br />
+                &copy; Transact Bridge Inc. Payment Infrastructure &amp; Routing Engine.
+              </div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</div>
+    `.trim();
+
+    return { waText, emailSubject, emailBody, emailBodyHtml };
+  }
+
+  function getStakeholderEmailTemplateCode() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{subject}}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 20px 10px;">
+    <tr>
+      <td align="center">
+        <!-- Main Email Container Card -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 640px; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0, 102, 255, 0.08);">
+          
+          <!-- Top Accent Bar: Electric Azure Blue -->
+          <tr>
+            <td style="height: 5px; background: linear-gradient(90deg, #0066FF 0%, #0052CC 100%); line-height: 5px; font-size: 1px;">&nbsp;</td>
+          </tr>
+
+          <!-- Header Banner: Midnight Obsidian Navy Palette with Transact Bridge Brand Logo -->
+          <tr>
+            <td style="background-color: #0A111F; padding: 22px 24px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="left" style="vertical-align: middle;">
+                    <!-- Logo Card Pill -->
+                    <table border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; border: 1px solid rgba(0, 102, 255, 0.35); padding: 8px 14px; box-shadow: 0 2px 8px rgba(0, 102, 255, 0.15);">
+                      <tr>
+                        <td style="vertical-align: middle;">
+                          <img src="https://tbmonitordashboard.vercel.app/assets/logo.png" alt="Transact Bridge" height="28" style="height: 28px; width: auto; max-width: 150px; display: block; border: 0;" />
+                        </td>
+                      </tr>
+                    </table>
+                    <div style="color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 8px;">
+                      Enterprise Payment Observability · SLA Watchdog
+                    </div>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; display: inline-block;">
+                      🚨 CRITICAL SLA BREACH
+                    </span>
+                    <div style="color: #94a3b8; font-size: 11px; margin-top: 6px;">
+                      {{timestamp}}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Executive Briefing Card -->
+          <tr>
+            <td style="padding: 24px 24px 16px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-left: 4px solid #0066FF; border-radius: 0 8px 8px 0; padding: 16px 20px;">
+                <tr>
+                  <td>
+                    <div style="font-size: 11px; font-weight: 700; color: #0066FF; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
+                      Executive Incident Brief
+                    </div>
+                    <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #0a111f;">
+                      Platform transaction conversion during the active window has dropped to <strong style="color: #e11d48;">{{success_rate}}</strong>, breaching the benchmark SLA target threshold of <strong>{{sla_target}}</strong>. Primary traffic congestion is localized on <strong style="color: #0a111f;">{{impacted_gateway}}</strong>, predominantly driven by <strong style="color: #0066FF;">{{dominant_cause}}</strong>.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- 4-Card Key Performance Indicators Grid -->
+          <tr>
+            <td style="padding: 0 24px 20px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <!-- Card 1: Active Conversion Rate -->
+                  <td width="48%" style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 14px 16px; vertical-align: top;">
+                    <div style="font-size: 10px; font-weight: 700; color: #e11d48; text-transform: uppercase; letter-spacing: 0.6px;">Conversion Rate</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #e11d48; margin: 4px 0 2px;">{{success_rate}}</div>
+                    <div style="font-size: 11px; color: #9f1239;">Target SLA: ≥ {{sla_target}}</div>
+                  </td>
+                  <td width="4%">&nbsp;</td>
+                  <!-- Card 2: Revenue at Risk -->
+                  <td width="48%" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; vertical-align: top;">
+                    <div style="font-size: 10px; font-weight: 700; color: #d97706; text-transform: uppercase; letter-spacing: 0.6px;">Revenue at Risk</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #b45309; margin: 4px 0 2px;">{{failed_amount}}</div>
+                    <div style="font-size: 11px; color: #92400e;">Gross Uncollected Volume</div>
+                  </td>
+                </tr>
+                <tr><td colspan="3" style="height: 10px; font-size: 1px; line-height: 10px;">&nbsp;</td></tr>
+                <tr>
+                  <!-- Card 3: Dropped Transactions -->
+                  <td width="48%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; vertical-align: top;">
+                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px;">Dropped Checkouts</div>
+                    <div style="font-size: 22px; font-weight: 800; color: #0a111f; margin: 4px 0 2px;">{{failed_transactions}}</div>
+                    <div style="font-size: 11px; color: #64748b;">Failure Rate: {{failed_rate}}</div>
+                  </td>
+                  <td width="4%">&nbsp;</td>
+                  <!-- Card 4: Est. Recoverable Loss -->
+                  <td width="48%" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 16px; vertical-align: top;">
+                    <div style="font-size: 10px; font-weight: 700; color: #0066FF; text-transform: uppercase; letter-spacing: 0.6px;">Est. Recoverable Loss</div>
+                    <div style="font-size: 22px; font-weight: 800; color: #0052cc; margin: 4px 0 2px;">{{recoverable_amount}}</div>
+                    <div style="font-size: 11px; color: #0066FF;">Via Auto Failover Reroute</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Diagnostics Attribution Table -->
+          <tr>
+            <td style="padding: 0 24px 20px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <tr style="background-color: #0A111F; color: #ffffff;">
+                  <td colspan="2" style="padding: 10px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
+                    🔍 Forensic Telemetry &amp; Route Attribution
+                  </td>
+                </tr>
+                <tr style="background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b; width: 38%;">Impacted Gateway:</td>
+                  <td style="padding: 10px 16px; font-size: 13px; font-weight: 700; color: #0a111f;">{{impacted_gateway}}</td>
+                </tr>
+                <tr style="background-color: #f8fafc; border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b;">Dominant Error Code:</td>
+                  <td style="padding: 10px 16px; font-size: 13px; font-weight: 700; color: #0066FF;">{{dominant_cause}}</td>
+                </tr>
+                <tr style="background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b;">Friction Breakdown:</td>
+                  <td style="padding: 10px 16px; font-size: 13px; color: #334155;"><strong>{{technical_friction}}</strong> Technical / <strong>{{user_friction}}</strong> User Drop-off</td>
+                </tr>
+                <tr style="background-color: #f8fafc;">
+                  <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b;">Total Processed Volume:</td>
+                  <td style="padding: 10px 16px; font-size: 13px; color: #334155;"><strong>{{total_transactions}}</strong> total attempts across active routes</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Mitigation Actions Checklist (Report Analysis) -->
+          <tr>
+            <td style="padding: 0 24px 24px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 18px 20px;">
+                <tr>
+                  <td>
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 12px;">
+                      <tr>
+                        <td align="left" style="font-size: 11px; font-weight: 800; color: #15803d; text-transform: uppercase; letter-spacing: 0.8px;">
+                          ⚡ Recommended Mitigation Actions (Report Analysis)
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Action Item 1: Gateway Rebalancing -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 10px; background-color: #ffffff; border: 1px solid #dcfce7; border-radius: 6px; padding: 10px 12px;">
+                      <tr>
+                        <td width="24" style="vertical-align: top; font-size: 14px; line-height: 1.4;">🔀</td>
+                        <td style="font-size: 13px; line-height: 1.5; color: #14532d; padding-left: 8px;">
+                          <strong>1. Dynamic Gateway Failover:</strong> Rebalance active checkout allocation away from <strong>{{impacted_gateway}}</strong> to secondary standby routes (Cashfree / PayU) to isolate degraded gateway latency.
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Action Item 2: Root Cause Mitigation -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 10px; background-color: #ffffff; border: 1px solid #dcfce7; border-radius: 6px; padding: 10px 12px;">
+                      <tr>
+                        <td width="24" style="vertical-align: top; font-size: 14px; line-height: 1.4;">🛠️</td>
+                        <td style="font-size: 13px; line-height: 1.5; color: #14532d; padding-left: 8px;">
+                          <strong>2. Root-Cause Mitigation ({{dominant_cause}}):</strong> Configure automated dynamic retry on secondary payment gateways after a 4-second timeout threshold to recover dropped transactions.
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Action Item 3: Recoverable Revenue Pipeline -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #dcfce7; border-radius: 6px; padding: 10px 12px;">
+                      <tr>
+                        <td width="24" style="vertical-align: top; font-size: 14px; line-height: 1.4;">💰</td>
+                        <td style="font-size: 13px; line-height: 1.5; color: #14532d; padding-left: 8px;">
+                          <strong>3. Recoverable Volume Pipeline:</strong> Automated background retry mechanisms enabled for soft card/UPI decline states to salvage up to <strong>{{recoverable_amount}}</strong> in lost volume.
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td align="center" style="padding: 0 24px 28px;">
+              <table border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="border-radius: 8px; background-color: #0066FF; box-shadow: 0 4px 14px rgba(0, 102, 255, 0.35);">
+                    <a href="https://tbmonitordashboard.vercel.app/" target="_blank" style="font-size: 14px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 12px 28px; display: inline-block; letter-spacing: 0.3px;">
+                      Open Live Incident Console &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer: Brand Midnight Obsidian Palette -->
+          <tr>
+            <td style="background-color: #0A111F; padding: 20px 24px; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+              <div style="color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
+                Transact Bridge Automated SLA Watchdog
+              </div>
+              <div style="color: #64748b; font-size: 11px; line-height: 1.5;">
+                Confidential Incident Escalation · Dispatched automatically based on your real-time payment health thresholds.<br />
+                &copy; Transact Bridge Inc. Payment Infrastructure &amp; Routing Engine.
+              </div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
   }
 
   function logAlertIncident(triggerType, sr, totalTxn, failedTxn, channels) {
@@ -5741,7 +6247,7 @@ Access Dashboard: TransactBridge Telemetry Console
   function dispatchEmailAlert(customSr, customAgg, reason) {
     const agg = customAgg || getAggregates();
     const sr = customSr !== undefined ? customSr : (isBreachSimulated ? 84.2 : agg.successRate);
-    const { emailSubject, emailBody } = buildIncidentMessages(sr, agg, reason || (isBreachSimulated ? 'Simulation Test' : 'SLA Incident'));
+    const { emailSubject, emailBody, emailBodyHtml } = buildIncidentMessages(sr, agg, reason || (isBreachSimulated ? 'Simulation Test' : 'SLA Incident'));
 
     const emails = alertSettings.recipients.emails || [];
     if (emails.length === 0) {
@@ -5751,7 +6257,6 @@ Access Dashboard: TransactBridge Telemetry Console
     }
 
     const mailtoUrl = `mailto:${emails.join(',')}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-    window.location.href = mailtoUrl;
 
     sendWebhookAlert({
       event: 'sla_breach_email',
@@ -5763,6 +6268,51 @@ Access Dashboard: TransactBridge Telemetry Console
     });
 
     logAlertIncident(reason || 'Email Escalation', sr, agg.totalCount, agg.failedCount, ['Email']);
+
+    // Check if EmailJS is configured
+    const ej = alertSettings.emailjs;
+    if (window.emailjs && ej && ej.serviceId && ej.templateId && ej.publicKey) {
+      try {
+        const diag = getTopFailureDiagnostics();
+        const cleanError = formatCleanErrorReason(diag.topErrorCode);
+        const recoverableAmt = Math.round(agg.failedAmount * 0.78);
+        const critThreshold = alertSettings.thresholds.criticalSr || 90.0;
+        const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
+
+        emailjs.init({ publicKey: ej.publicKey });
+        emailjs.send(ej.serviceId, ej.templateId, {
+          to_emails: emails.join(', '),
+          subject: emailSubject,
+          incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
+          success_rate: `${sr.toFixed(2)}%`,
+          sla_target: `${critThreshold.toFixed(1)}%`,
+          total_transactions: formatNumber(agg.totalCount),
+          failed_transactions: formatNumber(agg.failedCount),
+          failed_rate: `${agg.failureRate.toFixed(2)}%`,
+          failed_amount: formatCurrency(agg.failedAmount),
+          recoverable_amount: formatCurrency(recoverableAmt),
+          impacted_gateway: diag.topPsp || 'Razorpay Gateway',
+          dominant_cause: cleanError,
+          technical_friction: `${techPct}%`,
+          user_friction: `${100 - techPct}%`,
+          email_body: emailBody,
+          email_body_html: emailBodyHtml,
+          timestamp: new Date().toLocaleString()
+        }).then(function(res) {
+          showToast(`✉️ Automated email dispatched via EmailJS to ${emails.length} recipient(s)!`);
+        }, function(err) {
+          console.warn('EmailJS error, falling back to mail client:', err);
+          showToast(`⚠️ EmailJS error (${err.text || 'Check keys'}). Opening mail client...`);
+          window.location.href = mailtoUrl;
+        });
+        return;
+      } catch (e) {
+        console.warn('EmailJS exception:', e);
+      }
+    }
+
+    // Fallback if EmailJS not configured
+    window.location.href = mailtoUrl;
     showToast(`✉️ Email incident report prepared for ${emails.length} recipient(s)`);
   }
 
@@ -5970,6 +6520,21 @@ Access Dashboard: TransactBridge Telemetry Console
     const webhookInput = document.getElementById('alertWebhookUrlInput');
     if (webhookInput) webhookInput.value = alertSettings.webhookUrl || '';
 
+    // EmailJS credentials sync
+    const ejService = document.getElementById('emailjsServiceId');
+    if (ejService) ejService.value = (alertSettings.emailjs && alertSettings.emailjs.serviceId) || '';
+    const ejTemplate = document.getElementById('emailjsTemplateId');
+    if (ejTemplate) ejTemplate.value = (alertSettings.emailjs && alertSettings.emailjs.templateId) || '';
+    const ejKey = document.getElementById('emailjsPublicKey');
+    if (ejKey) ejKey.value = (alertSettings.emailjs && alertSettings.emailjs.publicKey) || '';
+
+    const ejBadge = document.getElementById('emailjsStatusBadge');
+    if (ejBadge) {
+      const isEjActive = alertSettings.emailjs && alertSettings.emailjs.serviceId && alertSettings.emailjs.publicKey;
+      ejBadge.textContent = isEjActive ? 'CONNECTED' : 'READY / OPTIONAL';
+      ejBadge.className = `status-chip ${isEjActive ? 'healthy' : 'warning'}`;
+    }
+
     const statusChip = document.getElementById('alertStatusChip');
     if (statusChip) {
       const isAnyActive = alertSettings.enabledChannels.email || alertSettings.enabledChannels.whatsapp;
@@ -6149,10 +6714,188 @@ Access Dashboard: TransactBridge Telemetry Console
       const webhookInput = document.getElementById('alertWebhookUrlInput');
       if (webhookInput) alertSettings.webhookUrl = webhookInput.value.trim();
 
+      // Save EmailJS Credentials
+      const ejServiceInput = document.getElementById('emailjsServiceId');
+      const ejTemplateInput = document.getElementById('emailjsTemplateId');
+      const ejPublicKeyInput = document.getElementById('emailjsPublicKey');
+      alertSettings.emailjs = {
+        serviceId: ejServiceInput ? ejServiceInput.value.trim() : '',
+        templateId: ejTemplateInput ? ejTemplateInput.value.trim() : '',
+        publicKey: ejPublicKeyInput ? ejPublicKeyInput.value.trim() : ''
+      };
+
       saveAlertSettings();
       evaluateSlaAlerts();
       closeAlertsModal();
-      showToast('💾 SLA Alert rules and recipients saved!');
+      showToast('💾 SLA Alert rules and EmailJS settings saved!');
+    });
+  }
+
+  // EmailJS Test Dispatch Button
+  const testEmailJsBtn = document.getElementById('testEmailJsBtn');
+  if (testEmailJsBtn) {
+    testEmailJsBtn.addEventListener('click', () => {
+      const sId = document.getElementById('emailjsServiceId')?.value.trim();
+      const tId = document.getElementById('emailjsTemplateId')?.value.trim();
+      const pKey = document.getElementById('emailjsPublicKey')?.value.trim();
+      if (!sId || !tId || !pKey) {
+        showToast('⚠️ Please enter Service ID, Template ID, and Public Key first');
+        return;
+      }
+      if (!window.emailjs) {
+        showToast('⚠️ EmailJS SDK is loading or blocked by an ad-blocker');
+        return;
+      }
+      const testEmails = alertSettings.recipients.emails || [];
+      const recipientStr = testEmails.join(', ') || 'ops@transactbridge.io';
+      showToast('⏳ Sending test email via EmailJS...');
+      try {
+        const agg = getAggregates();
+        const sr = agg.totalCount > 0 ? agg.successRate : 84.6;
+        const { emailSubject, emailBody, emailBodyHtml } = buildIncidentMessages(sr, agg, 'SLA Watchdog System Verification');
+        const diag = getTopFailureDiagnostics();
+        const cleanError = formatCleanErrorReason(diag.topErrorCode);
+        const recoverableAmt = Math.round((agg.failedAmount || 8518847) * 0.78);
+        const critThreshold = alertSettings.thresholds.criticalSr || 90.0;
+        const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
+
+        emailjs.init({ publicKey: pKey });
+        emailjs.send(sId, tId, {
+          to_emails: recipientStr,
+          subject: emailSubject,
+          incident_title: 'SLA Watchdog System Verification',
+          success_rate: `${sr.toFixed(2)}%`,
+          sla_target: `${critThreshold.toFixed(1)}%`,
+          total_transactions: formatNumber(agg.totalCount || 3617908),
+          failed_transactions: formatNumber(agg.failedCount || 160721),
+          failed_rate: `${(agg.failureRate || 15.4).toFixed(2)}%`,
+          failed_amount: formatCurrency(agg.failedAmount || 8518847),
+          recoverable_amount: formatCurrency(recoverableAmt || 6644700),
+          impacted_gateway: diag.topPsp || 'Razorpay Gateway',
+          dominant_cause: cleanError || 'Customer Checkout Abandonment (User Drop-off)',
+          technical_friction: `${techPct}%`,
+          user_friction: `${100 - techPct}%`,
+          email_body: emailBody,
+          email_body_html: emailBodyHtml,
+          timestamp: new Date().toLocaleString()
+        }).then(function(res) {
+          showToast('✅ Test email sent successfully via EmailJS!');
+          const ejBadge = document.getElementById('emailjsStatusBadge');
+          if (ejBadge) {
+            ejBadge.textContent = 'VERIFIED';
+            ejBadge.className = 'status-chip healthy';
+          }
+        }, function(err) {
+          showToast(`❌ EmailJS failed: ${err.text || err.message || 'Check your keys'}`);
+        });
+      } catch (err) {
+        showToast(`❌ EmailJS exception: ${err.message}`);
+      }
+    });
+  }
+
+  // ==========================================================================
+  // ✉️ Stakeholder Email Template & Preview Handlers
+  // ==========================================================================
+  function openEmailTemplateModal() {
+    const agg = getAggregates();
+    const sr = isBreachSimulated ? 84.2 : (agg.totalCount > 0 ? agg.successRate : 84.6);
+    const { emailBodyHtml } = buildIncidentMessages(sr, agg, isBreachSimulated ? 'Simulation Test' : 'Live SLA Incident');
+
+    const previewContainer = document.getElementById('emailLivePreviewContainer');
+    if (previewContainer) {
+      let previewHtml = emailBodyHtml;
+      const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocal) {
+        previewHtml = previewHtml.replace(/https:\/\/tbmonitordashboard\.vercel\.app\/assets\/logo\.png/g, 'assets/logo.png');
+      }
+      previewContainer.innerHTML = previewHtml;
+    }
+
+    const codeTextarea = document.getElementById('emailHtmlCodeTextarea');
+    if (codeTextarea) {
+      codeTextarea.value = getStakeholderEmailTemplateCode();
+    }
+
+    switchEmailTemplateTab('preview');
+    openModal('emailTemplateModal');
+  }
+
+  function closeEmailTemplateModal() {
+    closeModal('emailTemplateModal');
+  }
+
+  function switchEmailTemplateTab(tab) {
+    const previewTab = document.getElementById('emailPreviewTabContent');
+    const codeTab = document.getElementById('emailCodeTabContent');
+    const previewBtn = document.getElementById('tabEmailPreviewBtn');
+    const codeBtn = document.getElementById('tabEmailCodeBtn');
+
+    if (tab === 'code') {
+      if (previewTab) previewTab.style.display = 'none';
+      if (codeTab) codeTab.style.display = 'block';
+      if (previewBtn) { previewBtn.classList.remove('active'); previewBtn.classList.add('btn-ghost'); }
+      if (codeBtn) { codeBtn.classList.add('active'); codeBtn.classList.remove('btn-ghost'); }
+    } else {
+      if (previewTab) previewTab.style.display = 'block';
+      if (codeTab) codeTab.style.display = 'none';
+      if (previewBtn) { previewBtn.classList.add('active'); previewBtn.classList.remove('btn-ghost'); }
+      if (codeBtn) { codeBtn.classList.remove('active'); codeBtn.classList.add('btn-ghost'); }
+    }
+  }
+
+  const previewEmailTemplateBtn = document.getElementById('previewEmailTemplateBtn');
+  if (previewEmailTemplateBtn) previewEmailTemplateBtn.addEventListener('click', openEmailTemplateModal);
+
+  const closeEmailTemplateModalBtn = document.getElementById('closeEmailTemplateModalBtn');
+  if (closeEmailTemplateModalBtn) closeEmailTemplateModalBtn.addEventListener('click', closeEmailTemplateModal);
+
+  const cancelEmailTemplateModalBtn = document.getElementById('cancelEmailTemplateModalBtn');
+  if (cancelEmailTemplateModalBtn) cancelEmailTemplateModalBtn.addEventListener('click', closeEmailTemplateModal);
+
+  const tabEmailPreviewBtn = document.getElementById('tabEmailPreviewBtn');
+  if (tabEmailPreviewBtn) tabEmailPreviewBtn.addEventListener('click', () => switchEmailTemplateTab('preview'));
+
+  const tabEmailCodeBtn = document.getElementById('tabEmailCodeBtn');
+  if (tabEmailCodeBtn) tabEmailCodeBtn.addEventListener('click', () => switchEmailTemplateTab('code'));
+
+  function fallbackCopyText(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('📋 EmailJS HTML template copied to clipboard!');
+  }
+
+  const copyEmailCodeBtn = document.getElementById('copyEmailCodeBtn');
+  if (copyEmailCodeBtn) {
+    copyEmailCodeBtn.addEventListener('click', () => {
+      const code = getStakeholderEmailTemplateCode();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(() => {
+          showToast('📋 EmailJS HTML template copied to clipboard!');
+        }).catch(() => {
+          fallbackCopyText(code);
+        });
+      } else {
+        fallbackCopyText(code);
+      }
+    });
+  }
+
+  const testEmailJsFromPreviewBtn = document.getElementById('testEmailJsFromPreviewBtn');
+  if (testEmailJsFromPreviewBtn && testEmailJsBtn) {
+    testEmailJsFromPreviewBtn.addEventListener('click', () => {
+      testEmailJsBtn.click();
+    });
+  }
+
+  const emailTemplateModal = document.getElementById('emailTemplateModal');
+  if (emailTemplateModal) {
+    emailTemplateModal.addEventListener('click', (e) => {
+      if (e.target === emailTemplateModal) closeEmailTemplateModal();
     });
   }
 
@@ -6404,9 +7147,11 @@ Access Dashboard: TransactBridge Telemetry Console
           routeStats[route].successes++;
         } else {
           failedCount++;
-          failedAmount += amt;
           routeStats[route].failures++;
-          routeStats[route].failedAmount += amt;
+          if (t.isRevenueAtRisk !== false) {
+            failedAmount += amt;
+            routeStats[route].failedAmount += amt;
+          }
 
           const reason = t.failureReason || t.failedState || 'GENERIC_FAILURE';
           failureReasons[reason] = (failureReasons[reason] || 0) + 1;

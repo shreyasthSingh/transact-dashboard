@@ -8,6 +8,8 @@
   <!-- SheetJS & PapaParse for In-Browser Client-Side Excel and CSV Processing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- EmailJS SDK for Direct Browser Email Dispatch -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
   <div class="dashboard-container">
@@ -15,8 +17,7 @@
     <!-- Top Header -->
     <header class="dashboard-header">
       <div class="brand-section">
-        <div class="brand-logo-card">
-          <img src="data:image/png;base64,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" alt="Transact Bridge Logo">
+          <img src="assets/logo.png" alt="Transact Bridge Logo">
         </div>
         <div class="brand-titles">
           <div class="brand-title-row">
@@ -585,7 +586,7 @@
       <div class="footer-content-row">
         <div class="footer-brand-box">
           <div class="footer-logo-badge">
-            <img src="data:image/png;base64,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" alt="Created by Transact Bridge">
+            <img src="assets/logo.png" alt="Created by Transact Bridge">
           </div>
           <div class="footer-brand-text">
             <div class="created-by-tag">Platform Architect &amp; Gateway Provider</div>
@@ -1161,6 +1162,44 @@
             <div class="recipient-chips-container" id="alertEmailChipsContainer">
               <!-- Dynamically rendered -->
             </div>
+
+            <!-- EmailJS Free Automated Dispatch Configuration -->
+            <div class="emailjs-config-box" style="margin-top: 14px; background: var(--bg-canvas); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                  <span>⚡</span> EmailJS Automated Email Dispatch (Free Client-Side)
+                </span>
+                <span class="status-chip warning" id="emailjsStatusBadge">READY / OPTIONAL</span>
+              </div>
+              <p style="margin: 0 0 10px; font-size: 0.72rem; color: var(--text-dim); line-height: 1.35;">
+                Connect your free <a href="https://www.emailjs.com" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary); text-decoration: underline;">EmailJS.com</a> account (200 free emails/month) to automatically dispatch incident reports without a backend server.
+              </p>
+              <div class="emailjs-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                <div>
+                  <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 3px;">Service ID</label>
+                  <input type="text" id="emailjsServiceId" placeholder="e.g. service_xyz123" class="recipient-text-input" style="font-size: 0.75rem; padding: 6px 8px; width: 100%;" />
+                </div>
+                <div>
+                  <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 3px;">Template ID</label>
+                  <input type="text" id="emailjsTemplateId" placeholder="e.g. template_abc456" class="recipient-text-input" style="font-size: 0.75rem; padding: 6px 8px; width: 100%;" />
+                </div>
+                <div>
+                  <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 3px;">Public Key</label>
+                  <input type="text" id="emailjsPublicKey" placeholder="e.g. user_or_pk_..." class="recipient-text-input" style="font-size: 0.75rem; padding: 6px 8px; width: 100%;" />
+                </div>
+              </div>
+              <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <span style="font-size: 0.7rem; color: var(--text-dim);">If empty, falls back gracefully to default mail client.</span>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <button type="button" id="previewEmailTemplateBtn" class="btn-action btn-sm btn-outline" style="font-size: 0.75rem; padding: 4px 10px;" title="Preview and copy executive stakeholder email template">
+                    📋 Preview &amp; Copy Email Template
+                  </button>
+                  <button type="button" id="testEmailJsBtn" class="btn-action btn-sm btn-ghost" style="font-size: 0.75rem; padding: 4px 10px;" title="Send a test alert email to verified recipients">
+                    🧪 Send Test Email
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- WhatsApp Recipients -->
@@ -1267,6 +1306,72 @@
           <button class="btn-action" id="cancelAlertsModalBtn">Cancel</button>
           <button class="btn-action btn-primary" id="saveAlertsSettingsBtn">
             <span>💾</span> Save &amp; Activate Alert Rules
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✉️ Executive Stakeholder Email Template & Preview Modal -->
+  <div class="modal-overlay" id="emailTemplateModal">
+    <div class="modal-card" style="max-width: 760px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <div class="brand-logo-card" style="padding: 4px 10px; border-radius: 8px;">
+            <img src="assets/logo.png" alt="Transact Bridge" style="height: 26px;">
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="modal-title" style="margin: 0; font-size: 1.1rem;">Stakeholder Incident Email Template</h3>
+              <span class="status-chip healthy" style="font-size: 0.68rem;">EMAILJS COMPATIBLE</span>
+            </div>
+            <p class="modal-subtitle" style="margin: 2px 0 0; font-size: 0.75rem;">
+              Executive layout with brand palette (Electric Azure #0066FF &amp; Midnight Obsidian #0A111F), Transact Bridge logo, KPI cards, and mitigation checklist.
+            </p>
+          </div>
+        </div>
+        <button class="modal-close" id="closeEmailTemplateModalBtn">&times;</button>
+      </div>
+
+      <!-- Tab Selector -->
+      <div style="display: flex; gap: 8px; padding: 10px 1.5rem 0; border-bottom: 1px solid var(--border-color); background: var(--bg-canvas);">
+        <button type="button" class="btn-action btn-sm active" id="tabEmailPreviewBtn" style="border-radius: 6px 6px 0 0; padding: 6px 14px; font-weight: 700;">
+          👁️ Live Visual Preview
+        </button>
+        <button type="button" class="btn-action btn-sm btn-ghost" id="tabEmailCodeBtn" style="border-radius: 6px 6px 0 0; padding: 6px 14px; font-weight: 700;">
+          📋 Copy EmailJS HTML Code
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem; overflow-y: auto; flex: 1;">
+        <!-- Tab 1: Live Rendered Preview -->
+        <div id="emailPreviewTabContent">
+          <div style="margin-bottom: 12px; font-size: 0.78rem; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center;">
+            <span>Previewing real-time email rendered with active transaction data:</span>
+            <span style="font-family: var(--font-mono); font-size: 0.72rem; background: var(--card-bg); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color);">Client: Gmail / Outlook Safe</span>
+          </div>
+          <div id="emailLivePreviewContainer" style="border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; background: #f1f5f9; padding: 12px;">
+            <!-- Injected dynamically by app.js -->
+          </div>
+        </div>
+
+        <!-- Tab 2: Copy Code -->
+        <div id="emailCodeTabContent" style="display: none;">
+          <div style="margin-bottom: 8px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.4;">
+            Paste this HTML directly into your <strong>EmailJS Template Content</strong> editor (or SendGrid/HTML SMTP template). It dynamically binds variables <code>{{incident_title}}</code>, <code>{{success_rate}}</code>, <code>{{failed_amount}}</code>, <code>{{failed_transactions}}</code>, <code>{{impacted_gateway}}</code>, and <code>{{dominant_cause}}</code>.
+          </div>
+          <textarea id="emailHtmlCodeTextarea" readonly style="width: 100%; height: 380px; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.45; background: var(--bg-canvas); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; resize: vertical;"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <button class="btn-action btn-ghost" id="cancelEmailTemplateModalBtn">Close</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-action btn-outline" id="copyEmailCodeBtn">
+            <span>📋</span> Copy HTML to Clipboard
+          </button>
+          <button type="button" class="btn-action btn-primary" id="testEmailJsFromPreviewBtn">
+            <span>✉️</span> Send Live Test via EmailJS
           </button>
         </div>
       </div>
