@@ -51,7 +51,12 @@
       emails: ['ops@transactbridge.io', 'lead-devops@payments.com'],
       phones: ['+91 98765 43210']
     },
-    webhookUrl: ''
+    webhookUrl: '',
+    emailjs: {
+      serviceId: '',
+      templateId: '',
+      publicKey: ''
+    }
   };
 
   let alertSettings = JSON.parse(JSON.stringify(defaultAlertSettings));
@@ -70,7 +75,8 @@
           ...parsed,
           enabledChannels: { ...defaultAlertSettings.enabledChannels, ...(parsed.enabledChannels || {}) },
           thresholds: { ...defaultAlertSettings.thresholds, ...(parsed.thresholds || {}) },
-          recipients: { ...defaultAlertSettings.recipients, ...(parsed.recipients || {}) }
+          recipients: { ...defaultAlertSettings.recipients, ...(parsed.recipients || {}) },
+          emailjs: { ...defaultAlertSettings.emailjs, ...(parsed.emailjs || {}) }
         };
       }
     } catch (e) {
@@ -5751,7 +5757,6 @@ Access Dashboard: TransactBridge Telemetry Console
     }
 
     const mailtoUrl = `mailto:${emails.join(',')}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-    window.location.href = mailtoUrl;
 
     sendWebhookAlert({
       event: 'sla_breach_email',
@@ -5763,6 +5768,37 @@ Access Dashboard: TransactBridge Telemetry Console
     });
 
     logAlertIncident(reason || 'Email Escalation', sr, agg.totalCount, agg.failedCount, ['Email']);
+
+    // Check if EmailJS is configured
+    const ej = alertSettings.emailjs;
+    if (window.emailjs && ej && ej.serviceId && ej.templateId && ej.publicKey) {
+      try {
+        emailjs.init({ publicKey: ej.publicKey });
+        emailjs.send(ej.serviceId, ej.templateId, {
+          to_emails: emails.join(', '),
+          subject: emailSubject,
+          incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
+          success_rate: `${sr.toFixed(2)}%`,
+          total_transactions: formatNumber(agg.totalCount),
+          failed_transactions: formatNumber(agg.failedCount),
+          failed_amount: formatCurrency(agg.failedAmount),
+          email_body: emailBody,
+          timestamp: new Date().toLocaleString()
+        }).then(function(res) {
+          showToast(`✉️ Automated email dispatched via EmailJS to ${emails.length} recipient(s)!`);
+        }, function(err) {
+          console.warn('EmailJS error, falling back to mail client:', err);
+          showToast(`⚠️ EmailJS error (${err.text || 'Check keys'}). Opening mail client...`);
+          window.location.href = mailtoUrl;
+        });
+        return;
+      } catch (e) {
+        console.warn('EmailJS exception:', e);
+      }
+    }
+
+    // Fallback if EmailJS not configured
+    window.location.href = mailtoUrl;
     showToast(`✉️ Email incident report prepared for ${emails.length} recipient(s)`);
   }
 
@@ -5970,6 +6006,21 @@ Access Dashboard: TransactBridge Telemetry Console
     const webhookInput = document.getElementById('alertWebhookUrlInput');
     if (webhookInput) webhookInput.value = alertSettings.webhookUrl || '';
 
+    // EmailJS credentials sync
+    const ejService = document.getElementById('emailjsServiceId');
+    if (ejService) ejService.value = (alertSettings.emailjs && alertSettings.emailjs.serviceId) || '';
+    const ejTemplate = document.getElementById('emailjsTemplateId');
+    if (ejTemplate) ejTemplate.value = (alertSettings.emailjs && alertSettings.emailjs.templateId) || '';
+    const ejKey = document.getElementById('emailjsPublicKey');
+    if (ejKey) ejKey.value = (alertSettings.emailjs && alertSettings.emailjs.publicKey) || '';
+
+    const ejBadge = document.getElementById('emailjsStatusBadge');
+    if (ejBadge) {
+      const isEjActive = alertSettings.emailjs && alertSettings.emailjs.serviceId && alertSettings.emailjs.publicKey;
+      ejBadge.textContent = isEjActive ? 'CONNECTED' : 'READY / OPTIONAL';
+      ejBadge.className = `status-chip ${isEjActive ? 'healthy' : 'warning'}`;
+    }
+
     const statusChip = document.getElementById('alertStatusChip');
     if (statusChip) {
       const isAnyActive = alertSettings.enabledChannels.email || alertSettings.enabledChannels.whatsapp;
@@ -6149,10 +6200,66 @@ Access Dashboard: TransactBridge Telemetry Console
       const webhookInput = document.getElementById('alertWebhookUrlInput');
       if (webhookInput) alertSettings.webhookUrl = webhookInput.value.trim();
 
+      // Save EmailJS Credentials
+      const ejServiceInput = document.getElementById('emailjsServiceId');
+      const ejTemplateInput = document.getElementById('emailjsTemplateId');
+      const ejPublicKeyInput = document.getElementById('emailjsPublicKey');
+      alertSettings.emailjs = {
+        serviceId: ejServiceInput ? ejServiceInput.value.trim() : '',
+        templateId: ejTemplateInput ? ejTemplateInput.value.trim() : '',
+        publicKey: ejPublicKeyInput ? ejPublicKeyInput.value.trim() : ''
+      };
+
       saveAlertSettings();
       evaluateSlaAlerts();
       closeAlertsModal();
-      showToast('💾 SLA Alert rules and recipients saved!');
+      showToast('💾 SLA Alert rules and EmailJS settings saved!');
+    });
+  }
+
+  // EmailJS Test Dispatch Button
+  const testEmailJsBtn = document.getElementById('testEmailJsBtn');
+  if (testEmailJsBtn) {
+    testEmailJsBtn.addEventListener('click', () => {
+      const sId = document.getElementById('emailjsServiceId')?.value.trim();
+      const tId = document.getElementById('emailjsTemplateId')?.value.trim();
+      const pKey = document.getElementById('emailjsPublicKey')?.value.trim();
+      if (!sId || !tId || !pKey) {
+        showToast('⚠️ Please enter Service ID, Template ID, and Public Key first');
+        return;
+      }
+      if (!window.emailjs) {
+        showToast('⚠️ EmailJS SDK is loading or blocked by an ad-blocker');
+        return;
+      }
+      const testEmails = alertSettings.recipients.emails || [];
+      const recipientStr = testEmails.join(', ') || 'ops@transactbridge.io';
+      showToast('⏳ Sending test email via EmailJS...');
+      try {
+        emailjs.init({ publicKey: pKey });
+        emailjs.send(sId, tId, {
+          to_emails: recipientStr,
+          subject: '🧪 Transact Bridge EmailJS Verification',
+          incident_title: 'EmailJS Integration Verification',
+          success_rate: '98.5%',
+          total_transactions: '1,500',
+          failed_transactions: '22',
+          failed_amount: '₹14,000',
+          email_body: 'Congratulations! Your EmailJS integration with Transact Bridge is functioning perfectly. Automated incident alerts will now dispatch directly from the dashboard.',
+          timestamp: new Date().toLocaleString()
+        }).then(function(res) {
+          showToast('✅ Test email sent successfully via EmailJS!');
+          const ejBadge = document.getElementById('emailjsStatusBadge');
+          if (ejBadge) {
+            ejBadge.textContent = 'VERIFIED';
+            ejBadge.className = 'status-chip healthy';
+          }
+        }, function(err) {
+          showToast(`❌ EmailJS failed: ${err.text || err.message || 'Check your keys'}`);
+        });
+      } catch (err) {
+        showToast(`❌ EmailJS exception: ${err.message}`);
+      }
     });
   }
 

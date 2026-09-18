@@ -8,6 +8,8 @@
   <!-- SheetJS & PapaParse for In-Browser Client-Side Excel and CSV Processing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- EmailJS SDK for Direct Browser Email Dispatch -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
   <div class="dashboard-container">
@@ -1160,6 +1162,39 @@
             </div>
             <div class="recipient-chips-container" id="alertEmailChipsContainer">
               <!-- Dynamically rendered -->
+            </div>
+
+            <!-- EmailJS Free Automated Dispatch Configuration -->
+            <div class="emailjs-config-box" style="margin-top: 14px; background: var(--bg-canvas); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                  <span>⚡</span> EmailJS Automated Email Dispatch (Free Client-Side)
+                </span>
+                <span class="status-chip warning" id="emailjsStatusBadge">READY / OPTIONAL</span>
+              </div>
+              <p style="margin: 0 0 10px; font-size: 0.72rem; color: var(--text-dim); line-height: 1.35;">
+                Connect your free <a href="https://www.emailjs.com" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary); text-decoration: underline;">EmailJS.com</a> account (200 free emails/month) to automatically dispatch incident reports without a backend server.
+              </p>
+              <div class="emailjs-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                <div>
+                  <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 3px;">Service ID</label>
+                  <input type="text" id="emailjsServiceId" placeholder="e.g. service_xyz123" class="recipient-text-input" style="font-size: 0.75rem; padding: 6px 8px; width: 100%;" />
+                </div>
+                <div>
+                  <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 3px;">Template ID</label>
+                  <input type="text" id="emailjsTemplateId" placeholder="e.g. template_abc456" class="recipient-text-input" style="font-size: 0.75rem; padding: 6px 8px; width: 100%;" />
+                </div>
+                <div>
+                  <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 3px;">Public Key</label>
+                  <input type="text" id="emailjsPublicKey" placeholder="e.g. user_or_pk_..." class="recipient-text-input" style="font-size: 0.75rem; padding: 6px 8px; width: 100%;" />
+                </div>
+              </div>
+              <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <span style="font-size: 0.7rem; color: var(--text-dim);">If empty, falls back gracefully to default mail client.</span>
+                <button type="button" id="testEmailJsBtn" class="btn-action btn-sm btn-ghost" style="font-size: 0.75rem; padding: 4px 10px;" title="Send a test alert email to verified recipients">
+                  🧪 Send Test Email
+                </button>
+              </div>
             </div>
           </div>
 
