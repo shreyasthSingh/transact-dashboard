@@ -25,6 +25,7 @@
   let activeBatchId = 'demo';
   let uploadedBatches = [];
   let currentTransactions = [];
+  let customDodComparison = null;
 
   // Analysis Reports State
   let activeAnalysisTab = 'psp'; // 'psp', 'app', 'handle', 'merchant'
@@ -354,6 +355,10 @@
   }
 
   function getDodMetrics() {
+    if (customDodComparison && customDodComparison.metrics) {
+      return customDodComparison.metrics;
+    }
+
     const mult = dataMode === 'demo' ? (TIME_MULTIPLIERS[currentTimeRange] || 1.0) : 1.0;
     const currentAgg = getAggregates();
 
@@ -493,7 +498,9 @@
         failAmtPct
       },
       gatewayShifts,
-      errorShifts
+      errorShifts,
+      primaryName: 'Today (Active Window)',
+      baselineName: 'Yesterday (T-1 Baseline)'
     };
   }
 
@@ -612,6 +619,11 @@
     if (topRouteElem) {
       const topPsp = [...pspList].sort((a,b) => (b.success/(b.count||1)) - (a.success/(a.count||1)))[0];
       topRouteElem.textContent = topPsp ? `${topPsp.name || topPsp.id} (${((topPsp.success/(topPsp.count||1))*100).toFixed(1)}% SR)` : 'Razorpay + @paytm (96.4% SR)';
+    }
+
+    // Evaluate SLA Alert status and emergency banner
+    if (typeof evaluateSlaAlerts === 'function') {
+      evaluateSlaAlerts(agg);
     }
   }
 
@@ -4145,7 +4157,7 @@
       badgeEl.textContent = isOptimal ? `OPTIMAL (+${d.srDiff.toFixed(2)}% pp)` : `WATCHLIST (${d.srDiff.toFixed(2)}% pp)`;
     }
     if (subtitleEl) {
-      subtitleEl.textContent = 'DoD Comparative Telemetry (T vs. T-1) · Baseline Comparison & AI Directives';
+      subtitleEl.textContent = `DoD Telemetry · ${dod.primaryName || 'Today (Active Window)'} vs ${dod.baselineName || 'Yesterday (T-1 Baseline)'}`;
     }
 
     // Failure codes
@@ -4212,8 +4224,8 @@
       <!-- Telemetry Origins Strip -->
       <div style="display: flex; gap: 12px; align-items: center; background: var(--bg-primary); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-subtle); margin-bottom: 1.25rem; flex-wrap: wrap;">
         <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase;">Telemetry Origins:</span>
-        <span class="device-badge" style="font-size: 0.8rem; padding: 4px 10px;">📅 Primary Period: <strong>Today (Active Window)</strong></span>
-        <span class="os-badge" style="font-size: 0.8rem; padding: 4px 10px;">⏮️ Comparison Baseline: <strong>Yesterday (T-1)</strong></span>
+        <span class="device-badge" style="font-size: 0.8rem; padding: 4px 10px;">📅 Primary: <strong>${dod.primaryName || 'Today (Active Window)'}</strong></span>
+        <span class="os-badge" style="font-size: 0.8rem; padding: 4px 10px;">⏮️ Comparison Baseline: <strong>${dod.baselineName || 'Yesterday (T-1)'}</strong></span>
       </div>
 
       <!-- Section 1: Failure Attribution -->
@@ -4276,7 +4288,8 @@
           <span>💡</span> Keyholder Diagnostic &amp; Strategic Guidance
         </div>
         <div class="inspect-rec-text">
-          <strong>Optimal Health Verified:</strong> Platform conversion is operating at <strong>${dod.today.successRate.toFixed(2)}%</strong> (${d.srDiff >= 0 ? '▲ +' : '▼ '}${Math.abs(d.srDiff).toFixed(2)}% pp vs yesterday baseline) with only ${(100 - dod.today.successRate).toFixed(2)}% failure rate. Gross processed volume delivered <strong>${formatCurrency(d.succAmtDiff >= 0 ? d.succAmtDiff : dod.today.successAmount)}</strong> in incremental settled capital. Maintain primary routing allocation. Consider testing higher throughput volumes during low-latency windows.
+          <strong>Variance Analysis (${dod.primaryName || 'Primary'} vs ${dod.baselineName || 'Baseline'}):</strong>
+          Conversion is operating at <strong>${dod.today.successRate.toFixed(2)}%</strong> (${d.srDiff >= 0 ? '▲ +' : '▼ '}${Math.abs(d.srDiff).toFixed(2)}% pp shift vs baseline) with ${(100 - dod.today.successRate).toFixed(2)}% failure rate. Processed volume delivered <strong>${formatCurrency(dod.today.totalAmount)}</strong> (${d.countPct >= 0 ? '▲ +' : '▼ '}${Math.abs(d.countPct).toFixed(1)}% count shift). Primary failure reason is <strong>${(sortedFailCodes[0] && sortedFailCodes[0].code) || 'USER_DROP_PAYMENT_REQUEST'}</strong>. Maintain primary routing allocation or activate smart failover to recapture drop-offs.
         </div>
         <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
           <button class="btn-action btn-primary" id="applyDodRebalanceBtn" style="font-size: 0.78rem; padding: 6px 14px; background: linear-gradient(135deg, #007aff, #00d2ff); border: none; font-weight: 600;">
@@ -4304,7 +4317,452 @@
     }
   }
 
+  // ==========================================
+  // Day-over-Day Comparison & Dual-File Ingestion Controller
+  // ==========================================
+  let dualUploadState = {
+    primary: null,    // { file, name, rows, txns, summary }
+    baseline: null    // { file, name, rows, txns, summary }
+  };
+
+  function parseFileToRows(file) {
+    return new Promise((resolve, reject) => {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'xlsx' || ext === 'xls') {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            if (window.XLSX) {
+              const data = new Uint8Array(e.target.result);
+              const workbook = window.XLSX.read(data, { type: 'array' });
+              const firstSheet = workbook.SheetNames[0];
+              const json = window.XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+              resolve(json);
+            } else {
+              reject(new Error('Excel parsing library is initializing. Please save as CSV or try again.'));
+            }
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const rows = parseCSV(e.target.result);
+            resolve(rows);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsText(file);
+      }
+    });
+  }
+
+  function summarizeTxnList(txns) {
+    let totalCount = txns.length;
+    let successCount = 0;
+    let failedCount = 0;
+    let totalAmount = 0;
+    let successAmount = 0;
+    let failedAmount = 0;
+    const errorMap = {};
+    const gwMap = {};
+
+    txns.forEach(t => {
+      const amt = parseFloat(t.amount) || 0;
+      totalAmount += amt;
+      if (t.isSuccess) {
+        successCount++;
+        successAmount += amt;
+      } else {
+        failedCount++;
+        failedAmount += amt;
+        const code = t.responseCode || 'USER_DROP_PAYMENT_REQUEST';
+        errorMap[code] = (errorMap[code] || 0) + 1;
+      }
+
+      const gw = (t.pgProvider || 'DIRECT').toUpperCase();
+      if (!gwMap[gw]) {
+        gwMap[gw] = { id: gw, name: gw, count: 0, success: 0, failed: 0, amount: 0 };
+      }
+      gwMap[gw].count++;
+      gwMap[gw].amount += amt;
+      if (t.isSuccess) gwMap[gw].success++;
+      else gwMap[gw].failed++;
+    });
+
+    const successRate = totalCount > 0 ? (successCount / totalCount) * 100 : 0;
+    const failureRate = totalCount > 0 ? (failedCount / totalCount) * 100 : 0;
+
+    return {
+      totalCount,
+      successCount,
+      failedCount,
+      totalAmount,
+      successAmount,
+      failedAmount,
+      successRate,
+      failureRate,
+      errorMap,
+      gwMap
+    };
+  }
+
+  function buildComparisonMetrics(p, b, primaryName, baselineName) {
+    const countDiff = p.totalCount - b.totalCount;
+    const countPct = b.totalCount > 0 ? (countDiff / b.totalCount) * 100 : 0;
+
+    const succDiff = p.successCount - b.successCount;
+    const successPct = b.successCount > 0 ? (succDiff / b.successCount) * 100 : 0;
+
+    const failDiff = p.failedCount - b.failedCount;
+    const failedPct = b.failedCount > 0 ? (failDiff / b.failedCount) * 100 : 0;
+
+    const srDiff = p.successRate - b.successRate;
+    const frDiff = p.failureRate - b.failureRate;
+
+    const amtDiff = p.totalAmount - b.totalAmount;
+    const amtPct = b.totalAmount > 0 ? (amtDiff / b.totalAmount) * 100 : 0;
+
+    const succAmtDiff = p.successAmount - b.successAmount;
+    const succAmtPct = b.successAmount > 0 ? (succAmtDiff / b.successAmount) * 100 : 0;
+
+    const failAmtDiff = p.failedAmount - b.failedAmount;
+    const failAmtPct = b.failedAmount > 0 ? (failAmtDiff / b.failedAmount) * 100 : 0;
+
+    // Error code shifts
+    const allCodes = Array.from(new Set([...Object.keys(p.errorMap), ...Object.keys(b.errorMap)]));
+    const errorShifts = allCodes.map(code => {
+      const pCnt = p.errorMap[code] || 0;
+      const bCnt = b.errorMap[code] || 0;
+      const pPct = p.failedCount > 0 ? (pCnt / p.failedCount) * 100 : 0;
+      const bPct = b.failedCount > 0 ? (bCnt / b.failedCount) * 100 : 0;
+      const shift = pPct - bPct;
+      return {
+        code,
+        todayCount: pCnt,
+        yesterdayCount: bCnt,
+        todayPct: pPct,
+        yesterdayPct: bPct,
+        shift,
+        status: shift <= 0 ? 'improved' : 'degraded'
+      };
+    }).sort((a, b) => b.todayCount - a.todayCount);
+
+    // Gateway shifts
+    const allGws = Array.from(new Set([...Object.keys(p.gwMap), ...Object.keys(b.gwMap)]));
+    const gatewayShifts = allGws.map(gw => {
+      const pGw = p.gwMap[gw] || { count: 0, success: 0, amount: 0 };
+      const bGw = b.gwMap[gw] || { count: 0, success: 0, amount: 0 };
+      const todaySR = pGw.count > 0 ? (pGw.success / pGw.count) * 100 : 0;
+      const yesterdaySR = bGw.count > 0 ? (bGw.success / bGw.count) * 100 : 0;
+      const shift = todaySR - yesterdaySR;
+      return {
+        id: gw,
+        name: gw,
+        todaySR,
+        yesterdaySR,
+        shift,
+        amount: pGw.amount,
+        count: pGw.count,
+        volume: pGw.count,
+        status: shift >= 0.5 ? 'gainer' : shift <= -0.5 ? 'loser' : 'steady'
+      };
+    }).sort((a, b) => b.count - a.count);
+
+    return {
+      today: p,
+      yesterday: b,
+      delta: {
+        countDiff,
+        countPct,
+        succDiff,
+        successPct,
+        failDiff,
+        failedPct,
+        srDiff,
+        frDiff,
+        amtDiff,
+        amtPct,
+        succAmtDiff,
+        succAmtPct,
+        failAmtDiff,
+        failAmtPct
+      },
+      errorShifts,
+      gatewayShifts,
+      primaryName: primaryName || 'Primary Dataset',
+      baselineName: baselineName || 'Baseline Dataset'
+    };
+  }
+
+  function populateDodBatchSelects() {
+    const pSelect = document.getElementById('dodSelectPrimaryBatch');
+    const bSelect = document.getElementById('dodSelectBaselineBatch');
+    if (!pSelect || !bSelect) return;
+
+    const currentPVal = pSelect.value;
+    const currentBVal = bSelect.value;
+
+    const agg = getAggregates();
+    let pOptions = `<option value="active">Active Dashboard Stream (${formatNumber(agg.totalCount)} txns)</option>`;
+    let bOptions = `<option value="auto_yesterday">Auto Previous Day (T-1 Baseline)</option>`;
+
+    if (uploadedBatches && uploadedBatches.length > 0) {
+      uploadedBatches.forEach(b => {
+        const count = b.transactions ? b.transactions.length : 0;
+        pOptions += `<option value="${b.id}">${b.name} (${formatNumber(count)} txns)</option>`;
+        bOptions += `<option value="${b.id}">${b.name} (${formatNumber(count)} txns)</option>`;
+      });
+    }
+
+    pSelect.innerHTML = pOptions;
+    bSelect.innerHTML = bOptions;
+
+    if (currentPVal && Array.from(pSelect.options).some(o => o.value === currentPVal)) {
+      pSelect.value = currentPVal;
+    }
+    if (currentBVal && Array.from(bSelect.options).some(o => o.value === currentBVal)) {
+      bSelect.value = currentBVal;
+    }
+  }
+
+  function applyDodBatchSelection() {
+    const pSelect = document.getElementById('dodSelectPrimaryBatch');
+    const bSelect = document.getElementById('dodSelectBaselineBatch');
+    if (!pSelect || !bSelect) return;
+
+    const pVal = pSelect.value;
+    const bVal = bSelect.value;
+
+    if (pVal === 'active' && bVal === 'auto_yesterday') {
+      customDodComparison = null;
+      renderDodModal();
+      showToast('Restored default Day-over-Day baseline comparison');
+      return;
+    }
+
+    let pTxns = [];
+    let pName = 'Active Stream';
+    if (pVal === 'active') {
+      pTxns = currentTransactions.length > 0 ? currentTransactions : generateSampleTransactions();
+      pName = 'Active Stream';
+    } else {
+      const b = uploadedBatches.find(x => x.id === pVal);
+      if (b) {
+        pTxns = b.transactions;
+        pName = b.name;
+      }
+    }
+
+    let bTxns = [];
+    let bName = 'Previous Day';
+    if (bVal === 'auto_yesterday') {
+      bName = 'Auto Baseline (T-1)';
+      const pSum = summarizeTxnList(pTxns);
+      const bCount = Math.round(pSum.totalCount * 0.94);
+      const bSR = Math.max(75, Math.min(99, pSum.successRate - 0.79));
+      const bAmount = pSum.totalAmount * 0.952;
+      const bSuccCount = Math.round(bCount * (bSR / 100));
+      const bFailCount = bCount - bSuccCount;
+      const bSuccAmount = bAmount * (bSR / 100);
+      const bFailAmount = bAmount - bSuccAmount;
+
+      const bSum = {
+        totalCount: bCount,
+        successCount: bSuccCount,
+        failedCount: bFailCount,
+        totalAmount: bAmount,
+        successAmount: bSuccAmount,
+        failedAmount: bFailAmount,
+        successRate: bSR,
+        failureRate: 100 - bSR,
+        errorMap: { ...pSum.errorMap },
+        gwMap: { ...pSum.gwMap }
+      };
+
+      const metrics = buildComparisonMetrics(pSum, bSum, pName, bName);
+      customDodComparison = {
+        primaryName: pName,
+        baselineName: bName,
+        primaryTxns: pTxns,
+        baselineTxns: [],
+        metrics
+      };
+      renderDodModal();
+      showToast(`⚡ Comparing: ${pName} vs ${bName}`);
+      return;
+    } else {
+      const b = uploadedBatches.find(x => x.id === bVal);
+      if (b) {
+        bTxns = b.transactions;
+        bName = b.name;
+      }
+    }
+
+    const pSummary = summarizeTxnList(pTxns);
+    const bSummary = summarizeTxnList(bTxns);
+    const metrics = buildComparisonMetrics(pSummary, bSummary, pName, bName);
+
+    customDodComparison = {
+      primaryName: pName,
+      baselineName: bName,
+      primaryTxns: pTxns,
+      baselineTxns: bTxns,
+      metrics
+    };
+
+    renderDodModal();
+    showToast(`⚡ Comparing: ${pName} vs ${bName}`);
+  }
+
+  async function handleDodPrimaryFile(file) {
+    if (!file) return;
+    const statusEl = document.getElementById('dodPrimaryStatus');
+    const titleEl = document.getElementById('dodPrimaryFileTitle');
+    const hintEl = document.getElementById('dodPrimaryFileHint');
+    const cardEl = document.getElementById('dodDropzonePrimary');
+    const compareBtn = document.getElementById('dodCompareUploadedFilesBtn');
+
+    if (statusEl) statusEl.textContent = 'Parsing...';
+    try {
+      const rows = await parseFileToRows(file);
+      const txns = rows.map(r => parseTransactionRow(r));
+      const summary = summarizeTxnList(txns);
+
+      dualUploadState.primary = { file, name: file.name, rows, txns, summary };
+
+      if (cardEl) cardEl.classList.add('has-file');
+      if (statusEl) statusEl.textContent = `✅ ${formatNumber(txns.length)} txns`;
+      if (titleEl) titleEl.textContent = file.name;
+      if (hintEl) hintEl.textContent = `${summary.successRate.toFixed(1)}% SR · ${formatCurrency(summary.totalAmount)}`;
+
+      if (compareBtn && dualUploadState.primary && dualUploadState.baseline) {
+        compareBtn.disabled = false;
+        compareBtn.style.transform = 'scale(1.02)';
+      }
+      showToast(`✅ Loaded Today's file: ${file.name} (${txns.length} records)`);
+    } catch (err) {
+      if (statusEl) statusEl.textContent = '❌ Failed';
+      alert('Failed to parse file: ' + err.message);
+    }
+  }
+
+  async function handleDodBaselineFile(file) {
+    if (!file) return;
+    const statusEl = document.getElementById('dodBaselineStatus');
+    const titleEl = document.getElementById('dodBaselineFileTitle');
+    const hintEl = document.getElementById('dodBaselineFileHint');
+    const cardEl = document.getElementById('dodDropzoneBaseline');
+    const compareBtn = document.getElementById('dodCompareUploadedFilesBtn');
+
+    if (statusEl) statusEl.textContent = 'Parsing...';
+    try {
+      const rows = await parseFileToRows(file);
+      const txns = rows.map(r => parseTransactionRow(r));
+      const summary = summarizeTxnList(txns);
+
+      dualUploadState.baseline = { file, name: file.name, rows, txns, summary };
+
+      if (cardEl) cardEl.classList.add('has-file');
+      if (statusEl) statusEl.textContent = `✅ ${formatNumber(txns.length)} txns`;
+      if (titleEl) titleEl.textContent = file.name;
+      if (hintEl) hintEl.textContent = `${summary.successRate.toFixed(1)}% SR · ${formatCurrency(summary.totalAmount)}`;
+
+      if (compareBtn && dualUploadState.primary && dualUploadState.baseline) {
+        compareBtn.disabled = false;
+        compareBtn.style.transform = 'scale(1.02)';
+      }
+      showToast(`✅ Loaded Yesterday's file: ${file.name} (${txns.length} records)`);
+    } catch (err) {
+      if (statusEl) statusEl.textContent = '❌ Failed';
+      alert('Failed to parse file: ' + err.message);
+    }
+  }
+
+  function executeDodDualUploadCompare() {
+    if (!dualUploadState.primary || !dualUploadState.baseline) {
+      showToast('⚠️ Please upload both files to compare.');
+      return;
+    }
+
+    const saveCheckbox = document.getElementById('dodSaveToBatchesCheckbox');
+    if (saveCheckbox && saveCheckbox.checked) {
+      const pBatch = {
+        id: 'batch_' + Date.now() + '_pri',
+        name: `Today: ${dualUploadState.primary.name.replace(/\.[^/.]+$/, "")}`,
+        timestamp: new Date().toISOString(),
+        transactions: dualUploadState.primary.txns,
+        mode: 'append'
+      };
+      const bBatch = {
+        id: 'batch_' + (Date.now() + 1) + '_base',
+        name: `Yesterday: ${dualUploadState.baseline.name.replace(/\.[^/.]+$/, "")}`,
+        timestamp: new Date().toISOString(),
+        transactions: dualUploadState.baseline.txns,
+        mode: 'append'
+      };
+      uploadedBatches.push(pBatch, bBatch);
+      saveBatchesToStorage();
+      renderBatchSelector();
+      populateDodBatchSelects();
+    }
+
+    const metrics = buildComparisonMetrics(
+      dualUploadState.primary.summary,
+      dualUploadState.baseline.summary,
+      dualUploadState.primary.name,
+      dualUploadState.baseline.name
+    );
+
+    customDodComparison = {
+      primaryName: dualUploadState.primary.name,
+      baselineName: dualUploadState.baseline.name,
+      primaryTxns: dualUploadState.primary.txns,
+      baselineTxns: dualUploadState.baseline.txns,
+      metrics
+    };
+
+    renderDodModal();
+    showToast(`⚖️ Comparing ${dualUploadState.primary.name} vs ${dualUploadState.baseline.name}`);
+  }
+
+  function clearDodDualUpload() {
+    dualUploadState = { primary: null, baseline: null };
+
+    const dropP = document.getElementById('dodDropzonePrimary');
+    const dropB = document.getElementById('dodDropzoneBaseline');
+    if (dropP) dropP.classList.remove('has-file');
+    if (dropB) dropB.classList.remove('has-file');
+
+    const statusP = document.getElementById('dodPrimaryStatus');
+    const statusB = document.getElementById('dodBaselineStatus');
+    if (statusP) statusP.textContent = 'No file selected';
+    if (statusB) statusB.textContent = 'No file selected';
+
+    const titleP = document.getElementById('dodPrimaryFileTitle');
+    const titleB = document.getElementById('dodBaselineFileTitle');
+    if (titleP) titleP.textContent = "Select Today's File";
+    if (titleB) titleB.textContent = "Select Yesterday's File";
+
+    const hintP = document.getElementById('dodPrimaryFileHint');
+    const hintB = document.getElementById('dodBaselineFileHint');
+    if (hintP) hintP.textContent = 'Click or drag CSV / Excel file here';
+    if (hintB) hintB.textContent = 'Click or drag CSV / Excel file here';
+
+    const compareBtn = document.getElementById('dodCompareUploadedFilesBtn');
+    if (compareBtn) compareBtn.disabled = true;
+
+    showToast('Dual file comparison uploader cleared');
+  }
+
   function openDodModal() {
+    populateDodBatchSelects();
     renderDodModal();
     openModal('dodComparisonModal');
   }
@@ -4317,7 +4775,7 @@
     const dod = getDodMetrics();
     const d = dod.delta;
 
-    let csvContent = 'Metric,Yesterday (T-1),Today (T),Net Delta,Pct Change\n';
+    let csvContent = `Metric,${dod.baselineName || 'Baseline (T-1)'},${dod.primaryName || 'Primary (T)'},Net Delta,Pct Change\n`;
     csvContent += `Total Transactions,${dod.yesterday.totalCount},${dod.today.totalCount},${d.countDiff},${d.countPct.toFixed(2)}%\n`;
     csvContent += `Successful Transactions,${dod.yesterday.successCount},${dod.today.successCount},${d.succDiff},${d.successPct.toFixed(2)}%\n`;
     csvContent += `Failed Transactions,${dod.yesterday.failedCount},${dod.today.failedCount},${d.failDiff},${d.failedPct.toFixed(2)}%\n`;
@@ -4326,9 +4784,9 @@
     csvContent += `Success Amount,${dod.yesterday.successAmount.toFixed(2)},${dod.today.successAmount.toFixed(2)},${d.succAmtDiff.toFixed(2)},${d.succAmtPct.toFixed(2)}%\n`;
     csvContent += `Failed Amount,${dod.yesterday.failedAmount.toFixed(2)},${dod.today.failedAmount.toFixed(2)},${d.failAmtDiff.toFixed(2)},${d.failAmtPct.toFixed(2)}%\n\n`;
 
-    csvContent += 'Gateway,Yesterday SR %,Today SR %,DoD Shift % pp,Volume\n';
+    csvContent += `Gateway,${dod.baselineName || 'Baseline'} SR %,${dod.primaryName || 'Primary'} SR %,DoD Shift % pp,Volume\n`;
     dod.gatewayShifts.forEach(g => {
-      csvContent += `"${g.psp}",${g.yesterdaySR.toFixed(2)}%,${g.todaySR.toFixed(2)}%,${g.shift.toFixed(2)}%,${g.volume}\n`;
+      csvContent += `"${g.name || g.id || g.psp}",${g.yesterdaySR.toFixed(2)}%,${g.todaySR.toFixed(2)}%,${g.shift.toFixed(2)}%,${g.volume || g.count}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -4369,6 +4827,109 @@
   if (dodComparisonModal) {
     dodComparisonModal.addEventListener('click', (e) => {
       if (e.target === dodComparisonModal) closeDodModal();
+    });
+  }
+
+  // DoD Toolbar Tabs
+  const dodTabSelectExisting = document.getElementById('dodTabSelectExisting');
+  const dodTabUploadDual = document.getElementById('dodTabUploadDual');
+  const dodViewSelect = document.getElementById('dodViewSelect');
+  const dodViewUpload = document.getElementById('dodViewUpload');
+
+  if (dodTabSelectExisting && dodTabUploadDual && dodViewSelect && dodViewUpload) {
+    dodTabSelectExisting.addEventListener('click', () => {
+      dodTabSelectExisting.classList.add('active');
+      dodTabUploadDual.classList.remove('active');
+      dodViewSelect.style.display = 'block';
+      dodViewUpload.style.display = 'none';
+    });
+    dodTabUploadDual.addEventListener('click', () => {
+      dodTabUploadDual.classList.add('active');
+      dodTabSelectExisting.classList.remove('active');
+      dodViewSelect.style.display = 'none';
+      dodViewUpload.style.display = 'block';
+    });
+  }
+
+  // DoD Batch Select Apply
+  const dodApplyBatchSelectionBtn = document.getElementById('dodApplyBatchSelectionBtn');
+  if (dodApplyBatchSelectionBtn) {
+    dodApplyBatchSelectionBtn.addEventListener('click', applyDodBatchSelection);
+  }
+
+  // DoD Dual File Dropzones & Inputs
+  const dodDropzonePrimary = document.getElementById('dodDropzonePrimary');
+  const dodFileInputPrimary = document.getElementById('dodFileInputPrimary');
+  if (dodDropzonePrimary && dodFileInputPrimary) {
+    dodDropzonePrimary.addEventListener('click', () => dodFileInputPrimary.click());
+    dodFileInputPrimary.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) handleDodPrimaryFile(e.target.files[0]);
+    });
+    dodDropzonePrimary.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dodDropzonePrimary.classList.add('drag-over');
+    });
+    dodDropzonePrimary.addEventListener('dragleave', () => {
+      dodDropzonePrimary.classList.remove('drag-over');
+    });
+    dodDropzonePrimary.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dodDropzonePrimary.classList.remove('drag-over');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleDodPrimaryFile(e.dataTransfer.files[0]);
+    });
+  }
+
+  const dodDropzoneBaseline = document.getElementById('dodDropzoneBaseline');
+  const dodFileInputBaseline = document.getElementById('dodFileInputBaseline');
+  if (dodDropzoneBaseline && dodFileInputBaseline) {
+    dodDropzoneBaseline.addEventListener('click', () => dodFileInputBaseline.click());
+    dodFileInputBaseline.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) handleDodBaselineFile(e.target.files[0]);
+    });
+    dodDropzoneBaseline.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dodDropzoneBaseline.classList.add('drag-over');
+    });
+    dodDropzoneBaseline.addEventListener('dragleave', () => {
+      dodDropzoneBaseline.classList.remove('drag-over');
+    });
+    dodDropzoneBaseline.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dodDropzoneBaseline.classList.remove('drag-over');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleDodBaselineFile(e.dataTransfer.files[0]);
+    });
+  }
+
+  // Compare Uploaded Files Button
+  const dodCompareUploadedFilesBtn = document.getElementById('dodCompareUploadedFilesBtn');
+  if (dodCompareUploadedFilesBtn) {
+    dodCompareUploadedFilesBtn.addEventListener('click', executeDodDualUploadCompare);
+  }
+
+  // Clear Dual Upload Button
+  const dodClearDualUploadBtn = document.getElementById('dodClearDualUploadBtn');
+  if (dodClearDualUploadBtn) {
+    dodClearDualUploadBtn.addEventListener('click', clearDodDualUpload);
+  }
+
+  // Apply to Dashboard Button
+  const applyDodToDashboardBtn = document.getElementById('applyDodToDashboardBtn');
+  if (applyDodToDashboardBtn) {
+    applyDodToDashboardBtn.addEventListener('click', () => {
+      if (customDodComparison && customDodComparison.primaryTxns && customDodComparison.primaryTxns.length > 0) {
+        currentTransactions = [...customDodComparison.primaryTxns];
+        dataMode = 'uploaded';
+        toggleDodMode(true);
+        renderKPIs();
+        renderAnalysisSection();
+        renderRecommendations();
+        initCharts();
+        showToast(`⚡ Dashboard updated with ${customDodComparison.primaryName} vs ${customDodComparison.baselineName}!`);
+        closeDodModal();
+      } else {
+        toggleDodMode(true);
+        closeDodModal();
+      }
     });
   }
 
@@ -4827,6 +5388,753 @@
     });
   }
 
+  // ==========================================
+  // SLA & Success Rate Alert Engine (WhatsApp & Email)
+  // ==========================================
+  const ALERT_STORAGE_KEY = 'transact_alert_settings';
+  const ALERT_LOG_STORAGE_KEY = 'transact_alert_log';
+
+  const defaultAlertSettings = {
+    enabledChannels: {
+      email: true,
+      whatsapp: true,
+      banner: true
+    },
+    thresholds: {
+      criticalSr: 90.0,
+      warningSr: 95.0,
+      minTransactions: 10,
+      cooldownMinutes: 15
+    },
+    recipients: {
+      emails: ['ops@transactbridge.io', 'lead-devops@payments.com'],
+      phones: ['+91 98765 43210']
+    },
+    webhookUrl: ''
+  };
+
+  let alertSettings = JSON.parse(JSON.stringify(defaultAlertSettings));
+  let alertLog = [];
+  let lastAlertTimestamp = 0;
+  let slaBannerDismissed = false;
+  let isBreachSimulated = false;
+
+  function loadAlertSettings() {
+    try {
+      const saved = localStorage.getItem(ALERT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        alertSettings = {
+          ...defaultAlertSettings,
+          ...parsed,
+          enabledChannels: { ...defaultAlertSettings.enabledChannels, ...(parsed.enabledChannels || {}) },
+          thresholds: { ...defaultAlertSettings.thresholds, ...(parsed.thresholds || {}) },
+          recipients: { ...defaultAlertSettings.recipients, ...(parsed.recipients || {}) }
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to load alert settings', e);
+    }
+
+    try {
+      const savedLog = localStorage.getItem(ALERT_LOG_STORAGE_KEY);
+      if (savedLog) {
+        alertLog = JSON.parse(savedLog);
+      }
+    } catch (e) {
+      console.warn('Failed to load alert log', e);
+    }
+  }
+
+  function saveAlertSettings() {
+    try {
+      localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+    } catch (e) {
+      console.warn('Failed to persist alert settings', e);
+    }
+  }
+
+  function saveAlertLog() {
+    try {
+      localStorage.setItem(ALERT_LOG_STORAGE_KEY, JSON.stringify(alertLog.slice(0, 50)));
+    } catch (e) {
+      console.warn('Failed to persist alert log', e);
+    }
+  }
+
+  function cleanPhoneNumber(phone) {
+    if (!phone) return '';
+    return phone.replace(/[^0-9]/g, '');
+  }
+
+  function getTopFailureDiagnostics() {
+    let topErrorCode = 'USER_DROP_PAYMENT_REQUEST';
+    let topErrorCount = 0;
+    let topPsp = 'PAYTM';
+    let topPspFailed = 0;
+
+    if (typeof pspList !== 'undefined' && pspList && pspList.length > 0) {
+      const sortedPsps = [...pspList].sort((a, b) => (b.failed || 0) - (a.failed || 0));
+      if (sortedPsps[0] && (sortedPsps[0].failed || 0) > 0) {
+        topPsp = (sortedPsps[0].name === 'UNKNOWN_PSP' || sortedPsps[0].name === 'UNKNOWN') ? 'Default Route' : (sortedPsps[0].name || sortedPsps[0].id);
+        topPspFailed = sortedPsps[0].failed || 0;
+      }
+    }
+
+    if (typeof currentTransactions !== 'undefined' && currentTransactions && currentTransactions.length > 0) {
+      const codeCounts = {};
+      currentTransactions.forEach(t => {
+        if (!t.isSuccess && t.responseCode) {
+          codeCounts[t.responseCode] = (codeCounts[t.responseCode] || 0) + 1;
+        }
+      });
+      let maxC = 0;
+      for (const [code, count] of Object.entries(codeCounts)) {
+        if (count > maxC) {
+          maxC = count;
+          topErrorCode = code;
+          topErrorCount = count;
+        }
+      }
+    }
+
+    return { topErrorCode, topErrorCount, topPsp, topPspFailed };
+  }
+
+  function buildIncidentMessages(sr, agg, reason) {
+    const diag = getTopFailureDiagnostics();
+    const timeStr = new Date().toLocaleString();
+    const critThreshold = alertSettings.thresholds.criticalSr || 90.0;
+    const isSimulation = reason && reason.includes('Simulation');
+
+    const waText = 
+`🚨 *TRANSACT-BRIDGE SLA ALERT: SUCCESS RATE DROP* 🚨
+${isSimulation ? '*(SIMULATION / VERIFICATION TEST)*\n' : ''}
+⚠️ *Incident Status:* CRITICAL SLA BREACH
+📉 *Active Success Rate:* *${sr.toFixed(2)}%* (SLA Target: ≥ ${critThreshold.toFixed(1)}%)
+📊 *Total Processed:* ${formatNumber(agg.totalCount)} transactions
+❌ *Failed Count:* ${formatNumber(agg.failedCount)} (${agg.failureRate.toFixed(2)}%)
+💸 *Revenue at Risk:* ₹${formatNumber(Math.round(agg.failedAmount))}
+🔍 *Dominant Error:* ${diag.topErrorCode}
+⚡ *Impacted Gateway:* ${diag.topPsp} (${formatNumber(diag.topPspFailed)} failures)
+🕒 *Dispatched At:* ${timeStr}
+
+👉 *Action Required:* Review PSP failover routing and initiate Recoverable Volume mitigation immediately.
+_TransactBridge Automated SLA Watchdog_`;
+
+    const emailSubject = `[SLA CRITICAL ALERT] Platform Success Rate Dropped to ${sr.toFixed(2)}% (Target: ${critThreshold.toFixed(1)}%)`;
+    const emailBody = 
+`TRANSACT-BRIDGE REAL-TIME SLA INCIDENT REPORT
+==================================================================
+Incident Type: SLA Success Rate Degradation
+Status: CRITICAL PERFORMANCE ALERT
+Dispatched At: ${timeStr}
+Trigger Reason: ${reason || `Success rate (${sr.toFixed(2)}%) dropped below the ${critThreshold.toFixed(1)}% threshold`}
+
+INCIDENT TELEMETRY & METRICS:
+------------------------------------------------------------------
+- Current Success Rate:    ${sr.toFixed(2)}%
+- Target SLA Threshold:    ${critThreshold.toFixed(1)}%
+- Total Processed Volume:  ${formatNumber(agg.totalCount)} txns
+- Successful Transactions: ${formatNumber(agg.successCount)}
+- Failed Transactions:     ${formatNumber(agg.failedCount)} (${agg.failureRate.toFixed(2)}%)
+- Failed Revenue at Risk:  ₹${formatNumber(Math.round(agg.failedAmount))}
+
+ROOT CAUSE & ROUTE ATTRIBUTION:
+------------------------------------------------------------------
+- Dominant Error Code:     ${diag.topErrorCode} (failedInfo.responseCode)
+- Impacted PSP Provider:   ${diag.topPsp}
+- PSP Failure Volume:      ${formatNumber(diag.topPspFailed)} transactions
+
+RECOMMENDED MITIGATION ACTIONS:
+------------------------------------------------------------------
+1. Divert traffic from degraded route (${diag.topPsp}) to primary backup PSP.
+2. Review failed response code patterns (${diag.topErrorCode}).
+3. Launch Recoverable Volume Playbook to recapture dropped volume.
+
+Access Dashboard: TransactBridge Telemetry Console
+(Automated alert generated by TransactBridge SLA Watchdog)`;
+
+    return { waText, emailSubject, emailBody };
+  }
+
+  function logAlertIncident(triggerType, sr, totalTxn, failedTxn, channels) {
+    const entry = {
+      id: 'INC-' + Date.now().toString(36).toUpperCase(),
+      timestamp: new Date().toISOString(),
+      timeFormatted: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      dateFormatted: new Date().toLocaleDateString(),
+      triggerType,
+      sr: parseFloat(sr.toFixed(2)),
+      totalTxn: totalTxn || 0,
+      failedTxn: failedTxn || 0,
+      channels: channels || ['Email', 'WhatsApp'],
+      status: 'Dispatched'
+    };
+    alertLog.unshift(entry);
+    if (alertLog.length > 50) alertLog = alertLog.slice(0, 50);
+    saveAlertLog();
+    renderAlertLogTable();
+  }
+
+  function sendWebhookAlert(payload) {
+    if (!alertSettings.webhookUrl || !alertSettings.webhookUrl.trim()) return;
+    try {
+      fetch(alertSettings.webhookUrl.trim(), {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(err => console.warn('Webhook post error:', err));
+    } catch (e) {
+      console.warn('Webhook dispatch failed:', e);
+    }
+  }
+
+  function dispatchWhatsappAlert(customSr, customAgg, reason) {
+    const agg = customAgg || getAggregates();
+    const sr = customSr !== undefined ? customSr : (isBreachSimulated ? 84.2 : agg.successRate);
+    const { waText } = buildIncidentMessages(sr, agg, reason || (isBreachSimulated ? 'Simulation Test' : 'SLA Incident'));
+
+    const phones = alertSettings.recipients.phones || [];
+    if (phones.length === 0) {
+      showToast('⚠️ No WhatsApp numbers configured. Please add one in Alert Settings.');
+      openAlertsModal();
+      return;
+    }
+
+    const primaryClean = cleanPhoneNumber(phones[0]);
+    const waUrl = `https://wa.me/${primaryClean}?text=${encodeURIComponent(waText)}`;
+    window.open(waUrl, '_blank');
+
+    sendWebhookAlert({
+      event: 'sla_breach_whatsapp',
+      recipients: phones,
+      text: waText,
+      sr,
+      agg
+    });
+
+    logAlertIncident(reason || 'WhatsApp Escalation', sr, agg.totalCount, agg.failedCount, ['WhatsApp']);
+    showToast(`💬 WhatsApp incident report generated for ${phones.length} recipient(s)`);
+  }
+
+  function dispatchEmailAlert(customSr, customAgg, reason) {
+    const agg = customAgg || getAggregates();
+    const sr = customSr !== undefined ? customSr : (isBreachSimulated ? 84.2 : agg.successRate);
+    const { emailSubject, emailBody } = buildIncidentMessages(sr, agg, reason || (isBreachSimulated ? 'Simulation Test' : 'SLA Incident'));
+
+    const emails = alertSettings.recipients.emails || [];
+    if (emails.length === 0) {
+      showToast('⚠️ No Email addresses configured. Please add one in Alert Settings.');
+      openAlertsModal();
+      return;
+    }
+
+    const mailtoUrl = `mailto:${emails.join(',')}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.location.href = mailtoUrl;
+
+    sendWebhookAlert({
+      event: 'sla_breach_email',
+      recipients: emails,
+      subject: emailSubject,
+      body: emailBody,
+      sr,
+      agg
+    });
+
+    logAlertIncident(reason || 'Email Escalation', sr, agg.totalCount, agg.failedCount, ['Email']);
+    showToast(`✉️ Email incident report prepared for ${emails.length} recipient(s)`);
+  }
+
+  function evaluateSlaAlerts(agg) {
+    if (!agg) agg = getAggregates();
+    const sr = isBreachSimulated ? 84.2 : agg.successRate;
+    const minTxn = alertSettings.thresholds.minTransactions || 10;
+    const critThreshold = alertSettings.thresholds.criticalSr || 90.0;
+    const cooldownMs = (alertSettings.thresholds.cooldownMinutes || 15) * 60 * 1000;
+
+    const activeBadge = document.getElementById('activeAlertsBadge');
+    const emergencyBanner = document.getElementById('slaEmergencyBanner');
+    const bannerTitle = document.getElementById('slaBannerTitle');
+    const bannerSr = document.getElementById('slaBannerSrBadge');
+    const bannerSub = document.getElementById('slaBannerSub');
+
+    const isBreach = (agg.totalCount >= minTxn && sr < critThreshold) || isBreachSimulated;
+
+    if (isBreach) {
+      if (activeBadge) {
+        activeBadge.className = 'alert-status-dot active-breach';
+        activeBadge.title = `CRITICAL SLA Breach: ${sr.toFixed(2)}% SR (Target: ≥ ${critThreshold.toFixed(1)}%)`;
+      }
+
+      if (emergencyBanner && alertSettings.enabledChannels.banner && !slaBannerDismissed) {
+        emergencyBanner.style.display = 'block';
+        if (bannerTitle) bannerTitle.textContent = isBreachSimulated ? 'CRITICAL SLA ALERT (Test Simulation Active)' : 'CRITICAL SLA ALERT: Platform Success Rate Degraded';
+        if (bannerSr) bannerSr.textContent = `${sr.toFixed(2)}% SR`;
+        if (bannerSub) {
+          bannerSub.innerHTML = `Success rate (<strong>${sr.toFixed(2)}%</strong>) dropped below the <strong>${critThreshold.toFixed(1)}%</strong> threshold. <strong>${formatNumber(agg.failedCount)}</strong> failed transactions (<strong>${formatCurrency(agg.failedAmount)}</strong> at risk).`;
+        }
+      }
+
+      // Automated escalation if outside cooldown window
+      const now = Date.now();
+      if (now - lastAlertTimestamp > cooldownMs && !isBreachSimulated) {
+        lastAlertTimestamp = now;
+        const channelsDispatched = [];
+        if (alertSettings.enabledChannels.email && alertSettings.recipients.emails.length > 0) channelsDispatched.push('Email');
+        if (alertSettings.enabledChannels.whatsapp && alertSettings.recipients.phones.length > 0) channelsDispatched.push('WhatsApp');
+
+        if (channelsDispatched.length > 0) {
+          logAlertIncident('Automated SLA Breach', sr, agg.totalCount, agg.failedCount, channelsDispatched);
+          showToast(`🚨 SLA Breach (${sr.toFixed(1)}% SR)! Alert dispatched to ${channelsDispatched.join(' & ')}.`);
+          if (alertSettings.webhookUrl) {
+            const { waText } = buildIncidentMessages(sr, agg, 'Automated SLA Breach');
+            sendWebhookAlert({
+              event: 'automated_sla_breach',
+              recipients: alertSettings.recipients,
+              message: waText,
+              sr,
+              agg
+            });
+          }
+        }
+      }
+    } else {
+      if (activeBadge) {
+        activeBadge.className = 'alert-status-dot';
+        activeBadge.title = 'SLA Monitoring Active · Performance Healthy';
+      }
+      if (emergencyBanner && !isBreachSimulated) {
+        emergencyBanner.style.display = 'none';
+      }
+    }
+  }
+
+  // Modal UI Renderers
+  function renderAlertEmailChips() {
+    const container = document.getElementById('alertEmailChipsContainer');
+    const badge = document.getElementById('emailCountBadge');
+    if (!container) return;
+
+    const emails = alertSettings.recipients.emails || [];
+    if (badge) badge.textContent = `${emails.length} configured`;
+
+    if (emails.length === 0) {
+      container.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-dim); font-style: italic;">No emails configured yet. Add an address above.</span>';
+      return;
+    }
+
+    container.innerHTML = emails.map(email => `
+      <span class="recipient-chip email-chip">
+        <span>✉️ ${email}</span>
+        <button type="button" class="recipient-chip-remove" data-action="remove-email" data-val="${email}" title="Remove this email">&times;</button>
+      </span>
+    `).join('');
+
+    container.querySelectorAll('[data-action="remove-email"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-val');
+        alertSettings.recipients.emails = alertSettings.recipients.emails.filter(em => em !== val);
+        saveAlertSettings();
+        renderAlertEmailChips();
+      });
+    });
+  }
+
+  function renderAlertPhoneChips() {
+    const container = document.getElementById('alertPhoneChipsContainer');
+    const badge = document.getElementById('phoneCountBadge');
+    if (!container) return;
+
+    const phones = alertSettings.recipients.phones || [];
+    if (badge) badge.textContent = `${phones.length} configured`;
+
+    if (phones.length === 0) {
+      container.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-dim); font-style: italic;">No mobile numbers configured yet. Add a number above with country code.</span>';
+      return;
+    }
+
+    container.innerHTML = phones.map(phone => `
+      <span class="recipient-chip phone-chip">
+        <span>💬 ${phone}</span>
+        <button type="button" class="recipient-chip-remove" data-action="remove-phone" data-val="${phone}" title="Remove this number">&times;</button>
+      </span>
+    `).join('');
+
+    container.querySelectorAll('[data-action="remove-phone"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-val');
+        alertSettings.recipients.phones = alertSettings.recipients.phones.filter(ph => ph !== val);
+        saveAlertSettings();
+        renderAlertPhoneChips();
+      });
+    });
+  }
+
+  function renderAlertLogTable() {
+    const container = document.getElementById('alertIncidentLogContainer');
+    if (!container) return;
+
+    if (!alertLog || alertLog.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 18px; text-align: center; color: var(--text-dim); font-size: 0.78rem;">
+          No incidents logged in the current session. Automated escalations will appear here.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="alert-log-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Success Rate</th>
+            <th>Failures</th>
+            <th>Channels</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${alertLog.map(log => `
+            <tr>
+              <td><strong>${log.timeFormatted}</strong> <span style="font-size: 0.7rem; color: var(--text-dim);">${log.dateFormatted}</span></td>
+              <td><span class="handle-tag" style="font-size: 0.72rem;">${log.triggerType}</span></td>
+              <td><span style="font-weight: 700; color: ${log.sr < 90 ? '#ef4444' : '#10b981'};">${log.sr}%</span></td>
+              <td>${formatNumber(log.failedTxn)}</td>
+              <td>${(log.channels || []).join(', ')}</td>
+              <td><span class="status-chip healthy" style="font-size: 0.68rem; padding: 2px 6px;">${log.status}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function syncAlertModalInputs() {
+    const crit = alertSettings.thresholds.criticalSr || 90.0;
+    const warn = alertSettings.thresholds.warningSr || 95.0;
+    const minTxn = alertSettings.thresholds.minTransactions || 10;
+    const cooldown = alertSettings.thresholds.cooldownMinutes || 15;
+
+    const critSlider = document.getElementById('srCritSlider');
+    const critInput = document.getElementById('srCritInput');
+    const critDisplay = document.getElementById('srCritValDisplay');
+    if (critSlider) critSlider.value = crit;
+    if (critInput) critInput.value = crit;
+    if (critDisplay) critDisplay.textContent = `${crit.toFixed(1)}%`;
+
+    const warnSlider = document.getElementById('srWarnSlider');
+    const warnInput = document.getElementById('srWarnInput');
+    const warnDisplay = document.getElementById('srWarnValDisplay');
+    if (warnSlider) warnSlider.value = warn;
+    if (warnInput) warnInput.value = warn;
+    if (warnDisplay) warnDisplay.textContent = `${warn.toFixed(1)}%`;
+
+    const minTxnInput = document.getElementById('minTxnInput');
+    if (minTxnInput) minTxnInput.value = minTxn;
+
+    const cooldownInput = document.getElementById('cooldownInput');
+    if (cooldownInput) cooldownInput.value = cooldown;
+
+    const emailCheck = document.getElementById('enableEmailCheckbox');
+    if (emailCheck) emailCheck.checked = !!alertSettings.enabledChannels.email;
+
+    const waCheck = document.getElementById('enableWhatsappCheckbox');
+    if (waCheck) waCheck.checked = !!alertSettings.enabledChannels.whatsapp;
+
+    const bannerCheck = document.getElementById('enableBannerCheckbox');
+    if (bannerCheck) bannerCheck.checked = !!alertSettings.enabledChannels.banner;
+
+    const webhookInput = document.getElementById('alertWebhookUrlInput');
+    if (webhookInput) webhookInput.value = alertSettings.webhookUrl || '';
+
+    const statusChip = document.getElementById('alertStatusChip');
+    if (statusChip) {
+      const isAnyActive = alertSettings.enabledChannels.email || alertSettings.enabledChannels.whatsapp;
+      statusChip.className = `status-chip ${isAnyActive ? 'healthy' : 'warning'}`;
+      statusChip.textContent = isAnyActive ? 'ACTIVE' : 'PAUSED';
+    }
+  }
+
+  function exportAlertLogCSV() {
+    if (!alertLog || alertLog.length === 0) {
+      showToast('⚠️ No incident logs available to export.');
+      return;
+    }
+    let csv = 'Incident ID,Date,Time,Trigger Type,Success Rate %,Total Transactions,Failed Transactions,Channels,Status\n';
+    alertLog.forEach(log => {
+      csv += `"${log.id}","${log.dateFormatted}","${log.timeFormatted}","${log.triggerType}","${log.sr}","${log.totalTxn}","${log.failedTxn}","${(log.channels||[]).join(';')}","${log.status}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `SLA_Alert_Log_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    showToast('📥 Incident Log CSV downloaded');
+  }
+
+  function openAlertsModal() {
+    syncAlertModalInputs();
+    renderAlertEmailChips();
+    renderAlertPhoneChips();
+    renderAlertLogTable();
+    openModal('alertsConfigModal');
+  }
+
+  function closeAlertsModal() {
+    closeModal('alertsConfigModal');
+  }
+
+  // Attach Alert Engine Event Listeners
+  const openAlertsModalBtn = document.getElementById('openAlertsModalBtn');
+  if (openAlertsModalBtn) openAlertsModalBtn.addEventListener('click', openAlertsModal);
+
+  const closeAlertsModalBtn = document.getElementById('closeAlertsModalBtn');
+  if (closeAlertsModalBtn) closeAlertsModalBtn.addEventListener('click', closeAlertsModal);
+
+  const cancelAlertsModalBtn = document.getElementById('cancelAlertsModalBtn');
+  if (cancelAlertsModalBtn) cancelAlertsModalBtn.addEventListener('click', closeAlertsModal);
+
+  const alertsConfigModal = document.getElementById('alertsConfigModal');
+  if (alertsConfigModal) {
+    alertsConfigModal.addEventListener('click', (e) => {
+      if (e.target === alertsConfigModal) closeAlertsModal();
+    });
+  }
+
+  // Slider & Numeric Input Synchronizations
+  const srCritSlider = document.getElementById('srCritSlider');
+  const srCritInput = document.getElementById('srCritInput');
+  const srCritValDisplay = document.getElementById('srCritValDisplay');
+
+  if (srCritSlider && srCritInput && srCritValDisplay) {
+    srCritSlider.addEventListener('input', () => {
+      srCritInput.value = srCritSlider.value;
+      srCritValDisplay.textContent = `${parseFloat(srCritSlider.value).toFixed(1)}%`;
+    });
+    srCritInput.addEventListener('input', () => {
+      srCritSlider.value = srCritInput.value;
+      srCritValDisplay.textContent = `${parseFloat(srCritInput.value || 90).toFixed(1)}%`;
+    });
+  }
+
+  const srWarnSlider = document.getElementById('srWarnSlider');
+  const srWarnInput = document.getElementById('srWarnInput');
+  const srWarnValDisplay = document.getElementById('srWarnValDisplay');
+
+  if (srWarnSlider && srWarnInput && srWarnValDisplay) {
+    srWarnSlider.addEventListener('input', () => {
+      srWarnInput.value = srWarnSlider.value;
+      srWarnValDisplay.textContent = `${parseFloat(srWarnSlider.value).toFixed(1)}%`;
+    });
+    srWarnInput.addEventListener('input', () => {
+      srWarnSlider.value = srWarnInput.value;
+      srWarnValDisplay.textContent = `${parseFloat(srWarnInput.value || 95).toFixed(1)}%`;
+    });
+  }
+
+  // Recipient Handlers: Add Email
+  function handleAddEmail() {
+    const input = document.getElementById('newAlertEmailInput');
+    if (!input) return;
+    const val = input.value.trim().toLowerCase();
+    if (!val) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(val)) {
+      showToast('⚠️ Please enter a valid email address (e.g. name@company.com)');
+      return;
+    }
+    if (!alertSettings.recipients.emails.includes(val)) {
+      alertSettings.recipients.emails.push(val);
+      saveAlertSettings();
+      renderAlertEmailChips();
+      input.value = '';
+      showToast(`✉️ Added ${val} to alert recipients`);
+    } else {
+      showToast('⚠️ Email already in recipient list');
+    }
+  }
+
+  const addAlertEmailBtn = document.getElementById('addAlertEmailBtn');
+  if (addAlertEmailBtn) addAlertEmailBtn.addEventListener('click', handleAddEmail);
+
+  const newAlertEmailInput = document.getElementById('newAlertEmailInput');
+  if (newAlertEmailInput) {
+    newAlertEmailInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddEmail();
+      }
+    });
+  }
+
+  // Recipient Handlers: Add Mobile Phone
+  function handleAddPhone() {
+    const input = document.getElementById('newAlertPhoneInput');
+    if (!input) return;
+    const val = input.value.trim();
+    if (!val) return;
+    const clean = cleanPhoneNumber(val);
+    if (clean.length < 7) {
+      showToast('⚠️ Please enter a valid mobile number with country code (e.g. +91 98765 43210)');
+      return;
+    }
+    const formatted = val.startsWith('+') ? val : ('+' + val);
+    if (!alertSettings.recipients.phones.includes(formatted)) {
+      alertSettings.recipients.phones.push(formatted);
+      saveAlertSettings();
+      renderAlertPhoneChips();
+      input.value = '';
+      showToast(`💬 Added ${formatted} to WhatsApp recipients`);
+    } else {
+      showToast('⚠️ Mobile number already in recipient list');
+    }
+  }
+
+  const addAlertPhoneBtn = document.getElementById('addAlertPhoneBtn');
+  if (addAlertPhoneBtn) addAlertPhoneBtn.addEventListener('click', handleAddPhone);
+
+  const newAlertPhoneInput = document.getElementById('newAlertPhoneInput');
+  if (newAlertPhoneInput) {
+    newAlertPhoneInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddPhone();
+      }
+    });
+  }
+
+  // Save Settings Button
+  const saveAlertsSettingsBtn = document.getElementById('saveAlertsSettingsBtn');
+  if (saveAlertsSettingsBtn) {
+    saveAlertsSettingsBtn.addEventListener('click', () => {
+      if (srCritInput) alertSettings.thresholds.criticalSr = parseFloat(srCritInput.value) || 90.0;
+      if (srWarnInput) alertSettings.thresholds.warningSr = parseFloat(srWarnInput.value) || 95.0;
+      const minTxnInput = document.getElementById('minTxnInput');
+      if (minTxnInput) alertSettings.thresholds.minTransactions = parseInt(minTxnInput.value, 10) || 10;
+      const cooldownInput = document.getElementById('cooldownInput');
+      if (cooldownInput) alertSettings.thresholds.cooldownMinutes = parseInt(cooldownInput.value, 10) || 15;
+
+      const emailCheck = document.getElementById('enableEmailCheckbox');
+      if (emailCheck) alertSettings.enabledChannels.email = emailCheck.checked;
+
+      const waCheck = document.getElementById('enableWhatsappCheckbox');
+      if (waCheck) alertSettings.enabledChannels.whatsapp = waCheck.checked;
+
+      const bannerCheck = document.getElementById('enableBannerCheckbox');
+      if (bannerCheck) alertSettings.enabledChannels.banner = bannerCheck.checked;
+
+      const webhookInput = document.getElementById('alertWebhookUrlInput');
+      if (webhookInput) alertSettings.webhookUrl = webhookInput.value.trim();
+
+      saveAlertSettings();
+      evaluateSlaAlerts();
+      closeAlertsModal();
+      showToast('💾 SLA Alert rules and recipients saved!');
+    });
+  }
+
+  // Reset to Defaults Button
+  const resetAlertDefaultsBtn = document.getElementById('resetAlertDefaultsBtn');
+  if (resetAlertDefaultsBtn) {
+    resetAlertDefaultsBtn.addEventListener('click', () => {
+      alertSettings = JSON.parse(JSON.stringify(defaultAlertSettings));
+      saveAlertSettings();
+      syncAlertModalInputs();
+      renderAlertEmailChips();
+      renderAlertPhoneChips();
+      evaluateSlaAlerts();
+      showToast('↺ Restored alert rules to default settings');
+    });
+  }
+
+  // Test Buttons in Modal
+  const testWhatsappAlertBtn = document.getElementById('testWhatsappAlertBtn');
+  if (testWhatsappAlertBtn) {
+    testWhatsappAlertBtn.addEventListener('click', () => {
+      dispatchWhatsappAlert(84.6, undefined, 'Manual Test Dispatch');
+    });
+  }
+
+  const testEmailAlertBtn = document.getElementById('testEmailAlertBtn');
+  if (testEmailAlertBtn) {
+    testEmailAlertBtn.addEventListener('click', () => {
+      dispatchEmailAlert(84.6, undefined, 'Manual Test Dispatch');
+    });
+  }
+
+  const simulateBreachBtn = document.getElementById('simulateBreachBtn');
+  if (simulateBreachBtn) {
+    simulateBreachBtn.addEventListener('click', () => {
+      isBreachSimulated = !isBreachSimulated;
+      slaBannerDismissed = false;
+      evaluateSlaAlerts();
+      if (isBreachSimulated) {
+        simulateBreachBtn.innerHTML = '<span>🛑</span> Stop SLA Simulation';
+        simulateBreachBtn.style.background = '#ef4444';
+        simulateBreachBtn.style.color = '#ffffff';
+        showToast('🚨 Simulated SLA breach active! Emergency banner displayed.');
+        logAlertIncident('Simulated SLA Breach', 84.2, 1850, 292, ['Simulation Banner']);
+      } else {
+        simulateBreachBtn.innerHTML = '<span>🚨</span> Simulate SLA Breach Banner';
+        simulateBreachBtn.style.background = '';
+        simulateBreachBtn.style.color = '';
+        showToast('✅ SLA Breach simulation stopped.');
+      }
+    });
+  }
+
+  // Emergency Banner Actions
+  const slaSendWhatsappBtn = document.getElementById('slaSendWhatsappBtn');
+  if (slaSendWhatsappBtn) {
+    slaSendWhatsappBtn.addEventListener('click', () => dispatchWhatsappAlert());
+  }
+
+  const slaSendEmailBtn = document.getElementById('slaSendEmailBtn');
+  if (slaSendEmailBtn) {
+    slaSendEmailBtn.addEventListener('click', () => dispatchEmailAlert());
+  }
+
+  const slaOpenRecoverBtn = document.getElementById('slaOpenRecoverBtn');
+  if (slaOpenRecoverBtn) {
+    slaOpenRecoverBtn.addEventListener('click', () => {
+      if (typeof openRecoverableModal === 'function') openRecoverableModal();
+    });
+  }
+
+  const slaConfigureBtn = document.getElementById('slaConfigureBtn');
+  if (slaConfigureBtn) {
+    slaConfigureBtn.addEventListener('click', openAlertsModal);
+  }
+
+  const slaDismissBtn = document.getElementById('slaDismissBtn');
+  if (slaDismissBtn) {
+    slaDismissBtn.addEventListener('click', () => {
+      slaBannerDismissed = true;
+      const emergencyBanner = document.getElementById('slaEmergencyBanner');
+      if (emergencyBanner) emergencyBanner.style.display = 'none';
+      showToast('Dismissed alert banner for this window');
+    });
+  }
+
+  // Audit Log Actions
+  const exportAlertLogCsvBtn = document.getElementById('exportAlertLogCsvBtn');
+  if (exportAlertLogCsvBtn) exportAlertLogCsvBtn.addEventListener('click', exportAlertLogCSV);
+
+  const clearAlertLogBtn = document.getElementById('clearAlertLogBtn');
+  if (clearAlertLogBtn) {
+    clearAlertLogBtn.addEventListener('click', () => {
+      alertLog = [];
+      saveAlertLog();
+      renderAlertLogTable();
+      showToast('Incident audit log cleared');
+    });
+  }
+
+  loadAlertSettings();
   loadBatchesFromStorage();
 
   renderKPIs();

@@ -47,6 +47,11 @@
           <span>⚖️</span> Compare with Previous Day
         </button>
 
+        <!-- Success Rate & SLA Alerts Button -->
+        <button id="openAlertsModalBtn" class="btn-action btn-alerts" title="Configure Email & WhatsApp Success Rate Alert Rules">
+          <span class="icon">🔔</span> Alerts &amp; SLA Rules <span id="activeAlertsBadge" class="alert-status-dot"></span>
+        </button>
+
         <!-- Batch Selector -->
         <div class="control-group" id="batchSelectorGroup">
           <select id="batchSelect" class="select-custom" aria-label="Hourly Batch Selector">
@@ -99,6 +104,41 @@
       <div class="data-status-info">
         <span class="data-status-tag tag-simulated" id="dataModeTag">Demo Mode</span>
         <span id="dataStatusMessage">Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest your Excel (.xlsx) or CSV reports.</span>
+      </div>
+    </div>
+
+    <!-- SLA & Success Rate Emergency Alert Banner -->
+    <div class="sla-emergency-banner" id="slaEmergencyBanner" style="display: none;">
+      <div class="sla-banner-content">
+        <div class="sla-banner-left">
+          <span class="sla-badge-icon pulse-alert">🚨</span>
+          <div>
+            <div class="sla-banner-title">
+              <span id="slaBannerTitle">CRITICAL SLA ALERT: Platform Success Rate Degraded</span>
+              <span class="sla-badge-sr" id="slaBannerSrBadge">84.2% SR</span>
+            </div>
+            <div class="sla-banner-sub" id="slaBannerSub">
+              Transaction success rate dropped below the configured SLA threshold. High failure concentration detected on gateway routes.
+            </div>
+          </div>
+        </div>
+        <div class="sla-banner-actions">
+          <button id="slaSendWhatsappBtn" class="btn-action btn-sla-wa" title="Dispatch incident brief via WhatsApp to team">
+            <span>💬</span> WhatsApp Alert
+          </button>
+          <button id="slaSendEmailBtn" class="btn-action btn-sla-email" title="Dispatch incident report via Email to team">
+            <span>✉️</span> Email Alert
+          </button>
+          <button id="slaOpenRecoverBtn" class="btn-action btn-sla-recover" title="Inspect Recoverable Volume & Failover Strategy">
+            <span>💡</span> Recovery Solution
+          </button>
+          <button id="slaConfigureBtn" class="btn-action btn-sla-config" title="Adjust Alert Thresholds & Recipients">
+            <span>⚙️</span> Settings
+          </button>
+          <button id="slaDismissBtn" class="btn-action btn-sla-dismiss" title="Acknowledge and dismiss this alert banner">
+            ✕
+          </button>
+        </div>
       </div>
     </div>
 
@@ -809,6 +849,87 @@
         <button class="modal-close-btn" id="closeDodModalBtn">&times;</button>
       </div>
 
+      <!-- Comparison Source Selector & Dual-File Ingestion Toolbar -->
+      <div class="dod-source-toolbar" id="dodSourceToolbar">
+        <div class="dod-source-tabs">
+          <button type="button" class="dod-source-tab active" id="dodTabSelectExisting" data-target="dodViewSelect">
+            <span>📂</span> Select from Batches
+          </button>
+          <button type="button" class="dod-source-tab" id="dodTabUploadDual" data-target="dodViewUpload">
+            <span>📤</span> Upload Two Files Directly
+          </button>
+        </div>
+
+        <!-- View 1: Select from existing batches -->
+        <div class="dod-source-view" id="dodViewSelect">
+          <div class="dod-select-grid">
+            <div class="dod-select-col">
+              <label class="dod-field-label">📅 Primary / Today Dataset</label>
+              <select id="dodSelectPrimaryBatch" class="select-custom dod-batch-select">
+                <option value="active" selected>Active Dashboard Stream (Today)</option>
+              </select>
+            </div>
+            <div class="dod-select-col">
+              <label class="dod-field-label">⏮️ Baseline / Yesterday Dataset</label>
+              <select id="dodSelectBaselineBatch" class="select-custom dod-batch-select">
+                <option value="auto_yesterday" selected>Auto Previous Day (T-1)</option>
+              </select>
+            </div>
+            <div class="dod-select-action">
+              <button type="button" id="dodApplyBatchSelectionBtn" class="btn-action btn-primary btn-sm">
+                <span>⚡</span> Compare
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 2: Upload two files directly -->
+        <div class="dod-source-view" id="dodViewUpload" style="display: none;">
+          <div class="dod-dual-dropzone-grid">
+            <!-- Dropzone File 1 (Today / Current) -->
+            <div class="dod-dropzone-card" id="dodDropzonePrimary">
+              <input type="file" id="dodFileInputPrimary" accept=".xlsx,.xls,.csv" style="display: none;" />
+              <div class="dod-drop-header">
+                <span class="dod-drop-tag today-tag">Primary (Today)</span>
+                <span class="dod-drop-status" id="dodPrimaryStatus">No file selected</span>
+              </div>
+              <div class="dod-drop-body" id="dodDropBodyPrimary">
+                <span class="dod-drop-icon">📄</span>
+                <div class="dod-drop-title" id="dodPrimaryFileTitle">Select Today's File</div>
+                <div class="dod-drop-hint" id="dodPrimaryFileHint">Click or drag CSV / Excel file here</div>
+              </div>
+            </div>
+
+            <!-- Dropzone File 2 (Yesterday / Baseline) -->
+            <div class="dod-dropzone-card" id="dodDropzoneBaseline">
+              <input type="file" id="dodFileInputBaseline" accept=".xlsx,.xls,.csv" style="display: none;" />
+              <div class="dod-drop-header">
+                <span class="dod-drop-tag yesterday-tag">Baseline (Yesterday)</span>
+                <span class="dod-drop-status" id="dodBaselineStatus">No file selected</span>
+              </div>
+              <div class="dod-drop-body" id="dodDropBodyBaseline">
+                <span class="dod-drop-icon">📄</span>
+                <div class="dod-drop-title" id="dodBaselineFileTitle">Select Yesterday's File</div>
+                <div class="dod-drop-hint" id="dodBaselineFileHint">Click or drag CSV / Excel file here</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dod-upload-actions-row">
+            <label class="alert-toggle-label" style="font-size: 0.76rem;">
+              <input type="checkbox" id="dodSaveToBatchesCheckbox" checked />
+              <span>Save both files to dashboard batch library</span>
+            </label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="dodClearDualUploadBtn" class="btn-action btn-sm btn-ghost">Clear</button>
+              <button type="button" id="dodCompareUploadedFilesBtn" class="btn-action btn-primary btn-sm" disabled>
+                <span>⚖️</span> Compare Uploaded Files
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="modal-body" id="dodModalBody" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
         <!-- Filled dynamically by renderDodModal() -->
       </div>
@@ -817,7 +938,10 @@
         <button class="btn-action" id="exportDodCsvBtn">
           <span>📥</span> Export DoD Report (CSV)
         </button>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button class="btn-action btn-secondary" id="applyDodToDashboardBtn" style="font-size: 0.78rem;" title="Apply this two-file comparison to the main dashboard">
+            <span>⚡</span> Apply to Dashboard
+          </button>
           <button class="btn-action btn-secondary" id="toggleDodOverlayModalBtn" style="font-size: 0.78rem;">
             <span>📅</span> Timeline Overlay
           </button>
@@ -889,6 +1013,222 @@
         <button class="btn-action btn-primary" id="closePspRoutingModalFooterBtn">
           Done
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLA & Success Rate Alerts Configuration Modal -->
+  <div class="modal-overlay" id="alertsConfigModal">
+    <div class="modal-card alerts-modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;">🚨</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="modal-title" style="margin: 0; font-size: 1.2rem;">SLA &amp; Success Rate Alerts Engine</h3>
+              <span id="alertStatusChip" class="status-chip healthy">ACTIVE</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
+              Automated Incident Escalation · WhatsApp &amp; Email Telemetry Dispatch
+            </div>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeAlertsModalBtn">&times;</button>
+      </div>
+
+      <div class="modal-body" id="alertsModalBody" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
+        <!-- Card 1: Trigger Thresholds -->
+        <div class="alert-section-card">
+          <div class="alert-section-header">
+            <span class="alert-section-icon">⚡</span>
+            <div>
+              <h4 class="alert-section-title">SLA Breach Thresholds</h4>
+              <p class="alert-section-desc">Define when performance degradations escalate into automated notifications.</p>
+            </div>
+          </div>
+
+          <div class="alert-grid-2col">
+            <div class="alert-form-field">
+              <label class="alert-label">
+                Critical SLA Trigger (Success Rate &lt; X%)
+                <span class="alert-val-badge" id="srCritValDisplay">90.0%</span>
+              </label>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="range" id="srCritSlider" min="70" max="98" step="0.5" value="90" class="recovery-slider" />
+                <input type="number" id="srCritInput" min="70" max="98" step="0.5" value="90" class="alert-num-input" />
+              </div>
+              <span class="alert-field-hint">Triggers high-urgency WhatsApp &amp; Email incident dispatch.</span>
+            </div>
+
+            <div class="alert-form-field">
+              <label class="alert-label">
+                Warning Threshold (Success Rate &lt; X%)
+                <span class="alert-val-badge" id="srWarnValDisplay">95.0%</span>
+              </label>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="range" id="srWarnSlider" min="75" max="99" step="0.5" value="95" class="recovery-slider" />
+                <input type="number" id="srWarnInput" min="75" max="99" step="0.5" value="95" class="alert-num-input" />
+              </div>
+              <span class="alert-field-hint">Generates advisory watchlist notifications and dashboard status change.</span>
+            </div>
+          </div>
+
+          <div class="alert-grid-2col" style="margin-top: 12px;">
+            <div class="alert-form-field">
+              <label class="alert-label">Minimum Volume Filter</label>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="number" id="minTxnInput" min="1" max="1000" value="10" class="alert-num-input" style="width: 100px;" />
+                <span class="alert-field-hint" style="margin-top: 0;">transactions in window to prevent false alarms.</span>
+              </div>
+            </div>
+
+            <div class="alert-form-field">
+              <label class="alert-label">Alert Cooldown Window</label>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="number" id="cooldownInput" min="1" max="120" value="15" class="alert-num-input" style="width: 100px;" />
+                <span class="alert-field-hint" style="margin-top: 0;">minutes before sending repeat alerts for same breach.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Recipient Directory -->
+        <div class="alert-section-card" style="margin-top: 16px;">
+          <div class="alert-section-header">
+            <span class="alert-section-icon">👥</span>
+            <div>
+              <h4 class="alert-section-title">Incident Escalation Recipients</h4>
+              <p class="alert-section-desc">Keyholders who receive real-time incident reports when SLA breaches occur.</p>
+            </div>
+          </div>
+
+          <!-- Email Recipients -->
+          <div class="alert-channel-block">
+            <div class="alert-channel-header">
+              <label class="alert-toggle-label">
+                <input type="checkbox" id="enableEmailCheckbox" checked />
+                <span class="alert-toggle-text"><strong>✉️ Email Notifications Active</strong></span>
+              </label>
+              <span class="alert-badge-count" id="emailCountBadge">1 configured</span>
+            </div>
+
+            <div class="recipient-input-row">
+              <input type="email" id="newAlertEmailInput" placeholder="e.g. devops@payments.io, ops@company.com" class="recipient-text-input" />
+              <button type="button" id="addAlertEmailBtn" class="btn-action btn-sm btn-primary">
+                + Add Email
+              </button>
+            </div>
+            <div class="recipient-chips-container" id="alertEmailChipsContainer">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <!-- WhatsApp Recipients -->
+          <div class="alert-channel-block" style="margin-top: 16px; border-top: 1px dashed var(--border-color); padding-top: 14px;">
+            <div class="alert-channel-header">
+              <label class="alert-toggle-label">
+                <input type="checkbox" id="enableWhatsappCheckbox" checked />
+                <span class="alert-toggle-text"><strong>💬 WhatsApp Notifications Active</strong></span>
+              </label>
+              <span class="alert-badge-count wa-count" id="phoneCountBadge">1 configured</span>
+            </div>
+
+            <div class="recipient-input-row">
+              <input type="tel" id="newAlertPhoneInput" placeholder="e.g. +91 98765 43210 (include country code)" class="recipient-text-input" />
+              <button type="button" id="addAlertPhoneBtn" class="btn-action btn-sm btn-whatsapp">
+                + Add Mobile
+              </button>
+            </div>
+            <div class="recipient-chips-container" id="alertPhoneChipsContainer">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Enterprise Webhook & UI Banners -->
+        <div class="alert-section-card" style="margin-top: 16px;">
+          <div class="alert-section-header">
+            <span class="alert-section-icon">📡</span>
+            <div>
+              <h4 class="alert-section-title">Channels &amp; Webhook Integration</h4>
+              <p class="alert-section-desc">Broadcast alerts to Slack, Microsoft Teams, WhatsApp Cloud API, or custom webhooks.</p>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <label class="alert-toggle-label">
+              <input type="checkbox" id="enableBannerCheckbox" checked />
+              <span class="alert-toggle-text">Display prominent emergency banner on dashboard when SLA drops below threshold</span>
+            </label>
+          </div>
+
+          <div class="alert-form-field">
+            <label class="alert-label">Custom Webhook / WhatsApp API Endpoint (Optional)</label>
+            <input type="url" id="alertWebhookUrlInput" placeholder="https://hooks.slack.com/services/... or https://api.twilio.com/..." class="recipient-text-input" />
+            <span class="alert-field-hint">When an SLA breach triggers, a structured JSON incident payload will be automatically posted to this URL.</span>
+          </div>
+        </div>
+
+        <!-- Card 4: Interactive Verification & Live Test -->
+        <div class="alert-section-card" style="margin-top: 16px;">
+          <div class="alert-section-header">
+            <span class="alert-section-icon">🧪</span>
+            <div>
+              <h4 class="alert-section-title">Verification &amp; Test Dispatch</h4>
+              <p class="alert-section-desc">Preview formatting and test connectivity to verified recipients immediately.</p>
+            </div>
+          </div>
+
+          <div class="alert-test-buttons-row">
+            <button type="button" id="testWhatsappAlertBtn" class="btn-action btn-whatsapp" title="Send a test WhatsApp incident brief">
+              <span>💬</span> Test WhatsApp Dispatch
+            </button>
+            <button type="button" id="testEmailAlertBtn" class="btn-action btn-secondary" title="Send a test Email incident report">
+              <span>✉️</span> Test Email Dispatch
+            </button>
+            <button type="button" id="simulateBreachBtn" class="btn-action btn-alert-trigger" title="Simulate SLA breach banner on dashboard">
+              <span>🚨</span> Simulate SLA Breach Banner
+            </button>
+          </div>
+          <div id="testAlertStatusMsg" class="alert-test-feedback" style="display: none;"></div>
+        </div>
+
+        <!-- Card 5: Incident Audit Trail -->
+        <div class="alert-section-card" style="margin-top: 16px;">
+          <div class="alert-section-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="alert-section-icon">📋</span>
+              <div>
+                <h4 class="alert-section-title">Incident Dispatch Audit Trail</h4>
+                <p class="alert-section-desc">Historical log of all automated escalations and recipient transmissions.</p>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="exportAlertLogCsvBtn" class="btn-action btn-sm" title="Export incident history as CSV">
+                <span>📥</span> Export Log
+              </button>
+              <button type="button" id="clearAlertLogBtn" class="btn-action btn-sm btn-ghost" title="Clear incident history">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div class="alert-log-table-wrapper" id="alertIncidentLogContainer">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <button class="btn-action btn-ghost" id="resetAlertDefaultsBtn">
+          Reset Defaults
+        </button>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-action" id="cancelAlertsModalBtn">Cancel</button>
+          <button class="btn-action btn-primary" id="saveAlertsSettingsBtn">
+            <span>💾</span> Save &amp; Activate Alert Rules
+          </button>
+        </div>
       </div>
     </div>
   </div>
