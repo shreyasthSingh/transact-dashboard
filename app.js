@@ -46,20 +46,20 @@
 
   // Demo UPI App Data (paymentDetails.upiAppName) - Comprehensive Ecosystem
   const defaultDemoUpiApp = [
-    { id: 'PhonePe', name: 'PhonePe', count: 1220000, success: 1179740, failed: 40260, amount: 488000000, successAmt: 471896000, failedAmt: 16104000 },
-    { id: 'Google Pay', name: 'Google Pay (GPay)', count: 980000, success: 942760, failed: 37240, amount: 392000000, successAmt: 377104000, failedAmt: 14896000 },
-    { id: 'Paytm', name: 'Paytm UPI', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
-    { id: 'CRED', name: 'CRED UPI', count: 290000, success: 283040, failed: 6960, amount: 232000000, successAmt: 226432000, failedAmt: 5568000 },
-    { id: 'BHIM', name: 'BHIM UPI', count: 140000, success: 131600, failed: 8400, amount: 42000000, successAmt: 39480000, failedAmt: 2520000 },
-    { id: 'Amazon Pay', name: 'Amazon Pay UPI', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
-    { id: 'WhatsApp', name: 'WhatsApp Pay', count: 65000, success: 60450, failed: 4550, amount: 19500000, successAmt: 18135000, failedAmt: 1365000 },
-    { id: 'PayZapp', name: 'PayZapp (HDFC)', count: 45000, success: 38250, failed: 6750, amount: 22500000, successAmt: 19125000, failedAmt: 3375000 },
-    { id: 'Airtel Pay', name: 'Airtel Payments Bank', count: 42000, success: 39480, failed: 2520, amount: 16800000, successAmt: 15792000, failedAmt: 1008000 },
-    { id: 'Mobikwik', name: 'Mobikwik UPI', count: 38000, success: 35340, failed: 2660, amount: 15200000, successAmt: 14136000, failedAmt: 1064000 },
-    { id: 'Jupiter', name: 'Jupiter UPI (Federal)', count: 28000, success: 26880, failed: 1120, amount: 14000000, successAmt: 13440000, failedAmt: 560000 },
-    { id: 'Fi Money', name: 'Fi Money UPI', count: 24000, success: 23280, failed: 720, amount: 12000000, successAmt: 11640000, failedAmt: 360000 },
-    { id: 'Navi', name: 'Navi UPI', count: 20000, success: 19100, failed: 900, amount: 10000000, successAmt: 9550000, failedAmt: 450000 },
-    { id: 'Tata Neu', name: 'Tata Neu UPI', count: 18000, success: 17280, failed: 720, amount: 9000000, successAmt: 8640000, failedAmt: 360000 }
+    { id: 'PhonePe', name: 'PhonePe', sourceDevice: 'Mobile', sourceOS: 'Android', count: 1220000, success: 1179740, failed: 40260, amount: 488000000, successAmt: 471896000, failedAmt: 16104000 },
+    { id: 'Google Pay', name: 'Google Pay (GPay)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 980000, success: 942760, failed: 37240, amount: 392000000, successAmt: 377104000, failedAmt: 14896000 },
+    { id: 'Paytm', name: 'Paytm UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
+    { id: 'CRED', name: 'CRED UPI', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 290000, success: 283040, failed: 6960, amount: 232000000, successAmt: 226432000, failedAmt: 5568000 },
+    { id: 'BHIM', name: 'BHIM UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 140000, success: 131600, failed: 8400, amount: 42000000, successAmt: 39480000, failedAmt: 2520000 },
+    { id: 'Amazon Pay', name: 'Amazon Pay UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
+    { id: 'WhatsApp', name: 'WhatsApp Pay', sourceDevice: 'Mobile', sourceOS: 'Android', count: 65000, success: 60450, failed: 4550, amount: 19500000, successAmt: 18135000, failedAmt: 1365000 },
+    { id: 'PayZapp', name: 'PayZapp (HDFC)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 45000, success: 38250, failed: 6750, amount: 22500000, successAmt: 19125000, failedAmt: 3375000 },
+    { id: 'Airtel Pay', name: 'Airtel Payments Bank', sourceDevice: 'Mobile', sourceOS: 'Android', count: 42000, success: 39480, failed: 2520, amount: 16800000, successAmt: 15792000, failedAmt: 1008000 },
+    { id: 'Mobikwik', name: 'Mobikwik UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 38000, success: 35340, failed: 2660, amount: 15200000, successAmt: 14136000, failedAmt: 1064000 },
+    { id: 'Jupiter', name: 'Jupiter UPI (Federal)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 28000, success: 26880, failed: 1120, amount: 14000000, successAmt: 13440000, failedAmt: 560000 },
+    { id: 'Fi Money', name: 'Fi Money UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 24000, success: 23280, failed: 720, amount: 12000000, successAmt: 11640000, failedAmt: 360000 },
+    { id: 'Navi', name: 'Navi UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 20000, success: 19100, failed: 900, amount: 10000000, successAmt: 9550000, failedAmt: 450000 },
+    { id: 'Tata Neu', name: 'Tata Neu UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 18000, success: 17280, failed: 720, amount: 9000000, successAmt: 8640000, failedAmt: 360000 }
   ];
 
   // Demo UPI Handle Data (paymentDetails.payMethodIdentifier after @) - Complete Banking Network
@@ -273,11 +273,9 @@
   };
 
   let paymentMethods = [
-    { name: 'UPI', share: 0.42, successRate: 96.7 },
-    { name: 'Credit Card', share: 0.28, successRate: 95.8 },
-    { name: 'Debit Card', share: 0.18, successRate: 94.2 },
-    { name: 'NetBanking', share: 0.08, successRate: 91.5 },
-    { name: 'Digital Wallet', share: 0.04, successRate: 93.4 }
+    { name: 'UPI', successRate: 63.4, totalCount: 14200, totalAmount: 18450000 },
+    { name: 'CC', successRate: 75.0, totalCount: 3800, totalAmount: 8200000 },
+    { name: 'DC', successRate: 33.3, totalCount: 1950, totalAmount: 3350000 }
   ];
 
   const TIME_MULTIPLIERS = {
@@ -464,6 +462,10 @@
       return {
         id: item.id,
         name: item.name || item.id,
+        sourceDevice: item.sourceDevice || 'Mobile',
+        sourceOS: item.sourceOS || 'Android',
+        devices: item.devices || {},
+        osMap: item.osMap || {},
         totalCount: totCount,
         successCount: succCount,
         failedCount: failCount,
@@ -482,7 +484,12 @@
 
     if (analysisSearchQuery) {
       const q = analysisSearchQuery.toLowerCase();
-      processed = processed.filter(x => x.id.toLowerCase().includes(q) || x.name.toLowerCase().includes(q));
+      processed = processed.filter(x => 
+        x.id.toLowerCase().includes(q) || 
+        x.name.toLowerCase().includes(q) ||
+        (x.sourceDevice && x.sourceDevice.toLowerCase().includes(q)) ||
+        (x.sourceOS && x.sourceOS.toLowerCase().includes(q))
+      );
     }
 
     processed.sort((a, b) => {
@@ -530,9 +537,52 @@
     const data = getActiveAnalysisDataset();
     badgeEl.textContent = `Showing all ${data.length} ${tabLabel}`;
 
+    const theadTr = document.querySelector('#analysisTable thead tr');
+    const isApp = activeAnalysisTab === 'app';
+    if (theadTr) {
+      if (isApp) {
+        theadTr.innerHTML = `
+          <th data-asort="name" id="analysisColEntityName">UPI Application (upiAppName)</th>
+          <th data-asort="sourceDevice">Source Device <code>sourceDevice</code></th>
+          <th data-asort="sourceOS">Source OS <code>sourceOS</code></th>
+          <th data-asort="totalCount">Total Txns</th>
+          <th data-asort="successCount">Success Count</th>
+          <th data-asort="failedCount">Failed Count</th>
+          <th data-asort="successRate">Success Rate %</th>
+          <th data-asort="failedRate">Failed %</th>
+          <th data-asort="totalAmount">Total Amount</th>
+          <th data-asort="successAmount">Success Amount</th>
+          <th data-asort="failedAmount">Failed Amount</th>
+          <th data-asort="successRate" id="analysisColStatus">Status</th>
+          <th>Action</th>
+        `;
+      } else {
+        theadTr.innerHTML = `
+          <th data-asort="name" id="analysisColEntityName">${activeAnalysisTab === 'merchant' ? 'Merchant Account (merchantId)' : (activeAnalysisTab === 'handle' ? 'UPI Handle (@vpa)' : 'Payment Gateway / PSP (pgProvider)')}</th>
+          <th data-asort="totalCount">Total Txns</th>
+          <th data-asort="successCount">Success Count</th>
+          <th data-asort="failedCount">Failed Count</th>
+          <th data-asort="successRate">Success Rate %</th>
+          <th data-asort="failedRate">Failed %</th>
+          <th data-asort="totalAmount">Total Amount</th>
+          <th data-asort="successAmount">Success Amount</th>
+          <th data-asort="failedAmount">Failed Amount</th>
+          <th data-asort="successRate" id="analysisColStatus">${activeAnalysisTab === 'merchant' ? 'Merchant Health' : 'Status'}</th>
+          <th>Action</th>
+        `;
+      }
+
+      // Re-apply sorted class indicator
+      const activeTh = theadTr.querySelector(`th[data-asort="${analysisSortField}"]`);
+      if (activeTh) {
+        activeTh.classList.add(analysisSortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      }
+    }
+
     tbody.innerHTML = '';
     if (data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 1.5rem; color: var(--text-dim);">No entities matching filter criteria.</td></tr>';
+      const colSpan = isApp ? 13 : 11;
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center; padding: 1.5rem; color: var(--text-dim);">No entities matching filter criteria.</td></tr>`;
       renderAnalysisChart([]);
       return;
     }
@@ -570,6 +620,10 @@
             </div>
           </div>
         </td>
+        ${isApp ? `
+          <td><span class="device-badge">📱 ${item.sourceDevice || 'Mobile'}</span></td>
+          <td><span class="os-badge">🤖 ${item.sourceOS || 'Android'}</span></td>
+        ` : ''}
         <td><strong>${formatNumber(item.totalCount)}</strong></td>
         <td class="text-success">${formatNumber(item.successCount)}</td>
         <td class="text-failed">${formatNumber(item.failedCount)}</td>
@@ -824,6 +878,14 @@
         </div>
       </div>
 
+      ${dimension === 'app' ? `
+        <div style="display: flex; gap: 12px; align-items: center; background: var(--bg-primary); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-subtle); margin-bottom: 1.25rem;">
+          <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase;">Telemetry Origins:</span>
+          <span class="device-badge" style="font-size: 0.8rem; padding: 4px 10px;">📱 Source Device: <strong>${entity.sourceDevice || 'Mobile'}</strong></span>
+          <span class="os-badge" style="font-size: 0.8rem; padding: 4px 10px;">🤖 Source OS: <strong>${entity.sourceOS || 'Android'}</strong></span>
+        </div>
+      ` : ''}
+
       <div class="inspect-section-title">
         <span>🔍</span> Failure Attribution &amp; Error Response Codes
       </div>
@@ -900,6 +962,11 @@
         inspectModalEl.classList.remove('active');
         const upModal = document.getElementById('uploadModal');
         if (upModal) upModal.classList.remove('active');
+        const apiModal = document.getElementById('apiIntegrationModal');
+        if (apiModal) {
+          apiModal.style.display = 'none';
+          apiModal.classList.remove('active');
+        }
       }
     });
   }
@@ -907,24 +974,61 @@
   function exportAnalysisCSV() {
     const data = getActiveAnalysisDataset();
     const cur = CURRENCIES[currentCurrency];
+    const isApp = activeAnalysisTab === 'app';
 
     const tabName = activeAnalysisTab === 'psp' ? 'PSP_Gateway' : activeAnalysisTab === 'app' ? 'UPI_App' : activeAnalysisTab === 'handle' ? 'UPI_Handle' : 'Merchant_Performance';
-    const headers = [
-      activeAnalysisTab === 'merchant' ? 'Merchant Identifier' : 'Entity Identifier',
-      activeAnalysisTab === 'merchant' ? 'Merchant Name' : 'Entity Name',
-      'Total Transactions',
-      'Success Count',
-      'Failed Count',
-      'Success Rate %',
-      'Failed %',
-      `Total Amount (${currentCurrency})`,
-      `Success Amount (${currentCurrency})`,
-      `Failed Amount (${currentCurrency})`,
-      activeAnalysisTab === 'merchant' ? 'Merchant Health' : 'Status'
-    ];
+    let headers = [];
+    if (isApp) {
+      headers = [
+        'UPI Application',
+        'Application Name',
+        'Source Device',
+        'Source OS',
+        'Total Transactions',
+        'Success Count',
+        'Failed Count',
+        'Success Rate %',
+        'Failed %',
+        `Total Amount (${currentCurrency})`,
+        `Success Amount (${currentCurrency})`,
+        `Failed Amount (${currentCurrency})`,
+        'Status'
+      ];
+    } else {
+      headers = [
+        activeAnalysisTab === 'merchant' ? 'Merchant Identifier' : 'Entity Identifier',
+        activeAnalysisTab === 'merchant' ? 'Merchant Name' : 'Entity Name',
+        'Total Transactions',
+        'Success Count',
+        'Failed Count',
+        'Success Rate %',
+        'Failed %',
+        `Total Amount (${currentCurrency})`,
+        `Success Amount (${currentCurrency})`,
+        `Failed Amount (${currentCurrency})`,
+        activeAnalysisTab === 'merchant' ? 'Merchant Health' : 'Status'
+      ];
+    }
 
     const rows = data.map(item => {
       const status = item.successRate >= 95.0 ? 'Optimal' : item.successRate >= 90.0 ? 'Watch' : 'Degraded';
+      if (isApp) {
+        return [
+          `"${item.id}"`,
+          `"${item.name}"`,
+          `"${item.sourceDevice || 'Mobile'}"`,
+          `"${item.sourceOS || 'Android'}"`,
+          item.totalCount,
+          item.successCount,
+          item.failedCount,
+          item.successRate.toFixed(2),
+          item.failedRate.toFixed(2),
+          (item.totalAmount * cur.rate).toFixed(2),
+          (item.successAmount * cur.rate).toFixed(2),
+          (item.failedAmount * cur.rate).toFixed(2),
+          status
+        ];
+      }
       return [
         `"${item.id}"`,
         `"${item.name}"`,
@@ -976,8 +1080,12 @@
     });
   });
 
-  document.querySelectorAll('#analysisTable th[data-asort]').forEach(th => {
-    th.addEventListener('click', () => {
+  // Event delegation on table thead so dynamic headers (Source Device, Source OS, etc.) are always clickable & sortable
+  const analysisTheadEl = document.querySelector('#analysisTable thead');
+  if (analysisTheadEl) {
+    analysisTheadEl.addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-asort]');
+      if (!th) return;
       const field = th.getAttribute('data-asort');
       if (analysisSortField === field) {
         analysisSortDirection = analysisSortDirection === 'asc' ? 'desc' : 'asc';
@@ -985,14 +1093,9 @@
         analysisSortField = field;
         analysisSortDirection = 'desc';
       }
-
-      document.querySelectorAll('#analysisTable th').forEach(h => {
-        h.classList.remove('sorted-asc', 'sorted-desc');
-      });
-      th.classList.add(analysisSortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
       renderAnalysisSection();
     });
-  });
+  }
 
   // ==========================================
   // Executive Recommendations Engine (Screenshot 2 Faithful Reproduction)
@@ -1475,7 +1578,9 @@
     }
     const amount = parseFloat(amtStr) || 0;
 
-    const payMethod = getVal('paymentDetails.payMethod', 'paymentDetails.payMethodGroup', 'paymentDetails.upiChannel', 'payMethod') || 'UPI';
+    const payMethod = (getVal('paymentDetails.payMethod', 'paymentDetails.payMethodGroup', 'paymentDetails.upiChannel', 'payMethod') || 'UPI').trim();
+    const sourceDevice = getVal('paymentDetails.sourceDevice', 'sourceDevice', 'device', 'SourceDevice') || 'Mobile';
+    const sourceOS = getVal('paymentDetails.sourceOS', 'sourceOS', 'os', 'SourceOS') || 'Android';
     const bankName = getVal('paymentDetails.BankName', 'paymentDetails.CardName', 'bankName');
 
     // Payment Provider (PSP)
@@ -1525,6 +1630,8 @@
       amount,
       currency: getVal('currId', 'quoteCurrCode') || 'INR',
       payMethod,
+      sourceDevice,
+      sourceOS,
       bankName,
       pgProvider,
       upiApp,
@@ -1646,13 +1753,30 @@
         pspMap[pspKey].failureCodes[respCode] = (pspMap[pspKey].failureCodes[respCode] || 0) + 1;
       }
 
-      // 3. UPI App Aggregation (paymentDetails.upiAppName)
+      // 3. UPI App Aggregation (paymentDetails.upiAppName) with Source Device and Source OS
       const appKey = t.upiApp || 'Other UPI';
       if (!upiAppMap[appKey]) {
-        upiAppMap[appKey] = { id: appKey, name: appKey, count: 0, success: 0, failed: 0, amount: 0, successAmt: 0, failedAmt: 0 };
+        upiAppMap[appKey] = {
+          id: appKey,
+          name: appKey,
+          sourceDevice: t.sourceDevice || 'Mobile',
+          sourceOS: t.sourceOS || 'Android',
+          devices: {},
+          osMap: {},
+          count: 0,
+          success: 0,
+          failed: 0,
+          amount: 0,
+          successAmt: 0,
+          failedAmt: 0
+        };
       }
       upiAppMap[appKey].count += 1;
       upiAppMap[appKey].amount += t.amount;
+      const dev = t.sourceDevice || 'Mobile';
+      const os = t.sourceOS || 'Android';
+      upiAppMap[appKey].devices[dev] = (upiAppMap[appKey].devices[dev] || 0) + 1;
+      upiAppMap[appKey].osMap[os] = (upiAppMap[appKey].osMap[os] || 0) + 1;
       if (t.isSuccess) {
         upiAppMap[appKey].success += 1;
         upiAppMap[appKey].successAmt += t.amount;
@@ -1678,13 +1802,9 @@
         }
       }
 
-      // 5. Payment Method Aggregation (paymentDetails.payMethod)
-      let pmKey = (t.payMethod || '').toUpperCase().trim();
-      if (!pmKey || pmKey === 'UPI') pmKey = 'UPI';
-      else if (pmKey.includes('CARD') || pmKey.includes('CREDIT') || pmKey.includes('DEBIT')) pmKey = 'Cards';
-      else if (pmKey.includes('NET') || pmKey.includes('BANK')) pmKey = 'Netbanking';
-      else if (pmKey.includes('WALLET')) pmKey = 'Wallets';
-      else pmKey = t.payMethod || 'Other';
+      // 5. Payment Method Aggregation directly from paymentDetails.payMethod (UPI, CC, DC)
+      let pmKey = (t.payMethod || 'UPI').trim().toUpperCase();
+      if (!pmKey) pmKey = 'UPI';
 
       if (!payMethodMap[pmKey]) {
         payMethodMap[pmKey] = { name: pmKey, totalCount: 0, successCount: 0, totalAmount: 0 };
@@ -1707,12 +1827,24 @@
       }
     });
 
+    // Finalize dominant sourceDevice and sourceOS for UPI apps
+    Object.values(upiAppMap).forEach(app => {
+      if (app.devices) {
+        const topDev = Object.entries(app.devices).sort((a, b) => b[1] - a[1])[0];
+        if (topDev) app.sourceDevice = topDev[0];
+      }
+      if (app.osMap) {
+        const topOs = Object.entries(app.osMap).sort((a, b) => b[1] - a[1])[0];
+        if (topOs) app.sourceOS = topOs[0];
+      }
+    });
+
     merchants = Object.values(merchantMap);
     pspList = Object.values(pspMap);
     upiAppList = Object.values(upiAppMap);
     upiHandleList = Object.values(upiHandleMap);
 
-    // Update paymentMethods from uploaded data
+    // Update paymentMethods from uploaded data preserving exact raw keys (e.g. UPI, CC, DC)
     if (Object.keys(payMethodMap).length > 0) {
       paymentMethods = Object.values(payMethodMap).map(pm => ({
         name: pm.name,
@@ -1720,7 +1852,7 @@
         volumeShare: txns.length > 0 ? parseFloat(((pm.totalCount / txns.length) * 100).toFixed(1)) : 0,
         totalAmount: pm.totalAmount,
         totalCount: pm.totalCount
-      }));
+      })).sort((a, b) => b.totalCount - a.totalCount);
     }
 
     uploadedFailureCounts = failCounts;
@@ -1770,7 +1902,25 @@
     const liveBadge = document.getElementById('gatewayLiveBadge');
     const feedModeLabel = document.getElementById('feedModeLabel');
 
-    if (dataMode === 'uploaded') {
+    if (dataMode === 'api') {
+      if (tag) {
+        tag.className = 'data-status-tag tag-api-mode';
+        tag.innerHTML = '<span class="pulse-dot"></span> Live API Stream';
+      }
+      const pollText = apiConfig.pollInterval > 0 ? `Auto-syncing every ${apiConfig.pollInterval}s` : 'Manual fetch';
+      const endpointLabel = apiConfig.isSandbox ? 'Built-in Gateway Sandbox' : (apiConfig.endpoint || 'Custom Endpoint');
+      if (msg) {
+        msg.innerHTML = `🌐 Streaming live via API: <strong>${endpointLabel}</strong> (${currentTransactions.length} records, ${pollText}). KPIs, Routing Reports &amp; Recommendations update live.`;
+      }
+      if (resetBtn) resetBtn.style.display = 'inline-block';
+      if (liveBadge) {
+        liveBadge.className = 'badge-pill badge-live';
+        liveBadge.innerHTML = '<span class="pulse-dot"></span> API Streaming';
+      }
+      if (feedModeLabel) {
+        feedModeLabel.textContent = 'Displaying live transactions streamed via REST API';
+      }
+    } else if (dataMode === 'uploaded') {
       if (tag) {
         tag.className = 'data-status-tag tag-uploaded';
         tag.textContent = 'Live Uploaded Data';
@@ -1793,7 +1943,7 @@
         tag.textContent = 'Demo Mode';
       }
       if (msg) {
-        msg.innerHTML = `Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest your Excel (.xlsx) or CSV file.`;
+        msg.innerHTML = `Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest Excel/CSV, or <strong>Live API Integration</strong> to stream live data.`;
       }
       if (resetBtn) resetBtn.style.display = 'none';
       if (liveBadge) {
@@ -1807,6 +1957,10 @@
   }
 
   function resetToDemo() {
+    if (apiPollTimer) {
+      clearInterval(apiPollTimer);
+      apiPollTimer = null;
+    }
     dataMode = 'demo';
     activeBatchId = 'demo';
     merchants = JSON.parse(JSON.stringify(defaultDemoMerchants));
@@ -2600,32 +2754,60 @@
     const h = rect.height;
     ctx.clearRect(0, 0, w, h);
 
-    const padding = { top: 20, right: 30, bottom: 20, left: 140 };
+    if (!paymentMethods || paymentMethods.length === 0) return;
+
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const padding = { top: 22, right: 30, bottom: 20, left: 68 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
 
     const rowH = chartH / paymentMethods.length;
-    const barH = rowH * 0.55;
+    const barH = Math.min(26, rowH * 0.58);
 
     paymentMethods.forEach((pm, idx) => {
       const y = padding.top + rowH * idx + (rowH - barH) / 2;
 
+      // Method label on the left (e.g. UPI, CC, DC)
       ctx.textAlign = 'right';
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#001626' : '#f0f6fc';
-      ctx.font = '500 12px sans-serif';
-      ctx.fillText(pm.name, padding.left - 12, y + barH / 2 + 4);
+      ctx.fillStyle = isLight ? '#0f172a' : '#f8fafc';
+      ctx.font = '600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(pm.name, padding.left - 12, y + barH / 2 + 5);
 
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#e2ecf5' : '#0f2d49';
-      ctx.fillRect(padding.left, y, chartW, barH);
+      // Track background
+      ctx.fillStyle = isLight ? '#e8edf3' : '#172738';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(padding.left, y, chartW, barH, 4);
+        ctx.fill();
+      } else {
+        ctx.fillRect(padding.left, y, chartW, barH);
+      }
 
-      const succW = (pm.successRate / 100) * chartW;
-      ctx.fillStyle = '#007aff';
-      ctx.fillRect(padding.left, y, succW, barH);
+      // Blue progress bar (#007aff)
+      const succW = Math.max(0, Math.min(chartW, (pm.successRate / 100) * chartW));
+      if (succW > 0) {
+        ctx.fillStyle = '#007aff';
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(padding.left, y, succW, barH, 4);
+          ctx.fill();
+        } else {
+          ctx.fillRect(padding.left, y, succW, barH);
+        }
+      }
 
+      // Inside value label (e.g. 63.4%, 75%, 33.3%)
+      const rateText = `${Number(pm.successRate).toFixed(1).replace(/\.0$/, '')}%`;
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(`${pm.successRate}%`, padding.left + succW - 8, y + barH / 2 + 4);
+      ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      if (succW > 45) {
+        ctx.textAlign = 'right';
+        ctx.fillText(rateText, padding.left + succW - 8, y + barH / 2 + 4);
+      } else {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = isLight ? '#0f172a' : '#f8fafc';
+        ctx.fillText(rateText, padding.left + succW + 8, y + barH / 2 + 4);
+      }
     });
   }
 
@@ -2826,6 +3008,398 @@
   window.addEventListener('resize', () => {
     initCharts();
   });
+
+  // ==========================================
+  // Live API Integration & Polling Controller
+  // ==========================================
+  let apiConfig = {
+    isSandbox: false,
+    endpoint: '',
+    method: 'GET',
+    authType: 'bearer',
+    authToken: '',
+    pollInterval: 30,
+    syncMode: 'replace',
+    customHeaders: ''
+  };
+  let apiPollTimer = null;
+
+  function loadApiConfig() {
+    try {
+      const saved = localStorage.getItem('transact_bridge_api_config');
+      if (saved) {
+        apiConfig = { ...apiConfig, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      console.warn('Could not load api config', e);
+    }
+  }
+
+  function saveApiConfig() {
+    try {
+      localStorage.setItem('transact_bridge_api_config', JSON.stringify(apiConfig));
+    } catch (e) {
+      console.warn('Could not save api config', e);
+    }
+  }
+
+  function setApiModeTab(tab) {
+    const tabCustom = document.getElementById('apiTabCustomEndpoint');
+    const tabSandbox = document.getElementById('apiTabSandboxSim');
+    const panelCustom = document.getElementById('customApiConfigPanel');
+    const panelSandbox = document.getElementById('sandboxApiConfigPanel');
+
+    if (tab === 'sandbox') {
+      apiConfig.isSandbox = true;
+      if (tabSandbox) tabSandbox.classList.add('active');
+      if (tabCustom) tabCustom.classList.remove('active');
+      if (panelSandbox) panelSandbox.style.display = 'block';
+      if (panelCustom) panelCustom.style.display = 'none';
+    } else {
+      apiConfig.isSandbox = false;
+      if (tabCustom) tabCustom.classList.add('active');
+      if (tabSandbox) tabSandbox.classList.remove('active');
+      if (panelCustom) panelCustom.style.display = 'block';
+      if (panelSandbox) panelSandbox.style.display = 'none';
+    }
+  }
+
+  function populateApiForm() {
+    const epInput = document.getElementById('apiEndpointUrl');
+    const methodInput = document.getElementById('apiHttpMethod');
+    const authTypeInput = document.getElementById('apiAuthType');
+    const authTokenInput = document.getElementById('apiAuthToken');
+    const pollIntervalInput = document.getElementById('apiPollInterval');
+    const syncModeInput = document.getElementById('apiSyncMode');
+    const customHeadersInput = document.getElementById('apiCustomHeaders');
+
+    if (epInput) epInput.value = apiConfig.endpoint || '';
+    if (methodInput) methodInput.value = apiConfig.method || 'GET';
+    if (authTypeInput) authTypeInput.value = apiConfig.authType || 'bearer';
+    if (authTokenInput) authTokenInput.value = apiConfig.authToken || '';
+    if (pollIntervalInput) pollIntervalInput.value = String(apiConfig.pollInterval !== undefined ? apiConfig.pollInterval : 30);
+    if (syncModeInput) syncModeInput.value = apiConfig.syncMode || 'replace';
+    if (customHeadersInput) customHeadersInput.value = apiConfig.customHeaders || '';
+
+    setApiModeTab(apiConfig.isSandbox ? 'sandbox' : 'custom');
+  }
+
+  function openApiModal() {
+    loadApiConfig();
+    populateApiForm();
+    const modal = document.getElementById('apiIntegrationModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active');
+    }
+    const consoleEl = document.getElementById('apiTestConsole');
+    if (consoleEl) consoleEl.style.display = 'none';
+  }
+
+  function closeApiModal() {
+    const modal = document.getElementById('apiIntegrationModal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+    }
+  }
+
+  function generateSandboxApiTransactions(count = 500) {
+    const psps = ['RAZORPAY', 'CASHFREE', 'PAYU', 'PHONEPE_PG', 'BILLDESK'];
+    const upiApps = [
+      { name: 'PhonePe', device: 'Mobile', os: 'Android', handle: '@ybl' },
+      { name: 'Google Pay', device: 'Mobile', os: 'Android', handle: '@okhdfcbank' },
+      { name: 'Paytm', device: 'Mobile', os: 'Android', handle: '@paytm' },
+      { name: 'CRED', device: 'Mobile', os: 'iOS', handle: '@cred' },
+      { name: 'BHIM', device: 'Mobile', os: 'Android', handle: '@upi' },
+      { name: 'Amazon Pay', device: 'Mobile', os: 'Android', handle: '@apl' },
+      { name: 'PayZapp', device: 'Mobile', os: 'Android', handle: '@pz' }
+    ];
+    const merchantsList = [
+      { id: '6880a1c1e1066f594dba492a', name: 'Swiggy Food & Instamart' },
+      { id: '7921b2c2e2077f605eba503b', name: 'Flipkart Online Services' },
+      { id: '8a32c3d3e3088f716fcb614c', name: 'Zomato Dining & Delivery' },
+      { id: '9b43d4e4e4099f827gdc725d', name: 'MakeMyTrip Travel Bookings' },
+      { id: 'ac54e5f5e5100f938hed836e', name: 'Tata Digital / 1mg Health' },
+      { id: 'bd65f6a6e6211fa49ife947f', name: 'Amazon India Retail' }
+    ];
+    const failCodes = [
+      'USER_DROP_PAYMENT_REQUEST',
+      'ISSUER_TIMEOUT',
+      'INSUFFICIENT_FUNDS',
+      'AUTHENTICATION_FAILED',
+      'PAYMENT_EXPIRED'
+    ];
+
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      const app = upiApps[Math.floor(Math.random() * upiApps.length)];
+      const merch = merchantsList[Math.floor(Math.random() * merchantsList.length)];
+      const psp = psps[Math.floor(Math.random() * psps.length)];
+      const payMethodRand = Math.random();
+      const payMethod = payMethodRand < 0.65 ? 'UPI' : (payMethodRand < 0.85 ? 'CC' : 'DC');
+      const isSuccess = Math.random() < 0.92;
+      const amount = Math.floor(Math.random() * 4500) + 120;
+      const failCode = !isSuccess ? failCodes[Math.floor(Math.random() * failCodes.length)] : '';
+
+      result.push({
+        _id: 'API-TXN-' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+        merchantId: merch.id,
+        merchantName: merch.name,
+        totalAmount: amount,
+        status: isSuccess ? 'SUCCESS' : 'FAILED',
+        successDate: isSuccess ? new Date().toISOString() : '',
+        failedDate: !isSuccess ? new Date().toISOString() : '',
+        paymentDetails: {
+          payMethod: payMethod,
+          pgProvider: psp,
+          upiAppName: payMethod === 'UPI' ? app.name : '',
+          payMethodIdentifier: payMethod === 'UPI' ? `user_${Math.floor(Math.random()*9000+1000)}${app.handle}` : '',
+          sourceDevice: app.device,
+          sourceOS: app.os
+        },
+        failedInfo: {
+          responseCode: failCode,
+          failedState: failCode
+        },
+        createdDate: new Date(Date.now() - Math.floor(Math.random() * 3600000)).toISOString()
+      });
+    }
+    return result;
+  }
+
+  async function testApiConnection() {
+    const consoleEl = document.getElementById('apiTestConsole');
+    const statusEl = document.getElementById('apiConsoleStatus');
+    const latencyEl = document.getElementById('apiConsoleLatency');
+    const outputEl = document.getElementById('apiConsoleOutput');
+
+    if (!consoleEl) return;
+    consoleEl.style.display = 'block';
+    statusEl.className = '';
+    statusEl.textContent = '● Connecting...';
+    latencyEl.textContent = '-- ms';
+    outputEl.textContent = 'Initiating API endpoint handshake...';
+
+    const t0 = performance.now();
+
+    if (apiConfig.isSandbox) {
+      await new Promise(r => setTimeout(r, 220));
+      const elapsed = Math.round(performance.now() - t0);
+      const sample = generateSandboxApiTransactions(2);
+      statusEl.className = 'text-success';
+      statusEl.textContent = '● 200 OK (Built-in Gateway Sandbox Connected)';
+      latencyEl.textContent = `${elapsed} ms`;
+      outputEl.textContent = JSON.stringify({
+        status: 'SUCCESS',
+        code: 200,
+        latencyMs: elapsed,
+        streamStatus: 'ONLINE_ACTIVE',
+        recordsAvailable: 500,
+        schemaSample: sample
+      }, null, 2);
+      return;
+    }
+
+    const ep = (document.getElementById('apiEndpointUrl')?.value || '').trim();
+    if (!ep) {
+      statusEl.className = 'text-failed';
+      statusEl.textContent = '● Error: Missing Endpoint URL';
+      latencyEl.textContent = '0 ms';
+      outputEl.textContent = 'Please enter a target API endpoint URL (e.g. https://api.yourdomain.com/v1/payments/transactions).';
+      return;
+    }
+
+    const method = document.getElementById('apiHttpMethod')?.value || 'GET';
+    const authType = document.getElementById('apiAuthType')?.value || 'none';
+    const token = (document.getElementById('apiAuthToken')?.value || '').trim();
+    const customHeaderRaw = (document.getElementById('apiCustomHeaders')?.value || '').trim();
+
+    const headers = { 'Accept': 'application/json' };
+    if (authType === 'bearer' && token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (authType === 'apiKey' && token) {
+      headers['x-api-key'] = token;
+    }
+
+    let body = undefined;
+    if (customHeaderRaw) {
+      try {
+        const parsed = JSON.parse(customHeaderRaw);
+        if (method === 'POST') {
+          headers['Content-Type'] = 'application/json';
+          body = JSON.stringify(parsed);
+        } else {
+          Object.assign(headers, parsed);
+        }
+      } catch (e) {}
+    }
+
+    try {
+      const resp = await fetch(ep, {
+        method,
+        headers,
+        body
+      });
+      const elapsed = Math.round(performance.now() - t0);
+      latencyEl.textContent = `${elapsed} ms`;
+
+      if (resp.ok) {
+        statusEl.className = 'text-success';
+        statusEl.textContent = `● ${resp.status} ${resp.statusText} (Connected)`;
+        const data = await resp.json();
+        const records = Array.isArray(data) ? data : (data.data || data.transactions || data.items || []);
+        outputEl.textContent = JSON.stringify({
+          status: 'SUCCESS',
+          httpStatus: resp.status,
+          latencyMs: elapsed,
+          recordsDetected: records.length,
+          previewSample: records.slice(0, 2)
+        }, null, 2);
+      } else {
+        statusEl.className = 'text-failed';
+        statusEl.textContent = `● HTTP ${resp.status} ${resp.statusText}`;
+        const errText = await resp.text();
+        outputEl.textContent = `Endpoint returned error:\n${errText.substring(0, 500)}`;
+      }
+    } catch (err) {
+      const elapsed = Math.round(performance.now() - t0);
+      latencyEl.textContent = `${elapsed} ms`;
+      statusEl.className = 'text-failed';
+      statusEl.textContent = '● Network / CORS Connection Error';
+      outputEl.textContent = `Connection failed: ${err.message}\n\nNote: If accessing an external server from the browser, the endpoint must send 'Access-Control-Allow-Origin: *' CORS headers. You can test immediately using the 'Built-in Gateway Sandbox' tab or configure a reverse proxy for internal endpoints.`;
+    }
+  }
+
+  async function fetchOrGenerateApiTransactions(silent = false) {
+    try {
+      let rawRecords = [];
+      if (apiConfig.isSandbox) {
+        rawRecords = generateSandboxApiTransactions(500);
+      } else {
+        if (!apiConfig.endpoint) return;
+        const headers = { 'Accept': 'application/json' };
+        if (apiConfig.authType === 'bearer' && apiConfig.authToken) {
+          headers['Authorization'] = `Bearer ${apiConfig.authToken}`;
+        } else if (apiConfig.authType === 'apiKey' && apiConfig.authToken) {
+          headers['x-api-key'] = apiConfig.authToken;
+        }
+
+        let body = undefined;
+        if (apiConfig.customHeaders) {
+          try {
+            const parsed = JSON.parse(apiConfig.customHeaders);
+            if (apiConfig.method === 'POST') {
+              headers['Content-Type'] = 'application/json';
+              body = JSON.stringify(parsed);
+            } else {
+              Object.assign(headers, parsed);
+            }
+          } catch (e) {}
+        }
+
+        const resp = await fetch(apiConfig.endpoint, {
+          method: apiConfig.method,
+          headers,
+          body
+        });
+        if (!resp.ok) {
+          throw new Error(`API returned HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        rawRecords = Array.isArray(data) ? data : (data.data || data.transactions || data.items || []);
+      }
+
+      if (rawRecords.length > 0) {
+        const normalized = rawRecords.map(normalizeRow);
+        if (apiConfig.syncMode === 'replace') {
+          currentTransactions = normalized;
+        } else {
+          currentTransactions = currentTransactions.concat(normalized);
+        }
+
+        dataMode = 'api';
+        recomputeDashboardFromTransactions(currentTransactions);
+        updateStatusBanner();
+        stopSimulation();
+
+        if (!silent) {
+          showToast(`⚡ Streamed ${normalized.length} live transactions via API`);
+        }
+      }
+    } catch (err) {
+      console.error('API sync error:', err);
+      if (!silent) {
+        showToast(`⚠️ API sync error: ${err.message}`);
+      }
+    }
+  }
+
+  function startApiPolling() {
+    if (apiPollTimer) {
+      clearInterval(apiPollTimer);
+      apiPollTimer = null;
+    }
+    if (apiConfig.pollInterval > 0) {
+      apiPollTimer = setInterval(() => {
+        if (dataMode === 'api') {
+          fetchOrGenerateApiTransactions(true);
+        }
+      }, apiConfig.pollInterval * 1000);
+    }
+  }
+
+  function saveAndStartApiStream() {
+    apiConfig.endpoint = (document.getElementById('apiEndpointUrl')?.value || '').trim();
+    apiConfig.method = document.getElementById('apiHttpMethod')?.value || 'GET';
+    apiConfig.authType = document.getElementById('apiAuthType')?.value || 'none';
+    apiConfig.authToken = (document.getElementById('apiAuthToken')?.value || '').trim();
+    apiConfig.pollInterval = parseInt(document.getElementById('apiPollInterval')?.value || '30', 10);
+    apiConfig.syncMode = document.getElementById('apiSyncMode')?.value || 'replace';
+    apiConfig.customHeaders = (document.getElementById('apiCustomHeaders')?.value || '').trim();
+
+    if (!apiConfig.isSandbox && !apiConfig.endpoint) {
+      alert('Please enter a valid API Endpoint URL or switch to Built-in Gateway Sandbox mode.');
+      return;
+    }
+
+    saveApiConfig();
+    closeApiModal();
+
+    dataMode = 'api';
+    fetchOrGenerateApiTransactions(false);
+    startApiPolling();
+    showToast('🔗 Live API streaming connected and active!');
+  }
+
+  // Attach API modal events
+  const openApiModalBtn = document.getElementById('openApiModalBtn');
+  if (openApiModalBtn) openApiModalBtn.addEventListener('click', openApiModal);
+
+  const closeApiModalBtn = document.getElementById('closeApiModalBtn');
+  if (closeApiModalBtn) closeApiModalBtn.addEventListener('click', closeApiModal);
+
+  const cancelApiModalBtn = document.getElementById('cancelApiModalBtn');
+  if (cancelApiModalBtn) cancelApiModalBtn.addEventListener('click', closeApiModal);
+
+  const apiTabCustomEndpoint = document.getElementById('apiTabCustomEndpoint');
+  if (apiTabCustomEndpoint) apiTabCustomEndpoint.addEventListener('click', () => setApiModeTab('custom'));
+
+  const apiTabSandboxSim = document.getElementById('apiTabSandboxSim');
+  if (apiTabSandboxSim) apiTabSandboxSim.addEventListener('click', () => setApiModeTab('sandbox'));
+
+  const testApiConnectionBtn = document.getElementById('testApiConnectionBtn');
+  if (testApiConnectionBtn) testApiConnectionBtn.addEventListener('click', testApiConnection);
+
+  const saveAndStartApiBtn = document.getElementById('saveAndStartApiBtn');
+  if (saveAndStartApiBtn) saveAndStartApiBtn.addEventListener('click', saveAndStartApiStream);
+
+  const apiModalOverlay = document.getElementById('apiIntegrationModal');
+  if (apiModalOverlay) {
+    apiModalOverlay.addEventListener('click', (e) => {
+      if (e.target === apiModalOverlay) closeApiModal();
+    });
+  }
 
   loadBatchesFromStorage();
 

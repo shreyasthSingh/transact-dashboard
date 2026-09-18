@@ -1494,26 +1494,70 @@ canvas {
   color: var(--text-dim);
 }
 
+/* Recommendations Header & Filter Actions Toolbar */
+.recommendations-section .section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.rec-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.rec-actions .filter-pills {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  background: var(--bg-primary);
+  padding: 4px;
+  border-radius: 24px;
+  border: 1px solid var(--border-subtle);
+}
+
 .rec-filter-btn {
   background: transparent;
-  border: 1px solid var(--border-color);
+  border: none;
   color: var(--text-muted);
-  padding: 4px 12px;
-  border-radius: 20px;
+  padding: 5px 12px;
+  border-radius: 18px;
   font-size: 0.76rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
 
 .rec-filter-btn:hover {
-  background: var(--card-hover);
+  background: rgba(255, 255, 255, 0.07);
   color: var(--text-main);
 }
 
 .rec-filter-btn.active {
-  background: var(--accent-blue);
+  background: linear-gradient(135deg, #007aff, #0056b3);
   color: #ffffff;
-  border-color: var(--accent-blue);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+}
+
+.rec-actions .btn-action {
+  white-space: nowrap;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 [data-theme="light"] .rec-card {
@@ -1821,6 +1865,218 @@ canvas {
 .timeline-psp-select:focus {
   border-color: var(--accent-blue);
 }
+
+/* Live API Integration Button in Header */
+.btn-api {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.15), rgba(0, 122, 255, 0.15));
+  border: 1px solid rgba(0, 210, 255, 0.45);
+  color: #00d2ff;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-api:hover {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.28), rgba(0, 122, 255, 0.28));
+  color: #ffffff;
+  border-color: #00d2ff;
+  box-shadow: 0 0 12px rgba(0, 210, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+/* API Status Tag in Status Banner */
+.data-status-tag.tag-api-mode {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Device & OS Badges for UPI App Wise Table */
+.device-badge,
+.os-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.device-badge {
+  background: rgba(0, 122, 255, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(0, 122, 255, 0.25);
+}
+
+.os-badge {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="light"] .device-badge {
+  background: #e0f2fe;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+[data-theme="light"] .os-badge {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+/* API Integration Modal Styling */
+.api-modal-card {
+  max-width: 680px;
+}
+
+.api-mode-selector-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 1.25rem;
+  background: var(--bg-primary);
+  padding: 4px;
+  border-radius: 20px;
+  border: 1px solid var(--border-subtle);
+}
+
+.api-mode-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 7px 14px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.api-mode-tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.api-mode-tab-btn.active {
+  background: linear-gradient(135deg, #007aff, #0056b3);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+}
+
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-label {
+  font-size: 0.77rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.form-input-text,
+.form-select-custom,
+.form-textarea-custom {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.form-input-text:focus,
+.form-select-custom:focus,
+.form-textarea-custom:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.form-help-text {
+  font-size: 0.71rem;
+  color: var(--text-dim);
+}
+
+.api-sandbox-info-box {
+  background: rgba(0, 210, 255, 0.06);
+  border: 1px solid rgba(0, 210, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.sandbox-info-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #00d2ff;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.api-sandbox-info-box p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.api-test-console {
+  margin-top: 1rem;
+  background: #020b14;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  max-height: 140px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.api-console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #10b981;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.api-console-output {
+  margin: 6px 0 0;
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: #8ca3ba;
+  overflow-y: auto;
+  max-height: 95px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 
 
 

@@ -37,6 +37,11 @@
           <span>📤</span> Upload Hourly Data
         </button>
 
+        <!-- Live API Integration Button -->
+        <button id="openApiModalBtn" class="btn-action btn-api" title="Connect Live API Endpoint for Real-Time Streaming">
+          <span>🔗</span> Live API Integration
+        </button>
+
         <!-- Batch Selector -->
         <div class="control-group" id="batchSelectorGroup">
           <select id="batchSelect" class="select-custom" aria-label="Hourly Batch Selector">
@@ -596,6 +601,128 @@
       </div>
       <div class="modal-body" id="inspectModalBody">
         <!-- Content populated dynamically by openAnalysisInspectModal in app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Live API Integration Modal -->
+  <div class="modal-overlay" id="apiIntegrationModal" style="display: none;">
+    <div class="modal-card api-modal-card">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <span class="modal-icon" style="font-size: 1.3rem;">🔗</span>
+          <div>
+            <h3 class="modal-title" style="margin: 0; font-size: 1.15rem;">Live API Integration &amp; Streaming</h3>
+            <p class="modal-subtitle" style="margin: 2px 0 0; font-size: 0.75rem; color: var(--text-dim);">Connect your live transaction API endpoint to stream real-time data into this monitoring dashboard alongside file uploads.</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeApiModalBtn">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+        <!-- API Mode Switcher -->
+        <div class="api-mode-selector-bar">
+          <button class="api-mode-tab-btn active" id="apiTabCustomEndpoint">
+            <span>🌐</span> Custom API Endpoint
+          </button>
+          <button class="api-mode-tab-btn" id="apiTabSandboxSim">
+            <span>⚡</span> Built-in Gateway Sandbox (Instant Test)
+          </button>
+        </div>
+
+        <!-- Custom API Config Form -->
+        <div id="customApiConfigPanel">
+          <div class="form-grid-2col">
+            <div class="form-group">
+              <label class="form-label" for="apiEndpointUrl">API Endpoint URL <span style="color: var(--failed-red);">*</span></label>
+              <input type="url" id="apiEndpointUrl" class="form-input-text" placeholder="https://api.yourdomain.com/v1/payments/transactions" value="">
+              <span class="form-help-text">Endpoint returning transaction array or { data: [...] } JSON payload.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="apiHttpMethod">HTTP Method</label>
+              <select id="apiHttpMethod" class="form-select-custom">
+                <option value="GET" selected>GET</option>
+                <option value="POST">POST</option>
+              </select>
+              <span class="form-help-text">Select GET or POST request method.</span>
+            </div>
+          </div>
+
+          <div class="form-grid-2col" style="margin-top: 0.85rem;">
+            <div class="form-group">
+              <label class="form-label" for="apiAuthType">Authentication Header</label>
+              <select id="apiAuthType" class="form-select-custom">
+                <option value="bearer" selected>Bearer Token (Authorization: Bearer ...)</option>
+                <option value="apiKey">API Key (x-api-key: ...)</option>
+                <option value="none">No Auth / Public Endpoint</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="apiAuthToken">Token or API Key</label>
+              <input type="password" id="apiAuthToken" class="form-input-text" placeholder="Enter secret token or key..." value="">
+            </div>
+          </div>
+
+          <div class="form-grid-2col" style="margin-top: 0.85rem;">
+            <div class="form-group">
+              <label class="form-label" for="apiPollInterval">Live Auto-Sync Polling Interval</label>
+              <select id="apiPollInterval" class="form-select-custom">
+                <option value="0">Manual Fetch Only</option>
+                <option value="10">Every 10 Seconds (Real-Time)</option>
+                <option value="30" selected>Every 30 Seconds (Recommended)</option>
+                <option value="60">Every 60 Seconds (1 min)</option>
+                <option value="300">Every 5 Minutes</option>
+              </select>
+              <span class="form-help-text">Background poll frequency to refresh live transactions.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="apiSyncMode">Sync Ingestion Mode</label>
+              <select id="apiSyncMode" class="form-select-custom">
+                <option value="replace" selected>Replace with latest batch (Snapshot)</option>
+                <option value="append">Append new transactions to timeline</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 0.85rem;">
+            <label class="form-label" for="apiCustomHeaders">Custom Headers or Request Body (Optional JSON)</label>
+            <textarea id="apiCustomHeaders" class="form-textarea-custom" rows="2" placeholder='{ "limit": 500, "status": "ALL" }'></textarea>
+          </div>
+        </div>
+
+        <!-- Sandbox Sim Panel -->
+        <div id="sandboxApiConfigPanel" style="display: none;">
+          <div class="api-sandbox-info-box">
+            <div class="sandbox-info-title"><span>⚡</span> Simulated Live Gateway API Stream</div>
+            <p>Generates live production-grade transaction payloads directly matching your schema with <code>paymentDetails.payMethod</code>, <code>failedInfo.responseCode</code>, <code>paymentDetails.sourceDevice</code>, and <code>paymentDetails.sourceOS</code>. Ideal for demonstrating live stream polling without external backend dependencies.</p>
+            <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
+              <span class="status-chip healthy">Active Gateway Stream</span>
+              <span style="font-size: 0.8rem; color: var(--text-dim);">Simulates 500 live txns per poll cycle</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connection Test Result Console -->
+        <div class="api-test-console" id="apiTestConsole" style="display: none;">
+          <div class="api-console-header">
+            <span id="apiConsoleStatus">● Testing...</span>
+            <span id="apiConsoleLatency">-- ms</span>
+          </div>
+          <pre class="api-console-output" id="apiConsoleOutput"></pre>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn-action" id="cancelApiModalBtn">Cancel</button>
+        <button class="btn-action btn-secondary" id="testApiConnectionBtn">
+          <span>🔄</span> Test Connection
+        </button>
+        <button class="btn-action btn-primary" id="saveAndStartApiBtn">
+          <span>⚡</span> Connect &amp; Start Live Stream
+        </button>
       </div>
     </div>
   </div>
