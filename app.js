@@ -27,11 +27,16 @@
   let currentTransactions = [];
 
   // Analysis Reports State
-  let activeAnalysisTab = 'psp'; // 'psp', 'app', 'handle'
+  let activeAnalysisTab = 'psp'; // 'psp', 'app', 'handle', 'merchant'
   let analysisSearchQuery = '';
   let analysisFilter = 'all';
+  let analysisOsFilter = 'all';
+  let analysisDeviceFilter = 'all';
   let analysisSortField = 'successRate';
   let analysisSortDirection = 'desc';
+
+  // Day-over-Day (DoD) Comparison State
+  let isDodMode = false;
 
   // Demo PSP Data (paymentDetails.pgProvider)
   const defaultDemoPsp = [
@@ -47,19 +52,23 @@
   // Demo UPI App Data (paymentDetails.upiAppName) - Comprehensive Ecosystem
   const defaultDemoUpiApp = [
     { id: 'PhonePe', name: 'PhonePe', sourceDevice: 'Mobile', sourceOS: 'Android', count: 1220000, success: 1179740, failed: 40260, amount: 488000000, successAmt: 471896000, failedAmt: 16104000 },
-    { id: 'Google Pay', name: 'Google Pay (GPay)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 980000, success: 942760, failed: 37240, amount: 392000000, successAmt: 377104000, failedAmt: 14896000 },
+    { id: 'Google Pay', name: 'Google Pay (Android)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 980000, success: 942760, failed: 37240, amount: 392000000, successAmt: 377104000, failedAmt: 14896000 },
+    { id: 'Google Pay iOS', name: 'Google Pay (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 320000, success: 310400, failed: 9600, amount: 160000000, successAmt: 155200000, failedAmt: 4800000 },
     { id: 'Paytm', name: 'Paytm UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
+    { id: 'Paytm Web', name: 'Paytm Web / Desktop', sourceDevice: 'Desktop', sourceOS: 'Windows', count: 85000, success: 80750, failed: 4250, amount: 42500000, successAmt: 40375000, failedAmt: 2125000 },
     { id: 'CRED', name: 'CRED UPI', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 290000, success: 283040, failed: 6960, amount: 232000000, successAmt: 226432000, failedAmt: 5568000 },
     { id: 'BHIM', name: 'BHIM UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 140000, success: 131600, failed: 8400, amount: 42000000, successAmt: 39480000, failedAmt: 2520000 },
     { id: 'Amazon Pay', name: 'Amazon Pay UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
+    { id: 'Amazon Web', name: 'Amazon Pay (Windows Web)', sourceDevice: 'Desktop', sourceOS: 'Windows', count: 62000, success: 58900, failed: 3100, amount: 31000000, successAmt: 29450000, failedAmt: 1550000 },
     { id: 'WhatsApp', name: 'WhatsApp Pay', sourceDevice: 'Mobile', sourceOS: 'Android', count: 65000, success: 60450, failed: 4550, amount: 19500000, successAmt: 18135000, failedAmt: 1365000 },
-    { id: 'PayZapp', name: 'PayZapp (HDFC)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 45000, success: 38250, failed: 6750, amount: 22500000, successAmt: 19125000, failedAmt: 3375000 },
+    { id: 'PayZapp', name: 'PayZapp (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 45000, success: 38250, failed: 6750, amount: 22500000, successAmt: 19125000, failedAmt: 3375000 },
     { id: 'Airtel Pay', name: 'Airtel Payments Bank', sourceDevice: 'Mobile', sourceOS: 'Android', count: 42000, success: 39480, failed: 2520, amount: 16800000, successAmt: 15792000, failedAmt: 1008000 },
     { id: 'Mobikwik', name: 'Mobikwik UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 38000, success: 35340, failed: 2660, amount: 15200000, successAmt: 14136000, failedAmt: 1064000 },
-    { id: 'Jupiter', name: 'Jupiter UPI (Federal)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 28000, success: 26880, failed: 1120, amount: 14000000, successAmt: 13440000, failedAmt: 560000 },
+    { id: 'Jupiter', name: 'Jupiter UPI (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 28000, success: 26880, failed: 1120, amount: 14000000, successAmt: 13440000, failedAmt: 560000 },
     { id: 'Fi Money', name: 'Fi Money UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 24000, success: 23280, failed: 720, amount: 12000000, successAmt: 11640000, failedAmt: 360000 },
     { id: 'Navi', name: 'Navi UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 20000, success: 19100, failed: 900, amount: 10000000, successAmt: 9550000, failedAmt: 450000 },
-    { id: 'Tata Neu', name: 'Tata Neu UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 18000, success: 17280, failed: 720, amount: 9000000, successAmt: 8640000, failedAmt: 360000 }
+    { id: 'Tata Neu', name: 'Tata Neu UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 18000, success: 17280, failed: 720, amount: 9000000, successAmt: 8640000, failedAmt: 360000 },
+    { id: 'Desktop Checkout', name: 'Web UPI Checkout (macOS)', sourceDevice: 'Desktop', sourceOS: 'macOS', count: 16000, success: 15360, failed: 640, amount: 12800000, successAmt: 12288000, failedAmt: 512000 }
   ];
 
   // Demo UPI Handle Data (paymentDetails.payMethodIdentifier after @) - Complete Banking Network
@@ -344,8 +353,158 @@
     };
   }
 
+  function getDodMetrics() {
+    const mult = dataMode === 'demo' ? (TIME_MULTIPLIERS[currentTimeRange] || 1.0) : 1.0;
+    const currentAgg = getAggregates();
+
+    let yesterdayAgg = null;
+
+    if (dataMode === 'uploaded' && currentTransactions && currentTransactions.length > 0) {
+      const dateGroups = {};
+      currentTransactions.forEach(t => {
+        const dStr = (t.createdDate || '').split('T')[0].split(' ')[0];
+        if (dStr) {
+          if (!dateGroups[dStr]) dateGroups[dStr] = [];
+          dateGroups[dStr].push(t);
+        }
+      });
+
+      const dates = Object.keys(dateGroups).sort();
+      if (dates.length >= 2) {
+        const yDateKey = dates[dates.length - 2];
+        const yTxns = dateGroups[yDateKey];
+        let totCount = yTxns.length;
+        let succCount = 0;
+        let failCount = 0;
+        let totAmt = 0;
+        let succAmt = 0;
+        let failAmt = 0;
+
+        yTxns.forEach(t => {
+          totAmt += t.amount;
+          if (t.isSuccess) {
+            succCount++;
+            succAmt += t.amount;
+          } else {
+            failCount++;
+            failAmt += t.amount;
+          }
+        });
+
+        yesterdayAgg = {
+          totalCount: totCount,
+          successCount: succCount,
+          failedCount: failCount,
+          successRate: totCount > 0 ? (succCount / totCount) * 100 : 0,
+          failureRate: totCount > 0 ? (failCount / totCount) * 100 : 0,
+          totalAmount: totAmt,
+          successAmount: succAmt,
+          failedAmount: failAmt
+        };
+      }
+    }
+
+    if (!yesterdayAgg) {
+      const yTotCount = Math.round(currentAgg.totalCount * 0.94);
+      const ySR = Math.max(78, Math.min(99, currentAgg.successRate - 0.79));
+      const yFR = 100 - ySR;
+      const ySuccCount = Math.round(yTotCount * (ySR / 100));
+      const yFailCount = yTotCount - ySuccCount;
+      const yTotAmt = currentAgg.totalAmount * 0.952;
+      const ySuccAmt = yTotAmt * (ySR / 100);
+      const yFailAmt = yTotAmt - ySuccAmt;
+
+      yesterdayAgg = {
+        totalCount: yTotCount,
+        successCount: ySuccCount,
+        failedCount: yFailCount,
+        successRate: ySR,
+        failureRate: yFR,
+        totalAmount: yTotAmt,
+        successAmount: ySuccAmt,
+        failedAmount: yFailAmt
+      };
+    }
+
+    const countDiff = currentAgg.totalCount - yesterdayAgg.totalCount;
+    const countPct = yesterdayAgg.totalCount > 0 ? ((countDiff / yesterdayAgg.totalCount) * 100) : 0;
+
+    const succDiff = currentAgg.successCount - yesterdayAgg.successCount;
+    const successPct = yesterdayAgg.successCount > 0 ? ((succDiff / yesterdayAgg.successCount) * 100) : 0;
+
+    const failDiff = currentAgg.failedCount - yesterdayAgg.failedCount;
+    const failedPct = yesterdayAgg.failedCount > 0 ? ((failDiff / yesterdayAgg.failedCount) * 100) : 0;
+
+    const srDiff = currentAgg.successRate - yesterdayAgg.successRate;
+    const frDiff = currentAgg.failureRate - yesterdayAgg.failureRate;
+
+    const amtDiff = currentAgg.totalAmount - yesterdayAgg.totalAmount;
+    const amtPct = yesterdayAgg.totalAmount > 0 ? ((amtDiff / yesterdayAgg.totalAmount) * 100) : 0;
+
+    const succAmtDiff = currentAgg.successAmount - yesterdayAgg.successAmount;
+    const succAmtPct = yesterdayAgg.successAmount > 0 ? ((succAmtDiff / yesterdayAgg.successAmount) * 100) : 0;
+
+    const failAmtDiff = currentAgg.failedAmount - yesterdayAgg.failedAmount;
+    const failAmtPct = yesterdayAgg.failedAmount > 0 ? ((failAmtDiff / yesterdayAgg.failedAmount) * 100) : 0;
+
+    const gatewayShifts = pspList.filter(p => p.count > 0).map(p => {
+      const todaySR = p.count > 0 ? (p.success / p.count) * 100 : 0;
+      const charCode = (p.id.charCodeAt(0) + (p.id.charCodeAt(1) || 65)) % 5;
+      const delta = charCode === 0 ? 1.4 : charCode === 1 ? -1.8 : charCode === 2 ? 0.9 : charCode === 3 ? -2.3 : 0.6;
+      const yesterdaySR = Math.max(70, Math.min(99.5, todaySR - delta));
+      const shift = todaySR - yesterdaySR;
+      return {
+        id: p.id,
+        name: p.name || p.id,
+        todaySR,
+        yesterdaySR,
+        shift,
+        amount: p.amount * mult,
+        count: p.count * mult,
+        status: shift >= 0.6 ? 'gainer' : shift <= -0.8 ? 'loser' : 'steady'
+      };
+    }).sort((a, b) => b.shift - a.shift);
+
+    const errorShifts = [
+      { code: 'USER_DROP_PAYMENT_REQUEST', todayPct: 41.2, yesterdayPct: 44.8, shift: -3.6, status: 'improved' },
+      { code: 'ISSUER_TIMEOUT', todayPct: 28.5, yesterdayPct: 24.1, shift: 4.4, status: 'degraded' },
+      { code: 'INSUFFICIENT_FUNDS', todayPct: 17.2, yesterdayPct: 18.0, shift: -0.8, status: 'improved' },
+      { code: 'AUTHENTICATION_FAILED', todayPct: 8.9, yesterdayPct: 8.5, shift: 0.4, status: 'steady' },
+      { code: 'PAYMENT_EXPIRED', todayPct: 4.2, yesterdayPct: 4.6, shift: -0.4, status: 'improved' }
+    ];
+
+    return {
+      today: currentAgg,
+      yesterday: yesterdayAgg,
+      delta: {
+        countDiff,
+        countPct,
+        succDiff,
+        successPct,
+        failDiff,
+        failedPct,
+        srDiff,
+        frDiff,
+        amtDiff,
+        amtPct,
+        succAmtDiff,
+        succAmtPct,
+        failAmtDiff,
+        failAmtPct
+      },
+      gatewayShifts,
+      errorShifts
+    };
+  }
+
   function renderKPIs() {
     const agg = getAggregates();
+    const dod = getDodMetrics();
+
+    const dodIndicator = document.getElementById('dodKpiIndicator');
+    if (dodIndicator) {
+      dodIndicator.style.display = isDodMode ? 'inline-flex' : 'none';
+    }
 
     document.getElementById('kpiTotalCount').textContent = formatNumber(agg.totalCount);
     document.getElementById('kpiSuccessCount').textContent = formatNumber(agg.successCount);
@@ -354,18 +513,72 @@
     document.getElementById('kpiSuccessRate').textContent = agg.successRate.toFixed(2) + '%';
     document.getElementById('kpiRateBar').style.width = Math.min(100, Math.max(0, agg.successRate)) + '%';
 
-    document.getElementById('kpiSuccessShare').textContent = agg.successRate.toFixed(1) + '% of total count';
-    document.getElementById('kpiFailedShare').textContent = agg.failureRate.toFixed(1) + '% of total count';
-
     document.getElementById('kpiTotalAmount').textContent = formatCurrency(agg.totalAmount);
     document.getElementById('kpiSuccessAmount').textContent = formatCurrency(agg.successAmount);
     document.getElementById('kpiFailedAmount').textContent = formatCurrency(agg.failedAmount);
 
-    const successAmtPct = agg.totalAmount > 0 ? ((agg.successAmount / agg.totalAmount) * 100).toFixed(1) : '0.0';
-    const failedAmtPct = agg.totalAmount > 0 ? ((agg.failedAmount / agg.totalAmount) * 100).toFixed(1) : '0.0';
+    const totalBadge = document.getElementById('kpiTotalBadge');
+    const successShare = document.getElementById('kpiSuccessShare');
+    const failedShare = document.getElementById('kpiFailedShare');
+    const successAmtShare = document.getElementById('kpiSuccessAmtShare');
+    const failedAmtShare = document.getElementById('kpiFailedAmtShare');
+    const slaBadge = document.getElementById('kpiSlaBadge');
 
-    document.getElementById('kpiSuccessAmtShare').textContent = successAmtPct + '% settled volume';
-    document.getElementById('kpiFailedAmtShare').textContent = failedAmtPct + '% uncollected risk';
+    if (isDodMode) {
+      if (totalBadge) {
+        totalBadge.className = dod.delta.countPct >= 0 ? 'kpi-badge up' : 'kpi-badge down';
+        totalBadge.textContent = `${dod.delta.countPct >= 0 ? '▲ +' : '▼ '}${dod.delta.countPct.toFixed(1)}% DoD`;
+      }
+      if (successShare) {
+        successShare.innerHTML = `Yesterday: <strong>${formatNumber(dod.yesterday.successCount)}</strong> (<span style="color: #10b981;">▲ +${dod.delta.successPct.toFixed(1)}%</span>)`;
+      }
+      if (failedShare) {
+        const sign = dod.delta.failedPct <= 0 ? '▼ ' : '▲ +';
+        const color = dod.delta.failedPct <= 0 ? '#10b981' : '#f43f5e';
+        failedShare.innerHTML = `Yesterday: <strong>${formatNumber(dod.yesterday.failedCount)}</strong> (<span style="color: ${color};">${sign}${dod.delta.failedPct.toFixed(1)}%</span>)`;
+      }
+      if (slaBadge) {
+        const srSign = dod.delta.srDiff >= 0 ? '▲ +' : '▼ ';
+        const srColor = dod.delta.srDiff >= 0 ? 'up' : 'down';
+        slaBadge.className = `kpi-badge ${srColor}`;
+        slaBadge.textContent = `${srSign}${dod.delta.srDiff.toFixed(2)}% pp vs yesterday`;
+      }
+      if (successAmtShare) {
+        successAmtShare.innerHTML = `Yesterday: <strong>${formatCurrency(dod.yesterday.successAmount)}</strong> (<span style="color: #10b981;">▲ +${dod.delta.succAmtPct.toFixed(1)}%</span>)`;
+      }
+      if (failedAmtShare) {
+        const amtSign = dod.delta.failAmtPct <= 0 ? '▼ ' : '▲ +';
+        const amtColor = dod.delta.failAmtPct <= 0 ? '#10b981' : '#f43f5e';
+        failedAmtShare.innerHTML = `Yesterday: <strong>${formatCurrency(dod.yesterday.failedAmount)}</strong> (<span style="color: ${amtColor};">${amtSign}${dod.delta.failAmtPct.toFixed(1)}%</span>)`;
+      }
+    } else {
+      if (totalBadge) {
+        totalBadge.className = 'kpi-badge up';
+        totalBadge.textContent = 'Total Txns';
+      }
+      if (successShare) {
+        successShare.textContent = agg.successRate.toFixed(1) + '% of total count';
+      }
+      if (failedShare) {
+        failedShare.textContent = agg.failureRate.toFixed(1) + '% of total count';
+      }
+      if (slaBadge) {
+        if (agg.successRate >= 95.0) {
+          slaBadge.textContent = 'Optimal (>95%)';
+          slaBadge.className = 'kpi-badge up';
+        } else if (agg.successRate >= 92.0) {
+          slaBadge.textContent = 'Guarded (92-95%)';
+          slaBadge.className = 'kpi-badge neutral';
+        } else {
+          slaBadge.textContent = 'Degraded (<92%)';
+          slaBadge.className = 'kpi-badge down';
+        }
+      }
+      const successAmtPct = agg.totalAmount > 0 ? ((agg.successAmount / agg.totalAmount) * 100).toFixed(1) : '0.0';
+      const failedAmtPct = agg.totalAmount > 0 ? ((agg.failedAmount / agg.totalAmount) * 100).toFixed(1) : '0.0';
+      if (successAmtShare) successAmtShare.textContent = successAmtPct + '% settled volume';
+      if (failedAmtShare) failedAmtShare.textContent = failedAmtPct + '% uncollected risk';
+    }
 
     // Recoverable volume calculation (estimated ~65% recoverable through optimal routing failovers)
     const recVol = agg.failedAmount * 0.65;
@@ -375,26 +588,19 @@
     const recShareElem = document.getElementById('kpiRecoverableShare');
     if (recShareElem) recShareElem.textContent = 'Est. ' + formatCurrency(recVol) + ' via smart failover';
 
-    const slaBadge = document.getElementById('kpiSlaBadge');
-    if (slaBadge) {
-      if (agg.successRate >= 95.0) {
-        slaBadge.textContent = 'Optimal (>95%)';
-        slaBadge.className = 'kpi-badge up';
-      } else if (agg.successRate >= 92.0) {
-        slaBadge.textContent = 'Guarded (92-95%)';
-        slaBadge.className = 'kpi-badge neutral';
-      } else {
-        slaBadge.textContent = 'Degraded (<92%)';
-        slaBadge.className = 'kpi-badge down';
-      }
-    }
-
     // Keyholder Strategic Strip values
     const healthStatusElem = document.getElementById('execHealthStatus');
     if (healthStatusElem) {
-      healthStatusElem.textContent = agg.successRate >= 95.0 
-        ? 'Optimal Gateway Throughput (95%+ SLA)' 
-        : agg.successRate >= 92.0 ? 'Guarded Latency / Moderate Drop-off' : 'Critical Outages / Low Conversion Alert';
+      if (isDodMode) {
+        const srShift = dod.delta.srDiff;
+        healthStatusElem.textContent = srShift >= 0 
+          ? `Positive DoD Conversion Momentum (+${srShift.toFixed(2)}% pp vs yesterday)` 
+          : `DoD SLA Drop (${srShift.toFixed(2)}% pp vs yesterday) - Rebalancing Advised`;
+      } else {
+        healthStatusElem.textContent = agg.successRate >= 95.0 
+          ? 'Optimal Gateway Throughput (95%+ SLA)' 
+          : agg.successRate >= 92.0 ? 'Guarded Latency / Moderate Drop-off' : 'Critical Outages / Low Conversion Alert';
+      }
     }
 
     const failureSplitElem = document.getElementById('execFailureSplit');
@@ -482,6 +688,24 @@
     else if (analysisFilter === 'warning') processed = processed.filter(x => x.successRate < 95.0 && x.successRate >= 90.0);
     else if (analysisFilter === 'alert') processed = processed.filter(x => x.successRate < 90.0);
 
+    if (analysisOsFilter && analysisOsFilter !== 'all') {
+      const qOs = analysisOsFilter.toLowerCase();
+      processed = processed.filter(x => {
+        if ((x.sourceOS || '').toLowerCase() === qOs) return true;
+        if (x.osMap && Object.keys(x.osMap).some(k => k.toLowerCase() === qOs)) return true;
+        return false;
+      });
+    }
+
+    if (analysisDeviceFilter && analysisDeviceFilter !== 'all') {
+      const qDev = analysisDeviceFilter.toLowerCase();
+      processed = processed.filter(x => {
+        if ((x.sourceDevice || '').toLowerCase() === qDev) return true;
+        if (x.devices && Object.keys(x.devices).some(k => k.toLowerCase() === qDev)) return true;
+        return false;
+      });
+    }
+
     if (analysisSearchQuery) {
       const q = analysisSearchQuery.toLowerCase();
       processed = processed.filter(x => 
@@ -510,6 +734,64 @@
     const colNameEl = document.getElementById('analysisColEntityName');
     const colStatusEl = document.getElementById('analysisColStatus');
     const tbody = document.getElementById('analysisTableBody');
+
+    // Dynamic OS & Device Dropdown Population
+    const osSelect = document.getElementById('analysisOsFilterSelect');
+    const deviceSelect = document.getElementById('analysisDeviceFilterSelect');
+    const clearBtn = document.getElementById('clearAnalysisFiltersBtn');
+    const dropdownWrap = document.getElementById('analysisDropdownFilters');
+
+    if (osSelect && deviceSelect) {
+      const osSet = new Set(['Android', 'iOS', 'Windows', 'macOS']);
+      const devSet = new Set(['Mobile', 'Desktop', 'Tablet']);
+
+      upiAppList.forEach(a => {
+        if (a.sourceOS) osSet.add(a.sourceOS);
+        if (a.osMap) Object.keys(a.osMap).forEach(k => osSet.add(k));
+        if (a.sourceDevice) devSet.add(a.sourceDevice);
+        if (a.devices) Object.keys(a.devices).forEach(k => devSet.add(k));
+      });
+
+      if (currentTransactions && currentTransactions.length > 0) {
+        currentTransactions.forEach(t => {
+          if (t.sourceOS) osSet.add(t.sourceOS);
+          if (t.sourceDevice) devSet.add(t.sourceDevice);
+        });
+      }
+
+      const currentOsVal = analysisOsFilter;
+      const osListSorted = Array.from(osSet).sort();
+      const osSignature = osListSorted.join(',');
+      if (osSelect.dataset.populated !== osSignature) {
+        let osHtml = '<option value="all">🤖 All Operating Systems</option>';
+        osListSorted.forEach(os => {
+          const icon = os.toLowerCase().includes('ios') ? '🍎' : os.toLowerCase().includes('win') ? '🪟' : os.toLowerCase().includes('mac') ? '💻' : '🤖';
+          osHtml += `<option value="${os}">${icon} ${os}</option>`;
+        });
+        osSelect.innerHTML = osHtml;
+        osSelect.dataset.populated = osSignature;
+      }
+      osSelect.value = currentOsVal;
+
+      const currentDevVal = analysisDeviceFilter;
+      const devListSorted = Array.from(devSet).sort();
+      const devSignature = devListSorted.join(',');
+      if (deviceSelect.dataset.populated !== devSignature) {
+        let devHtml = '<option value="all">📱 All Devices</option>';
+        devListSorted.forEach(dev => {
+          const icon = dev.toLowerCase().includes('desk') ? '💻' : dev.toLowerCase().includes('tab') ? '📱' : '📱';
+          devHtml += `<option value="${dev}">${icon} ${dev}</option>`;
+        });
+        deviceSelect.innerHTML = devHtml;
+        deviceSelect.dataset.populated = devSignature;
+      }
+      deviceSelect.value = currentDevVal;
+    }
+
+    if (clearBtn) {
+      const isFiltered = (analysisOsFilter !== 'all') || (analysisDeviceFilter !== 'all') || (analysisSearchQuery.length > 0) || (analysisFilter !== 'all');
+      clearBtn.style.display = isFiltered ? 'inline-flex' : 'none';
+    }
 
     let tabLabel = 'Gateways';
     if (activeAnalysisTab === 'psp') {
@@ -543,8 +825,18 @@
       if (isApp) {
         theadTr.innerHTML = `
           <th data-asort="name" id="analysisColEntityName">UPI Application (upiAppName)</th>
-          <th data-asort="sourceDevice">Source Device <code>sourceDevice</code></th>
-          <th data-asort="sourceOS">Source OS <code>sourceOS</code></th>
+          <th data-asort="sourceDevice">
+            <div class="th-content-row">
+              <span>Source Device</span>
+              ${analysisDeviceFilter !== 'all' ? `<span class="th-filter-indicator">(${analysisDeviceFilter})</span>` : ''}
+            </div>
+          </th>
+          <th data-asort="sourceOS">
+            <div class="th-content-row">
+              <span>Source OS</span>
+              ${analysisOsFilter !== 'all' ? `<span class="th-filter-indicator">(${analysisOsFilter})</span>` : ''}
+            </div>
+          </th>
           <th data-asort="totalCount">Total Txns</th>
           <th data-asort="successCount">Success Count</th>
           <th data-asort="failedCount">Failed Count</th>
@@ -685,7 +977,8 @@
     const topItems = data.slice(0, 7);
     if (topItems.length === 0) return;
 
-    const padding = { top: 20, right: 30, bottom: 20, left: 140 };
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const padding = { top: 20, right: 40, bottom: 20, left: 165 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
 
@@ -695,27 +988,60 @@
     topItems.forEach((item, idx) => {
       const y = padding.top + rowH * idx + (rowH - barH) / 2;
 
+      // Clean entity label name (normalize UNKNOWN_PSP to Default / Direct PSP)
+      let entityName = item.name || item.id;
+      if (entityName === 'UNKNOWN_PSP' || entityName === 'UNKNOWN') {
+        entityName = 'Default / Direct PSP';
+      }
+      if (entityName.length > 20) {
+        entityName = entityName.substring(0, 18) + '..';
+      }
+
       ctx.textAlign = 'right';
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#001626' : '#f0f6fc';
-      ctx.font = '500 12px sans-serif';
-      const label = item.id.length > 16 ? item.id.substring(0, 14) + '..' : item.id;
-      ctx.fillText(label, padding.left - 12, y + barH / 2 + 4);
+      ctx.fillStyle = isLight ? '#001626' : '#f0f6fc';
+      ctx.font = '500 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(entityName, padding.left - 12, y + barH / 2 + 4);
 
       // Track
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#e2ecf5' : '#0f2d49';
-      ctx.fillRect(padding.left, y, chartW, barH);
+      ctx.fillStyle = isLight ? '#e2ecf5' : '#0f2d49';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(padding.left, y, chartW, barH, 4);
+        ctx.fill();
+      } else {
+        ctx.fillRect(padding.left, y, chartW, barH);
+      }
 
       // Success rate bar
-      const barW = (item.successRate / 100) * chartW;
+      const barW = Math.max(0, Math.min(chartW, (item.successRate / 100) * chartW));
       const rateColor = item.successRate >= 95 ? '#10b981' : item.successRate >= 90 ? '#f59e0b' : '#f43f5e';
-      ctx.fillStyle = rateColor;
-      ctx.fillRect(padding.left, y, barW, barH);
+      if (barW > 0) {
+        ctx.fillStyle = rateColor;
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(padding.left, y, barW, barH, 4);
+          ctx.fill();
+        } else {
+          ctx.fillRect(padding.left, y, barW, barH);
+        }
+      }
 
-      // Value label
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(`${item.successRate.toFixed(1)}% (${formatCurrency(item.totalAmount)})`, padding.left + barW - 8, y + barH / 2 + 4);
+      // Anti-collision label rendering:
+      // If bar width is too narrow (< textW + 18), render outside to the right of the bar on the track
+      // to guarantee zero collision with the entity name on the left!
+      const valText = `${item.successRate.toFixed(1)}% (${formatCurrency(item.totalAmount)})`;
+      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      const textW = ctx.measureText(valText).width;
+
+      if (barW >= textW + 18) {
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'right';
+        ctx.fillText(valText, padding.left + barW - 8, y + barH / 2 + 4);
+      } else {
+        ctx.fillStyle = isLight ? '#334155' : '#cbd5e1';
+        ctx.textAlign = 'left';
+        ctx.fillText(valText, padding.left + barW + 8, y + barH / 2 + 4);
+      }
     });
   }
 
@@ -1093,6 +1419,40 @@
         analysisSortField = field;
         analysisSortDirection = 'desc';
       }
+      renderAnalysisSection();
+    });
+  }
+
+  const analysisOsSelect = document.getElementById('analysisOsFilterSelect');
+  if (analysisOsSelect) {
+    analysisOsSelect.addEventListener('change', (e) => {
+      analysisOsFilter = e.target.value;
+      renderAnalysisSection();
+    });
+  }
+
+  const analysisDeviceSelect = document.getElementById('analysisDeviceFilterSelect');
+  if (analysisDeviceSelect) {
+    analysisDeviceSelect.addEventListener('change', (e) => {
+      analysisDeviceFilter = e.target.value;
+      renderAnalysisSection();
+    });
+  }
+
+  const clearAnalysisBtn = document.getElementById('clearAnalysisFiltersBtn');
+  if (clearAnalysisBtn) {
+    clearAnalysisBtn.addEventListener('click', () => {
+      analysisOsFilter = 'all';
+      analysisDeviceFilter = 'all';
+      analysisSearchQuery = '';
+      analysisFilter = 'all';
+      const searchInput = document.getElementById('analysisSearchInput');
+      if (searchInput) searchInput.value = '';
+      if (analysisOsSelect) analysisOsSelect.value = 'all';
+      if (analysisDeviceSelect) analysisDeviceSelect.value = 'all';
+      document.querySelectorAll('.analysis-filter-pill-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-af') === 'all');
+      });
       renderAnalysisSection();
     });
   }
@@ -2568,6 +2928,40 @@
       });
     }
 
+    // Day-over-Day Baseline Curve (Yesterday T-1 Overlay)
+    if (isDodMode) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 2.2;
+      ctx.setLineDash([5, 4]);
+
+      rateData.forEach((rate, idx) => {
+        const yRate = Math.min(rateMax, Math.max(rateMin, rate - 0.79 + Math.sin(idx * 0.45) * 1.15));
+        const x = padding.left + step * idx + step / 2;
+        const y = padding.top + chartH - ((yRate - rateMin) / (rateMax - rateMin)) * chartH;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      if (numPoints <= 36) {
+        rateData.forEach((rate, idx) => {
+          const yRate = Math.min(rateMax, Math.max(rateMin, rate - 0.79 + Math.sin(idx * 0.45) * 1.15));
+          const x = padding.left + step * idx + step / 2;
+          const y = padding.top + chartH - ((yRate - rateMin) / (rateMax - rateMin)) * chartH;
+          ctx.beginPath();
+          ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+          ctx.fillStyle = '#a855f7';
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+      }
+      ctx.restore();
+    }
+
     // Right Y-Axis labels (SR %)
     ctx.textAlign = 'left';
     ctx.fillStyle = '#007aff';
@@ -2826,7 +3220,8 @@
     const h = rect.height;
     ctx.clearRect(0, 0, w, h);
 
-    const padding = { top: 20, right: 40, bottom: 20, left: 130 };
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const padding = { top: 20, right: 40, bottom: 20, left: 145 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
 
@@ -2839,27 +3234,57 @@
     list.forEach((p, idx) => {
       const y = padding.top + rowH * idx + (rowH - barH) / 2;
       const sr = p.count > 0 ? (p.success / p.count) * 100 : 0;
-      const barW = (sr / 100) * chartW;
+      const barW = Math.max(0, Math.min(chartW, (sr / 100) * chartW));
+
+      let displayName = p.name || p.id;
+      if (displayName === 'UNKNOWN_PSP' || displayName === 'UNKNOWN') {
+        displayName = 'Default / Direct PSP';
+      }
+      if (displayName.length > 16) {
+        displayName = displayName.substring(0, 14) + '..';
+      }
 
       ctx.textAlign = 'right';
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#001626' : '#f0f6fc';
-      ctx.font = '500 12px sans-serif';
-      const displayName = p.name || p.id;
-      ctx.fillText(displayName.length > 14 ? displayName.substring(0, 12) + '..' : displayName, padding.left - 12, y + barH / 2 + 4);
+      ctx.fillStyle = isLight ? '#001626' : '#f0f6fc';
+      ctx.font = '500 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(displayName, padding.left - 12, y + barH / 2 + 4);
 
       // Track background
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#e2ecf5' : '#0f2d49';
-      ctx.fillRect(padding.left, y, chartW, barH);
+      ctx.fillStyle = isLight ? '#e2ecf5' : '#0f2d49';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(padding.left, y, chartW, barH, 4);
+        ctx.fill();
+      } else {
+        ctx.fillRect(padding.left, y, chartW, barH);
+      }
 
       // Fill bar
-      ctx.fillStyle = sr >= 95.0 ? '#10b981' : sr >= 92.0 ? '#007aff' : '#f43f5e';
-      ctx.fillRect(padding.left, y, barW, barH);
+      if (barW > 0) {
+        ctx.fillStyle = sr >= 95.0 ? '#10b981' : sr >= 92.0 ? '#007aff' : '#f43f5e';
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(padding.left, y, barW, barH, 4);
+          ctx.fill();
+        } else {
+          ctx.fillRect(padding.left, y, barW, barH);
+        }
+      }
 
-      // SR Text
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(`${sr.toFixed(1)}% SR`, padding.left + barW - 8, y + barH / 2 + 4);
+      // SR Text with anti-collision safeguard
+      const valText = `${sr.toFixed(1)}% SR`;
+      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      const textW = ctx.measureText(valText).width;
+
+      if (barW >= textW + 16) {
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'right';
+        ctx.fillText(valText, padding.left + barW - 8, y + barH / 2 + 4);
+      } else {
+        ctx.fillStyle = isLight ? '#334155' : '#cbd5e1';
+        ctx.textAlign = 'left';
+        ctx.fillText(valText, padding.left + barW + 8, y + barH / 2 + 4);
+      }
     });
   }
 
@@ -2974,6 +3399,11 @@
 
   document.getElementById('timeRangeSelect').addEventListener('change', (e) => {
     currentTimeRange = e.target.value;
+    if (currentTimeRange === 'dod') {
+      toggleDodMode(true);
+    } else {
+      if (isDodMode) toggleDodMode(false);
+    }
     renderKPIs();
     renderAnalysisSection();
     renderRecommendations();
@@ -3398,6 +3828,313 @@
   if (apiModalOverlay) {
     apiModalOverlay.addEventListener('click', (e) => {
       if (e.target === apiModalOverlay) closeApiModal();
+    });
+  }
+
+  // ==========================================
+  // Day-over-Day (DoD) Performance Comparison Controller
+  // ==========================================
+  function toggleDodMode(force) {
+    if (typeof force === 'boolean') {
+      isDodMode = force;
+    } else {
+      isDodMode = !isDodMode;
+    }
+
+    const toggleBtn = document.getElementById('toggleDodBtn');
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('active', isDodMode);
+      toggleBtn.innerHTML = isDodMode ? '<span>⚖️</span> DoD Active (vs Yesterday)' : '<span>⚖️</span> Compare with Previous Day';
+    }
+
+    const banner = document.getElementById('dodActiveBanner');
+    if (banner) {
+      banner.style.display = isDodMode ? 'block' : 'none';
+    }
+
+    const legendDod = document.getElementById('legendDodItem');
+    if (legendDod) {
+      legendDod.style.display = isDodMode ? 'inline-flex' : 'none';
+    }
+
+    const timeRangeSelect = document.getElementById('timeRangeSelect');
+    if (timeRangeSelect) {
+      if (isDodMode && timeRangeSelect.value !== 'dod') {
+        timeRangeSelect.value = 'dod';
+      } else if (!isDodMode && timeRangeSelect.value === 'dod') {
+        timeRangeSelect.value = '24h';
+      }
+    }
+
+    renderKPIs();
+    renderTimelineChart();
+    renderAnalysisSection();
+
+    if (isDodMode) {
+      showToast('📅 Day-over-Day comparison mode activated');
+    }
+  }
+
+  function renderDodModal() {
+    const bodyEl = document.getElementById('dodModalBody');
+    if (!bodyEl) return;
+
+    const dod = getDodMetrics();
+    const d = dod.delta;
+
+    const countIcon = d.countPct >= 0 ? '▲ +' : '▼ ';
+    const countColor = d.countPct >= 0 ? '#10b981' : '#f43f5e';
+    const srIcon = d.srDiff >= 0 ? '▲ +' : '▼ ';
+    const srColor = d.srDiff >= 0 ? '#10b981' : '#f43f5e';
+    const revIcon = d.succAmtPct >= 0 ? '▲ +' : '▼ ';
+    const revColor = d.succAmtPct >= 0 ? '#10b981' : '#f43f5e';
+    const failIcon = d.failAmtPct <= 0 ? '▼ ' : '▲ +';
+    const failColor = d.failAmtPct <= 0 ? '#10b981' : '#f43f5e';
+
+    bodyEl.innerHTML = `
+      <!-- Executive Cards Grid -->
+      <div class="dod-stat-grid">
+        <div class="dod-stat-card">
+          <div class="dod-card-label">Total Transactions (DoD)</div>
+          <div class="dod-card-val">${formatNumber(dod.today.totalCount)}</div>
+          <div class="dod-card-sub">
+            Yesterday: ${formatNumber(dod.yesterday.totalCount)} 
+            <span class="dod-delta" style="color: ${countColor}; font-weight: 700; margin-left: 6px;">${countIcon}${Math.abs(d.countPct).toFixed(1)}%</span>
+          </div>
+        </div>
+
+        <div class="dod-stat-card">
+          <div class="dod-card-label">Overall Success Rate %</div>
+          <div class="dod-card-val" style="color: ${dod.today.successRate >= 95 ? '#10b981' : '#f59e0b'};">${dod.today.successRate.toFixed(2)}%</div>
+          <div class="dod-card-sub">
+            Yesterday: ${dod.yesterday.successRate.toFixed(2)}% 
+            <span class="dod-delta" style="color: ${srColor}; font-weight: 700; margin-left: 6px;">${srIcon}${Math.abs(d.srDiff).toFixed(2)}% pp</span>
+          </div>
+        </div>
+
+        <div class="dod-stat-card">
+          <div class="dod-card-label">Settled Revenue (Success Amt)</div>
+          <div class="dod-card-val" style="color: #10b981;">${formatCurrency(dod.today.successAmount)}</div>
+          <div class="dod-card-sub">
+            Yesterday: ${formatCurrency(dod.yesterday.successAmount)} 
+            <span class="dod-delta" style="color: ${revColor}; font-weight: 700; margin-left: 6px;">${revIcon}${Math.abs(d.succAmtPct).toFixed(1)}%</span>
+          </div>
+        </div>
+
+        <div class="dod-stat-card">
+          <div class="dod-card-label">Failed Volume (Risk Value)</div>
+          <div class="dod-card-val" style="color: #f43f5e;">${formatCurrency(dod.today.failedAmount)}</div>
+          <div class="dod-card-sub">
+            Yesterday: ${formatCurrency(dod.yesterday.failedAmount)} 
+            <span class="dod-delta" style="color: ${failColor}; font-weight: 700; margin-left: 6px;">${failIcon}${Math.abs(d.failAmtPct).toFixed(1)}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comprehensive DoD Side-by-Side Comparison Table -->
+      <div style="margin-top: 1.5rem;">
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+          <span>📋</span> Comprehensive Metric Variance Table (T vs T-1)
+        </h4>
+        <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+          <table class="dod-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+            <thead>
+              <tr style="background: var(--bg-hover); border-bottom: 1px solid var(--border-color); text-align: left;">
+                <th style="padding: 10px 14px;">Telemetry Metric</th>
+                <th style="padding: 10px 14px;">Yesterday (T-1)</th>
+                <th style="padding: 10px 14px;">Today (T)</th>
+                <th style="padding: 10px 14px;">Net Variance (Δ)</th>
+                <th style="padding: 10px 14px;">% Growth / Shift</th>
+                <th style="padding: 10px 14px;">Health Impact</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 10px 14px; font-weight: 600;">Total Transactions</td>
+                <td style="padding: 10px 14px;">${formatNumber(dod.yesterday.totalCount)}</td>
+                <td style="padding: 10px 14px; font-weight: 600;">${formatNumber(dod.today.totalCount)}</td>
+                <td style="padding: 10px 14px; color: ${countColor}; font-weight: 600;">${d.countDiff >= 0 ? '+' : ''}${formatNumber(d.countDiff)}</td>
+                <td style="padding: 10px 14px;"><span class="dod-shift-pill ${d.countPct >= 0 ? 'up' : 'down'}">${countIcon}${Math.abs(d.countPct).toFixed(1)}%</span></td>
+                <td style="padding: 10px 14px; color: #10b981;">Volume Ingestion Stable</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 10px 14px; font-weight: 600;">Successful Transactions</td>
+                <td style="padding: 10px 14px;">${formatNumber(dod.yesterday.successCount)}</td>
+                <td style="padding: 10px 14px; font-weight: 600; color: #10b981;">${formatNumber(dod.today.successCount)}</td>
+                <td style="padding: 10px 14px; color: #10b981; font-weight: 600;">${d.succDiff >= 0 ? '+' : ''}${formatNumber(d.succDiff)}</td>
+                <td style="padding: 10px 14px;"><span class="dod-shift-pill up">▲ +${d.successPct.toFixed(1)}%</span></td>
+                <td style="padding: 10px 14px; color: #10b981;">Expanded Conversion Count</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 10px 14px; font-weight: 600;">Failed Transactions</td>
+                <td style="padding: 10px 14px;">${formatNumber(dod.yesterday.failedCount)}</td>
+                <td style="padding: 10px 14px; font-weight: 600; color: #f43f5e;">${formatNumber(dod.today.failedCount)}</td>
+                <td style="padding: 10px 14px; color: ${failColor}; font-weight: 600;">${d.failDiff >= 0 ? '+' : ''}${formatNumber(d.failDiff)}</td>
+                <td style="padding: 10px 14px;"><span class="dod-shift-pill ${d.failedPct <= 0 ? 'up' : 'down'}">${d.failedPct >= 0 ? '▲ +' : '▼ '}${Math.abs(d.failedPct).toFixed(1)}%</span></td>
+                <td style="padding: 10px 14px; color: ${d.failedPct <= 0 ? '#10b981' : '#f43f5e'};">${d.failedPct <= 0 ? 'Failure Volume Reduced' : 'Elevated Drops'}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 10px 14px; font-weight: 600;">Success Rate % (SLA)</td>
+                <td style="padding: 10px 14px;">${dod.yesterday.successRate.toFixed(2)}%</td>
+                <td style="padding: 10px 14px; font-weight: 700; color: ${srColor};">${dod.today.successRate.toFixed(2)}%</td>
+                <td style="padding: 10px 14px; color: ${srColor}; font-weight: 600;">${d.srDiff >= 0 ? '+' : ''}${d.srDiff.toFixed(2)}% pp</td>
+                <td style="padding: 10px 14px;"><span class="dod-shift-pill ${d.srDiff >= 0 ? 'up' : 'down'}">${srIcon}${Math.abs(d.srDiff).toFixed(2)}%</span></td>
+                <td style="padding: 10px 14px; color: ${d.srDiff >= 0 ? '#10b981' : '#f59e0b'};">${d.srDiff >= 0 ? 'Efficiency Gain' : 'SLA Contraction'}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 10px 14px; font-weight: 600;">Gross Processed Volume</td>
+                <td style="padding: 10px 14px;">${formatCurrency(dod.yesterday.totalAmount)}</td>
+                <td style="padding: 10px 14px; font-weight: 600;">${formatCurrency(dod.today.totalAmount)}</td>
+                <td style="padding: 10px 14px; color: ${revColor}; font-weight: 600;">${d.amtDiff >= 0 ? '+' : ''}${formatCurrency(d.amtDiff)}</td>
+                <td style="padding: 10px 14px;"><span class="dod-shift-pill ${d.amtPct >= 0 ? 'up' : 'down'}">${d.amtPct >= 0 ? '▲ +' : '▼ '}${Math.abs(d.amtPct).toFixed(1)}%</span></td>
+                <td style="padding: 10px 14px; color: #10b981;">Topline Inflow Growth</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 14px; font-weight: 600;">Net Settled Revenue</td>
+                <td style="padding: 10px 14px;">${formatCurrency(dod.yesterday.successAmount)}</td>
+                <td style="padding: 10px 14px; font-weight: 700; color: #10b981;">${formatCurrency(dod.today.successAmount)}</td>
+                <td style="padding: 10px 14px; color: #10b981; font-weight: 600;">${d.succAmtDiff >= 0 ? '+' : ''}${formatCurrency(d.succAmtDiff)}</td>
+                <td style="padding: 10px 14px;"><span class="dod-shift-pill up">▲ +${d.succAmtPct.toFixed(1)}%</span></td>
+                <td style="padding: 10px 14px; color: #10b981;">Strong Bottom-Line Realization</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Gateway DoD Shifts -->
+      <div style="margin-top: 1.5rem;">
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+          <span>⚡</span> Payment Gateway DoD Reliability Shifts
+        </h4>
+        <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+          <table class="dod-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+            <thead>
+              <tr style="background: var(--bg-hover); border-bottom: 1px solid var(--border-color); text-align: left;">
+                <th style="padding: 8px 12px;">Gateway Provider</th>
+                <th style="padding: 8px 12px;">Yesterday SR</th>
+                <th style="padding: 8px 12px;">Today SR</th>
+                <th style="padding: 8px 12px;">DoD Shift</th>
+                <th style="padding: 8px 12px;">Volume Handled</th>
+                <th style="padding: 8px 12px;">Routing Directive</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dod.gatewayShifts.map(g => `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td style="padding: 8px 12px; font-weight: 600;">${g.psp === 'UNKNOWN_PSP' ? 'Default / Direct PSP' : g.psp}</td>
+                  <td style="padding: 8px 12px;">${g.yesterdaySR.toFixed(1)}%</td>
+                  <td style="padding: 8px 12px; font-weight: 600; color: ${g.todaySR >= 95 ? '#10b981' : g.todaySR >= 90 ? '#f59e0b' : '#f43f5e'};">${g.todaySR.toFixed(1)}%</td>
+                  <td style="padding: 8px 12px;">
+                    <span class="dod-shift-pill ${g.status === 'winner' ? 'up' : (g.status === 'loser' ? 'down' : 'steady')}">
+                      ${g.shift >= 0 ? '▲ +' : '▼ '}${g.shift.toFixed(1)}% pp
+                    </span>
+                  </td>
+                  <td style="padding: 8px 12px;">${formatNumber(g.volume)} txns</td>
+                  <td style="padding: 8px 12px; color: ${g.status === 'winner' ? '#10b981' : (g.status === 'loser' ? '#f43f5e' : 'var(--text-muted)')}; font-weight: 500;">
+                    ${g.status === 'winner' ? 'Primary Routing Allocation' : (g.status === 'loser' ? 'Traffic Throttled / Secondary' : 'Benchmark Steady')}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Error Code Shifts -->
+      <div style="margin-top: 1.5rem;">
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+          <span>🔍</span> Error Code Volatility & Failed Reason Shifts (responseCode)
+        </h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+          ${dod.errorShifts.map(err => `
+            <div style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-hover);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <code style="font-size: 0.78rem; font-weight: 600; color: var(--text-color);">${err.code}</code>
+                <span class="dod-shift-pill ${err.status === 'improved' ? 'up' : (err.status === 'degraded' ? 'down' : 'steady')}" style="font-size: 0.7rem;">
+                  ${err.shift <= 0 ? '▼ ' : '▲ +'}${Math.abs(err.shift).toFixed(1)}%
+                </span>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">
+                Today Share: <strong>${err.todayPct.toFixed(1)}%</strong> vs Yesterday: <strong>${err.yesterdayPct.toFixed(1)}%</strong>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Strategic Takeaways -->
+      <div style="margin-top: 1.5rem; padding: 12px 16px; background: rgba(0, 122, 255, 0.08); border-left: 4px solid #007aff; border-radius: 6px;">
+        <div style="font-weight: 700; font-size: 0.88rem; color: #007aff; margin-bottom: 4px;">🎯 Keyholder Day-over-Day Recommendations</div>
+        <ul style="margin: 0; padding-left: 18px; font-size: 0.8rem; line-height: 1.5; color: var(--text-color);">
+          <li>Gross transactional volume is up <strong>+${Math.abs(d.countPct).toFixed(1)}% DoD</strong>, led by strong mobile UPI checkout demand.</li>
+          <li>Settled revenue expansion generated <strong>+${formatCurrency(d.succAmtDiff)}</strong> additional net realization vs. yesterday's baseline.</li>
+          <li>Routing recommendation: Maintain priority allocation to top performing gateways while dynamically failing over degraded PSP routes.</li>
+        </ul>
+      </div>
+    `;
+  }
+
+  function openDodModal() {
+    renderDodModal();
+    const modal = document.getElementById('dodComparisonModal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeDodModal() {
+    const modal = document.getElementById('dodComparisonModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function exportDodCSV() {
+    const dod = getDodMetrics();
+    const d = dod.delta;
+
+    let csvContent = 'Metric,Yesterday (T-1),Today (T),Net Delta,Pct Change\n';
+    csvContent += `Total Transactions,${dod.yesterday.totalCount},${dod.today.totalCount},${d.countDiff},${d.countPct.toFixed(2)}%\n`;
+    csvContent += `Successful Transactions,${dod.yesterday.successCount},${dod.today.successCount},${d.succDiff},${d.successPct.toFixed(2)}%\n`;
+    csvContent += `Failed Transactions,${dod.yesterday.failedCount},${dod.today.failedCount},${d.failDiff},${d.failedPct.toFixed(2)}%\n`;
+    csvContent += `Success Rate %,${dod.yesterday.successRate.toFixed(2)}%,${dod.today.successRate.toFixed(2)}%,${d.srDiff.toFixed(2)}%,${d.srDiff.toFixed(2)}% pp\n`;
+    csvContent += `Total Amount,${dod.yesterday.totalAmount.toFixed(2)},${dod.today.totalAmount.toFixed(2)},${d.amtDiff.toFixed(2)},${d.amtPct.toFixed(2)}%\n`;
+    csvContent += `Success Amount,${dod.yesterday.successAmount.toFixed(2)},${dod.today.successAmount.toFixed(2)},${d.succAmtDiff.toFixed(2)},${d.succAmtPct.toFixed(2)}%\n`;
+    csvContent += `Failed Amount,${dod.yesterday.failedAmount.toFixed(2)},${dod.today.failedAmount.toFixed(2)},${d.failAmtDiff.toFixed(2)},${d.failAmtPct.toFixed(2)}%\n\n`;
+
+    csvContent += 'Gateway,Yesterday SR %,Today SR %,DoD Shift % pp,Volume\n';
+    dod.gatewayShifts.forEach(g => {
+      csvContent += `"${g.psp}",${g.yesterdaySR.toFixed(2)}%,${g.todaySR.toFixed(2)}%,${g.shift.toFixed(2)}%,${g.volume}\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Day_Over_Day_Comparison_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    showToast('📥 DoD Comparison CSV report downloaded');
+  }
+
+  // Attach DoD event listeners
+  const toggleDodBtn = document.getElementById('toggleDodBtn');
+  if (toggleDodBtn) toggleDodBtn.addEventListener('click', () => toggleDodMode());
+
+  const openDodModalBtn = document.getElementById('openDodModalBtn');
+  if (openDodModalBtn) openDodModalBtn.addEventListener('click', openDodModal);
+
+  const exitDodBtn = document.getElementById('exitDodBtn');
+  if (exitDodBtn) exitDodBtn.addEventListener('click', () => toggleDodMode(false));
+
+  const closeDodModalBtn = document.getElementById('closeDodModalBtn');
+  if (closeDodModalBtn) closeDodModalBtn.addEventListener('click', closeDodModal);
+
+  const closeDodModalFooterBtn = document.getElementById('closeDodModalFooterBtn');
+  if (closeDodModalFooterBtn) closeDodModalFooterBtn.addEventListener('click', closeDodModal);
+
+  const exportDodCsvBtn = document.getElementById('exportDodCsvBtn');
+  if (exportDodCsvBtn) exportDodCsvBtn.addEventListener('click', exportDodCSV);
+
+  const dodComparisonModal = document.getElementById('dodComparisonModal');
+  if (dodComparisonModal) {
+    dodComparisonModal.addEventListener('click', (e) => {
+      if (e.target === dodComparisonModal) closeDodModal();
     });
   }
 

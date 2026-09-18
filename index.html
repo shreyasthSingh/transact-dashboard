@@ -42,6 +42,11 @@
           <span>🔗</span> Live API Integration
         </button>
 
+        <!-- Day-over-Day (DoD) Comparison Toggle -->
+        <button id="toggleDodBtn" class="btn-action btn-dod" title="Compare current day performance against previous day baseline">
+          <span>⚖️</span> Compare with Previous Day
+        </button>
+
         <!-- Batch Selector -->
         <div class="control-group" id="batchSelectorGroup">
           <select id="batchSelect" class="select-custom" aria-label="Hourly Batch Selector">
@@ -56,6 +61,7 @@
             <option value="15m">Real-Time (Last 15m)</option>
             <option value="1h">Last 1 Hour</option>
             <option value="24h" selected>Today (24h)</option>
+            <option value="dod">📅 Day-over-Day (Today vs Yesterday)</option>
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
           </select>
@@ -96,12 +102,38 @@
       </div>
     </div>
 
+    <!-- Day-over-Day Comparison Active Banner -->
+    <div class="dod-active-banner" id="dodActiveBanner" style="display: none;">
+      <div class="dod-banner-content">
+        <div class="dod-banner-left">
+          <span class="dod-badge-icon">⚖️</span>
+          <div>
+            <div class="dod-banner-title">Day-over-Day (DoD) Comparison Active</div>
+            <div class="dod-banner-sub">Analyzing Current Day (Today) vs. Previous Day (Yesterday) across volume, conversion rates &amp; routing.</div>
+          </div>
+        </div>
+        <div class="dod-banner-actions">
+          <button id="openDodModalBtn" class="btn-action btn-dod-inspect" title="Inspect detailed Day-over-Day variance tables">
+            <span>📊</span> View Detailed DoD Report
+          </button>
+          <button id="exitDodBtn" class="btn-action btn-dod-exit" title="Exit Day-over-Day Comparison Mode">
+            <span>✕</span> Exit DoD View
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Overall KPI Metrics Section -->
     <section class="kpi-section">
       <div class="section-header-row">
-        <h2 class="section-title">
-          <span class="section-title-icon">⚡</span> Overall Transaction Metrics
-        </h2>
+        <div>
+          <h2 class="section-title">
+            <span class="section-title-icon">⚡</span> Overall Transaction Metrics
+          </h2>
+          <span id="dodKpiIndicator" class="dod-kpi-badge" style="display: none;">
+            ⚖️ Day-over-Day Variance Mode (Today vs. Yesterday)
+          </span>
+        </div>
         <span id="lastUpdatedTime" style="font-size: 0.78rem; color: var(--text-dim);">Updated: Just now</span>
       </div>
 
@@ -261,6 +293,10 @@
                 <span class="legend-dot" style="background: #007aff; border-radius: 50%;"></span>
                 <span>Success Rate %</span>
               </div>
+              <div class="legend-item" id="legendDodItem" style="display: none;">
+                <span class="legend-dot" style="background: #94a3b8; border-radius: 50%; border: 1px dashed #64748b;"></span>
+                <span>Yesterday Baseline (DoD)</span>
+              </div>
             </div>
           </div>
           <!-- Bar Graph Filters Toolbar -->
@@ -377,12 +413,34 @@
               <input type="text" id="analysisSearchInput" class="search-input" placeholder="Search provider, app, merchant or @handle...">
             </div>
 
+            <!-- Dedicated OS & Device Filters (with dynamic options) -->
+            <div class="analysis-dropdown-filters" id="analysisDropdownFilters">
+              <select id="analysisOsFilterSelect" class="table-filter-select" title="Filter by Operating System (Android, iOS, Windows, etc.)">
+                <option value="all">🤖 All Operating Systems</option>
+                <option value="Android">🤖 Android</option>
+                <option value="iOS">🍎 iOS</option>
+                <option value="Windows">🪟 Windows</option>
+                <option value="macOS">💻 macOS</option>
+              </select>
+
+              <select id="analysisDeviceFilterSelect" class="table-filter-select" title="Filter by Device Type (Mobile, Desktop, Tablet, etc.)">
+                <option value="all">📱 All Devices</option>
+                <option value="Mobile">📱 Mobile</option>
+                <option value="Desktop">💻 Desktop</option>
+                <option value="Tablet">📱 Tablet</option>
+              </select>
+            </div>
+
             <div class="filter-pills">
               <button class="analysis-filter-pill-btn active" data-af="all">All</button>
               <button class="analysis-filter-pill-btn" data-af="healthy"><span class="pill-dot green"></span> &gt;95% Optimal</button>
               <button class="analysis-filter-pill-btn" data-af="warning"><span class="pill-dot amber"></span> 90-95% Watch</button>
               <button class="analysis-filter-pill-btn" data-af="alert"><span class="pill-dot red"></span> &lt;90% Degraded</button>
             </div>
+
+            <button id="clearAnalysisFiltersBtn" class="btn-clear-filters" style="display: none;" title="Reset all search and dropdown filters">
+              ✕ Clear Filters
+            </button>
           </div>
         </div>
 
@@ -722,6 +780,35 @@
         </button>
         <button class="btn-action btn-primary" id="saveAndStartApiBtn">
           <span>⚡</span> Connect &amp; Start Live Stream
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day-over-Day Comparison Modal -->
+  <div class="modal-overlay" id="dodComparisonModal" style="display: none;">
+    <div class="modal-card dod-modal-card">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <span class="modal-icon" style="font-size: 1.3rem;">⚖️</span>
+          <div>
+            <h3 class="modal-title" style="margin: 0; font-size: 1.15rem;">Day-over-Day (DoD) Performance Comparison</h3>
+            <p class="modal-subtitle" style="margin: 2px 0 0; font-size: 0.75rem; color: var(--text-dim);">Detailed variance report comparing Current Day (Today) vs. Previous Day (Yesterday) across volume, conversion rates, gateways &amp; drop reasons.</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeDodModalBtn">&times;</button>
+      </div>
+
+      <div class="modal-body" id="dodModalBody" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
+        <!-- Filled dynamically by renderDodModal() -->
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn-action" id="exportDodCsvBtn">
+          <span>📥</span> Export DoD Report (CSV)
+        </button>
+        <button class="btn-action btn-primary" id="closeDodModalFooterBtn">
+          Done
         </button>
       </div>
     </div>

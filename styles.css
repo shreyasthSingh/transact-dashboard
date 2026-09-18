@@ -2077,6 +2077,315 @@ canvas {
   word-break: break-all;
 }
 
+/* ==========================================
+   Day-over-Day (DoD) Comparison Styling
+   ========================================== */
+.btn-dod {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+.btn-dod:hover {
+  background: rgba(0, 122, 255, 0.12);
+  border-color: #007aff;
+  color: #007aff;
+}
 
+.btn-dod.active {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.22), rgba(16, 185, 129, 0.18));
+  border-color: #10b981;
+  color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
 
+.dod-active-banner {
+  background: linear-gradient(90deg, rgba(0, 122, 255, 0.12), rgba(16, 185, 129, 0.1));
+  border: 1px solid rgba(0, 122, 255, 0.35);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+  padding: 10px 16px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.dod-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dod-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dod-badge-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.dod-banner-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-main);
+}
+
+.dod-banner-sub {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.dod-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-dod-inspect {
+  background: #007aff;
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.btn-dod-inspect:hover {
+  background: #0063cc;
+}
+
+.btn-dod-exit {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.btn-dod-exit:hover {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--failed-red);
+  border-color: var(--failed-red);
+}
+
+.dod-kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 122, 255, 0.12);
+  border: 1px solid rgba(0, 122, 255, 0.3);
+  color: #007aff;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+/* DoD Subline in KPI Cards */
+.dod-kpi-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-subtle);
+  font-size: 0.76rem;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.dod-prev {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.dod-delta {
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dod-delta.up {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.dod-delta.down {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.12);
+}
+
+.dod-delta.neutral {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ==========================================
+   Source OS and Device Filter Dropdowns
+   ========================================== */
+.analysis-dropdown-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.table-filter-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  height: 32px;
+}
+
+.table-filter-select:hover {
+  border-color: #007aff;
+}
+
+.table-filter-select:focus {
+  border-color: #007aff;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.btn-clear-filters {
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: var(--failed-red);
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 30px;
+  white-space: nowrap;
+}
+
+.btn-clear-filters:hover {
+  background: var(--failed-red);
+  color: #ffffff;
+}
+
+.th-content-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.th-filter-indicator {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(0, 122, 255, 0.15);
+  color: #007aff;
+  text-transform: uppercase;
+}
+
+/* ==========================================
+   DoD Comparison Modal Layout
+   ========================================== */
+.dod-modal-card {
+  max-width: 860px;
+  width: 95%;
+}
+
+.dod-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.dod-stat-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+.dod-stat-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.dod-stat-val-today {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.dod-stat-val-yesterday {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.dod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-bottom: 1.25rem;
+}
+
+.dod-table th {
+  background: var(--bg-primary);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.dod-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dod-shift-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+}
+
+.dod-shift-pill.gainer {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.dod-shift-pill.loser {
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+}
+
+.dod-shift-pill.steady {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
