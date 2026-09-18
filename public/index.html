@@ -17,6 +17,7 @@
     <!-- Top Header -->
     <header class="dashboard-header">
       <div class="brand-section">
+        <div class="brand-logo-card">
           <img src="assets/logo.png" alt="Transact Bridge Logo">
         </div>
         <div class="brand-titles">
@@ -102,6 +103,43 @@
         <button id="themeToggleBtn" class="btn-action" title="Toggle Light/Dark Theme">
           <span id="themeIcon">🌙 Dark Mode</span>
         </button>
+
+        <!-- Global Cloud Sync Status Pill -->
+        <div class="cloud-sync-pill" id="cloudSyncPill" title="Team Cloud Sync Status">
+          <span class="cloud-sync-dot"></span>
+          <span id="cloudSyncText">Team Cloud Ready</span>
+          <button type="button" id="cloudRefreshBtn" class="btn-cloud-refresh" title="Pull latest dataset uploaded by team">🔄</button>
+        </div>
+
+        <!-- Share Team Link Button -->
+        <button id="shareTeamLinkBtn" class="btn-action btn-share-link" title="Copy Team Dashboard Link">
+          <span>🔗</span> Share Link
+        </button>
+
+        <!-- User Profile & Session Controls -->
+        <div class="user-profile-menu" id="userProfileMenu">
+          <button type="button" class="user-profile-badge" id="userProfileBtn" title="Current Logged-in Account">
+            <span class="user-avatar-circle" id="userAvatarCircle">SA</span>
+            <div class="user-info-text">
+              <span class="user-name" id="userNameLabel">Admin</span>
+              <span class="user-role-badge role-admin" id="userRoleBadge">ADMIN</span>
+            </div>
+            <span class="user-caret">▾</span>
+          </button>
+          <div class="user-dropdown-card" id="userDropdownCard" style="display: none;">
+            <div class="dropdown-header">
+              <div class="dropdown-user-name" id="userDropdownName">System Administrator</div>
+              <div class="dropdown-email" id="userDropdownEmail">admin@transactbridge.com</div>
+              <div class="dropdown-role-desc" id="userDropdownRoleDesc">Full Permissions: Upload, Route &amp; Alert</div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" id="dropdownSwitchUserBtn">👤 Switch User / Role</button>
+            <button type="button" class="dropdown-item" id="dropdownRefreshCloudBtn">☁️ Force Cloud Re-sync</button>
+            <button type="button" class="dropdown-item" id="dropdownShareLinkBtn">🔗 Copy Team Link</button>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item text-danger" id="logoutBtn">🚪 Sign Out</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -230,7 +268,7 @@
         <div class="kpi-card rate-theme">
           <div class="kpi-top">
             <span class="kpi-label">Overall Success Rate</span>
-            <div class="kpi-icon-wrap">🎯</div>
+            <div class="kpi-icon-wrap" id="kpiSlaSettingsTrigger" title="Click to Configure KPI &amp; SLA Thresholds" style="cursor: pointer;">🎯</div>
           </div>
           <div class="kpi-value" id="kpiSuccessRate">0.00%</div>
           <div class="kpi-sparkline-svg" id="sparkline-rate"></div>
@@ -238,7 +276,10 @@
             <div class="rate-progress-bar-fill" id="kpiRateBar" style="width: 0%;"></div>
           </div>
           <div class="kpi-footer" style="margin-top: 0.6rem;">
-            <span>Target SLA: &gt;95.00%</span>
+            <div id="kpiTargetSlaWrapper" class="clickable-target-sla" title="Click to adjust Target SLA and KPI thresholds">
+              <span id="kpiTargetSlaLabel">Target SLA: &gt;95.00%</span>
+              <span class="kpi-edit-icon">✏️</span>
+            </div>
             <span class="kpi-badge neutral" id="kpiSlaBadge">Optimal</span>
           </div>
         </div>
@@ -1088,6 +1129,19 @@
             </div>
           </div>
 
+          <!-- Target SLA Benchmark Row -->
+          <div class="alert-form-field" style="background: rgba(0, 102, 255, 0.04); border: 1px solid rgba(0, 102, 255, 0.18); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px;">
+            <label class="alert-label" style="font-weight: 600; color: var(--accent-primary); display: flex; justify-content: space-between; align-items: center;">
+              <span>🎯 Target SLA Benchmark (KPI Target: &gt;X%)</span>
+              <span class="alert-val-badge" id="targetSlaValDisplay" style="background: var(--accent-primary); color: #ffffff; font-weight: 700;">95.00%</span>
+            </label>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+              <input type="range" id="targetSlaSlider" min="50" max="99.9" step="0.1" value="95.0" class="recovery-slider" />
+              <input type="number" id="targetSlaInput" min="50" max="99.9" step="0.1" value="95.0" class="alert-num-input" style="width: 85px;" />
+            </div>
+            <span class="alert-field-hint">Defines the benchmark target on the Overall Success Rate KPI card and status metrics.</span>
+          </div>
+
           <div class="alert-grid-2col">
             <div class="alert-form-field">
               <label class="alert-label">
@@ -1095,22 +1149,22 @@
                 <span class="alert-val-badge" id="srCritValDisplay">90.0%</span>
               </label>
               <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="range" id="srCritSlider" min="70" max="98" step="0.5" value="90" class="recovery-slider" />
-                <input type="number" id="srCritInput" min="70" max="98" step="0.5" value="90" class="alert-num-input" />
+                <input type="range" id="srCritSlider" min="40" max="98" step="0.5" value="90" class="recovery-slider" />
+                <input type="number" id="srCritInput" min="40" max="98" step="0.5" value="90" class="alert-num-input" />
               </div>
-              <span class="alert-field-hint">Triggers high-urgency WhatsApp &amp; Email incident dispatch.</span>
+              <span class="alert-field-hint">Triggers high-urgency WhatsApp, Email &amp; Dashboard Emergency Banner.</span>
             </div>
 
             <div class="alert-form-field">
               <label class="alert-label">
                 Warning Threshold (Success Rate &lt; X%)
-                <span class="alert-val-badge" id="srWarnValDisplay">95.0%</span>
+                <span class="alert-val-badge" id="srWarnValDisplay">92.0%</span>
               </label>
               <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="range" id="srWarnSlider" min="75" max="99" step="0.5" value="95" class="recovery-slider" />
-                <input type="number" id="srWarnInput" min="75" max="99" step="0.5" value="95" class="alert-num-input" />
+                <input type="range" id="srWarnSlider" min="50" max="99" step="0.5" value="92" class="recovery-slider" />
+                <input type="number" id="srWarnInput" min="50" max="99" step="0.5" value="92" class="alert-num-input" />
               </div>
-              <span class="alert-field-hint">Generates advisory watchlist notifications and dashboard status change.</span>
+              <span class="alert-field-hint">Generates advisory watchlist notifications and Guarded KPI badge.</span>
             </div>
           </div>
 
@@ -1610,6 +1664,109 @@
           <button type="button" class="btn-action btn-primary" id="runCustomAnalysisBtn">
             <span>⚡</span> Run Custom Analysis
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transact Bridge Enterprise Login Modal / Screen -->
+  <div class="modal-overlay login-overlay" id="loginModal" style="display: none;">
+    <div class="modal-card login-card">
+      <div class="login-header">
+        <div class="login-brand-logo">
+          <img src="assets/logo.png" alt="Transact Bridge Logo">
+        </div>
+        <div class="login-brand-titles">
+          <h2 class="login-title">Transact Bridge Intelligence</h2>
+          <p class="login-subtitle">Enterprise Gateway Monitoring &amp; Shared Team Data Portal</p>
+        </div>
+      </div>
+
+      <div class="login-notice-banner">
+        <span>🌐 <strong>Shared Cloud Session Active:</strong> Any dataset uploaded by an Administrator is automatically synchronized in real time to all team members viewing this link.</span>
+      </div>
+
+      <!-- Login Method Tabs -->
+      <div class="login-tabs">
+        <button type="button" class="login-tab-btn active" data-ltab="tab-quick">⚡ 1-Click Role Access</button>
+        <button type="button" class="login-tab-btn" data-ltab="tab-email">✉️ Corporate Login</button>
+        <button type="button" class="login-tab-btn" data-ltab="tab-code">🔑 Team Access Code</button>
+      </div>
+
+      <!-- Tab 1: 1-Click Role Access -->
+      <div class="login-tab-content active" id="ltab-quick">
+        <div class="quick-role-grid">
+          <!-- Role Card 1: Admin Operator -->
+          <div class="quick-role-card role-card-admin" id="quickLoginAdminBtn">
+            <div class="quick-role-top">
+              <span class="role-icon">🛡️</span>
+              <span class="role-pill-badge badge-admin">FULL ADMIN ACCESS</span>
+            </div>
+            <div class="quick-role-name">Administrator / Data Lead</div>
+            <p class="quick-role-desc">Full permissions to upload hourly Excel/CSV datasets, change SLA targets, broadcast team alerts, and trigger route mitigations.</p>
+            <button type="button" class="btn-role-action btn-admin-action">
+              <span>Sign In as Admin</span> →
+            </button>
+          </div>
+
+          <!-- Role Card 2: Team Stakeholder / Viewer -->
+          <div class="quick-role-card role-card-viewer" id="quickLoginViewerBtn">
+            <div class="quick-role-top">
+              <span class="role-icon">📊</span>
+              <span class="role-pill-badge badge-viewer">VIEWER ACCESS</span>
+            </div>
+            <div class="quick-role-name">Executive / Team Stakeholder</div>
+            <p class="quick-role-desc">Read-only live access to inspect shared uploads, live KPI cards, gateway success rates, telemetry diagnostics, and AI playbooks.</p>
+            <button type="button" class="btn-role-action btn-viewer-action">
+              <span>Sign In as Viewer</span> →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Corporate Email & Password -->
+      <div class="login-tab-content" id="ltab-email" style="display: none;">
+        <form id="emailLoginForm" class="login-form">
+          <div class="form-group">
+            <label for="loginEmailInput">Corporate Email</label>
+            <input type="email" id="loginEmailInput" class="form-input" placeholder="e.g. admin@transactbridge.com" required value="admin@transactbridge.com">
+          </div>
+          <div class="form-group">
+            <label for="loginPasswordInput">Password / Passcode</label>
+            <input type="password" id="loginPasswordInput" class="form-input" placeholder="Enter your passcode (default: tb-admin-2026)" value="tb-admin-2026">
+            <div class="input-hint">Default admin passcode: <code>tb-admin-2026</code> | Viewer: <code>tb-team-2026</code></div>
+          </div>
+          <div class="form-row remember-row">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="loginRememberMe" checked>
+              <span>Keep me signed in on this device</span>
+            </label>
+          </div>
+          <button type="submit" class="btn-action btn-primary btn-login-submit" id="emailLoginSubmitBtn">
+            <span>🔐</span> Authenticate &amp; Access Dashboard
+          </button>
+        </form>
+      </div>
+
+      <!-- Tab 3: Team Access Code -->
+      <div class="login-tab-content" id="ltab-code" style="display: none;">
+        <form id="codeLoginForm" class="login-form">
+          <div class="form-group">
+            <label for="loginAccessCodeInput">Team Access Code</label>
+            <input type="text" id="loginAccessCodeInput" class="form-input" placeholder="e.g. TB-ADMIN-2026 or TB-TEAM-2026" style="text-transform: uppercase; font-family: monospace; font-size: 1.05rem; letter-spacing: 1px;" required value="TB-ADMIN-2026">
+            <div class="input-hint">Use <code>TB-ADMIN-2026</code> for Admin permissions or <code>TB-TEAM-2026</code> for Stakeholder / Viewer access.</div>
+          </div>
+          <button type="submit" class="btn-action btn-primary btn-login-submit" id="codeLoginSubmitBtn">
+            <span>🔑</span> Verify Code &amp; Enter Dashboard
+          </button>
+        </form>
+      </div>
+
+      <div class="login-footer">
+        <div class="security-badge">
+          <span>🔒 Transact Bridge Enterprise Security</span>
+          <span>•</span>
+          <span>Shared Real-Time Telemetry Gateway</span>
         </div>
       </div>
     </div>

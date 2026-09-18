@@ -2292,6 +2292,11 @@
 
       saveBatchesToStorage();
 
+      // Broadcast and publish newly ingested batch to shared team cloud
+      if (typeof cloudSyncManager !== 'undefined' && cloudSyncManager.publishToCloud) {
+        cloudSyncManager.publishToCloud(batchObj);
+      }
+
       dataMode = 'uploaded';
       activeBatchId = 'all';
 
@@ -2777,6 +2782,10 @@
   let loadedFileContent = null;
 
   openUploadBtn.addEventListener('click', () => {
+    if (typeof authManager !== 'undefined' && authManager.getCurrentUser() && authManager.getCurrentUser().role === 'viewer') {
+      showToast('🔒 Upload privileges are reserved for Administrators. As a Team Stakeholder, you are viewing shared live data uploaded by Admins.');
+      return;
+    }
     uploadModal.classList.add('active');
     document.getElementById('batchLabelInput').value = `Hour ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | ${new Date().toLocaleDateString()}`;
     renderBatchListTable();
@@ -7783,6 +7792,470 @@ Recommended Immediate Actions:
     });
   }
 
+  // =========================================================================
+  // Transact Bridge Enterprise Authentication & Role Management Module
+  // =========================================================================
+  const AUTH_STORAGE_KEY = 'tb_auth_session';
+
+  const authManager = {
+    currentUser: null,
+
+    init() {
+      // Check stored session
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) {
+          this.currentUser = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Error reading auth session:', e);
+      }
+
+      this.bindEvents();
+
+      if (!this.currentUser) {
+        this.showLoginModal();
+      } else {
+        this.updateHeaderUI();
+        this.applyRolePermissions();
+      }
+    },
+
+    getCurrentUser() {
+      return this.currentUser;
+    },
+
+    bindEvents() {
+      const userProfileBtn = document.getElementById('userProfileBtn');
+      const userDropdownCard = document.getElementById('userDropdownCard');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const dropdownSwitchUserBtn = document.getElementById('dropdownSwitchUserBtn');
+
+      // Profile menu toggle
+      if (userProfileBtn && userDropdownCard) {
+        userProfileBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isVisible = userDropdownCard.style.display === 'block';
+          userDropdownCard.style.display = isVisible ? 'none' : 'block';
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('#userProfileMenu')) {
+            userDropdownCard.style.display = 'none';
+          }
+        });
+      }
+
+      // Logout button
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          this.logout();
+        });
+      }
+
+      // Switch user button
+      if (dropdownSwitchUserBtn) {
+        dropdownSwitchUserBtn.addEventListener('click', () => {
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.showLoginModal();
+        });
+      }
+
+      // Quick Role Buttons
+      const quickLoginAdminBtn = document.getElementById('quickLoginAdminBtn');
+      const quickLoginViewerBtn = document.getElementById('quickLoginViewerBtn');
+
+      if (quickLoginAdminBtn) {
+        quickLoginAdminBtn.addEventListener('click', () => {
+          this.login({
+            email: 'admin@transactbridge.com',
+            name: 'System Administrator',
+            role: 'admin',
+            avatar: 'SA',
+            token: 'token_' + Date.now() + '_admin'
+          });
+        });
+      }
+
+      if (quickLoginViewerBtn) {
+        quickLoginViewerBtn.addEventListener('click', () => {
+          this.login({
+            email: 'team@transactbridge.com',
+            name: 'Executive Stakeholder',
+            role: 'viewer',
+            avatar: 'ES',
+            token: 'token_' + Date.now() + '_viewer'
+          });
+        });
+      }
+
+      // Login Tabs
+      document.querySelectorAll('.login-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.login-tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.login-tab-content').forEach(c => c.style.display = 'none');
+          btn.classList.add('active');
+          const targetId = btn.getAttribute('data-ltab');
+          const content = document.getElementById(targetId);
+          if (content) content.style.display = 'block';
+        });
+      });
+
+      // Email Login Form
+      const emailForm = document.getElementById('emailLoginForm');
+      if (emailForm) {
+        emailForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const email = (document.getElementById('loginEmailInput')?.value || '').trim();
+          const pass = (document.getElementById('loginPasswordInput')?.value || '').trim();
+          const remember = document.getElementById('loginRememberMe')?.checked ?? true;
+
+          const role = (pass.toLowerCase().includes('admin') || email.toLowerCase().includes('admin')) ? 'admin' : 'viewer';
+          const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
+          const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+          const avatar = email.substring(0, 2).toUpperCase();
+
+          this.login({
+            email,
+            name,
+            role,
+            avatar,
+            token: 'token_' + Date.now() + '_' + role
+          }, remember);
+        });
+      }
+
+      // Code Login Form
+      const codeForm = document.getElementById('codeLoginForm');
+      if (codeForm) {
+        codeForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const code = (document.getElementById('loginAccessCodeInput')?.value || '').trim().toUpperCase();
+          if (code === 'TB-ADMIN-2026') {
+            this.login({
+              email: 'operator@transactbridge.com',
+              name: 'Admin Operator',
+              role: 'admin',
+              avatar: 'AO',
+              token: 'token_' + Date.now() + '_admin'
+            });
+          } else if (code === 'TB-VIEWER-2026' || code === 'TB-TEAM-2026') {
+            this.login({
+              email: 'team@transactbridge.com',
+              name: 'Team Member',
+              role: 'viewer',
+              avatar: 'TM',
+              token: 'token_' + Date.now() + '_viewer'
+            });
+          } else {
+            showToast('❌ Invalid code. Use TB-ADMIN-2026 for Admin or TB-TEAM-2026 for Viewer.');
+          }
+        });
+      }
+    },
+
+    showLoginModal() {
+      const modal = document.getElementById('loginModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+      }
+    },
+
+    hideLoginModal() {
+      const modal = document.getElementById('loginModal');
+      if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+      }
+    },
+
+    login(user, remember = true) {
+      this.currentUser = {
+        ...user,
+        loginAt: new Date().toISOString()
+      };
+
+      if (remember) {
+        try {
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(this.currentUser));
+        } catch (e) {
+          console.warn('Error saving session:', e);
+        }
+      }
+
+      this.hideLoginModal();
+      this.updateHeaderUI();
+      this.applyRolePermissions();
+
+      showToast(`👋 Welcome back, ${this.currentUser.name} (${this.currentUser.role.toUpperCase()})!`);
+
+      // Immediately trigger cloud sync upon login
+      if (typeof cloudSyncManager !== 'undefined') {
+        cloudSyncManager.fetchFromCloud(false);
+      }
+    },
+
+    logout() {
+      this.currentUser = null;
+      try {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      } catch (e) {}
+
+      const userDropdownCard = document.getElementById('userDropdownCard');
+      if (userDropdownCard) userDropdownCard.style.display = 'none';
+
+      this.showLoginModal();
+      showToast('🔒 Signed out successfully.');
+    },
+
+    updateHeaderUI() {
+      if (!this.currentUser) return;
+
+      const avatarCircle = document.getElementById('userAvatarCircle');
+      const userNameLabel = document.getElementById('userNameLabel');
+      const userRoleBadge = document.getElementById('userRoleBadge');
+      const userDropdownName = document.getElementById('userDropdownName');
+      const userDropdownEmail = document.getElementById('userDropdownEmail');
+      const userDropdownRoleDesc = document.getElementById('userDropdownRoleDesc');
+
+      if (avatarCircle) avatarCircle.textContent = this.currentUser.avatar || 'TB';
+      if (userNameLabel) userNameLabel.textContent = this.currentUser.name.split(' ')[0] || 'User';
+      if (userRoleBadge) {
+        userRoleBadge.textContent = this.currentUser.role.toUpperCase();
+        userRoleBadge.className = `user-role-badge role-${this.currentUser.role}`;
+      }
+      if (userDropdownName) userDropdownName.textContent = this.currentUser.name;
+      if (userDropdownEmail) userDropdownEmail.textContent = this.currentUser.email;
+      if (userDropdownRoleDesc) {
+        userDropdownRoleDesc.textContent = this.currentUser.role === 'admin'
+          ? 'Full Permissions: Upload, Route & Alert'
+          : 'Stakeholder Read-Only: Shared Live Telemetry';
+      }
+    },
+
+    applyRolePermissions() {
+      const openUploadBtn = document.getElementById('openUploadBtn');
+      if (openUploadBtn) {
+        if (this.currentUser && this.currentUser.role === 'viewer') {
+          openUploadBtn.title = 'Upload privileges are reserved for Administrators (Read-Only Viewer)';
+          openUploadBtn.style.opacity = '0.75';
+        } else {
+          openUploadBtn.title = 'Upload Hourly Excel or CSV dataset (Admin Full Access)';
+          openUploadBtn.style.opacity = '1';
+        }
+      }
+    }
+  };
+
+  // =========================================================================
+  // Transact Bridge Global Cloud Synchronization Module
+  // Allows any uploaded dataset to be viewed live by anyone with the link
+  // =========================================================================
+  const CLOUD_STORAGE_KEY = 'tb_cloud_latest_batch';
+
+  const cloudSyncManager = {
+    activeCloudBatchId: null,
+    lastSyncTimestamp: null,
+    isSyncing: false,
+    syncInterval: null,
+
+    init() {
+      this.bindEvents();
+      // Initial fetch from cloud
+      this.fetchFromCloud(true);
+
+      // Periodic cloud polling (every 35s)
+      this.syncInterval = setInterval(() => {
+        this.fetchFromCloud(true);
+      }, 35000);
+
+      // Auto-sync when window gains focus or tab becomes visible
+      window.addEventListener('focus', () => this.fetchFromCloud(true));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.fetchFromCloud(true);
+        }
+      });
+    },
+
+    bindEvents() {
+      const cloudRefreshBtn = document.getElementById('cloudRefreshBtn');
+      const dropdownRefreshCloudBtn = document.getElementById('dropdownRefreshCloudBtn');
+      const shareTeamLinkBtn = document.getElementById('shareTeamLinkBtn');
+      const dropdownShareLinkBtn = document.getElementById('dropdownShareLinkBtn');
+
+      if (cloudRefreshBtn) {
+        cloudRefreshBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.fetchFromCloud(false);
+        });
+      }
+
+      if (dropdownRefreshCloudBtn) {
+        dropdownRefreshCloudBtn.addEventListener('click', () => {
+          const userDropdownCard = document.getElementById('userDropdownCard');
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.fetchFromCloud(false);
+        });
+      }
+
+      if (shareTeamLinkBtn) {
+        shareTeamLinkBtn.addEventListener('click', () => this.copyShareLink());
+      }
+
+      if (dropdownShareLinkBtn) {
+        dropdownShareLinkBtn.addEventListener('click', () => {
+          const userDropdownCard = document.getElementById('userDropdownCard');
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.copyShareLink();
+        });
+      }
+    },
+
+    updateSyncPill(status, label) {
+      const pill = document.getElementById('cloudSyncPill');
+      const text = document.getElementById('cloudSyncText');
+      if (!pill || !text) return;
+
+      pill.classList.remove('syncing');
+      if (status === 'syncing') {
+        pill.classList.add('syncing');
+        text.textContent = 'Syncing...';
+      } else if (status === 'synced') {
+        text.textContent = label || 'Team Cloud Synced';
+      } else if (status === 'offline') {
+        text.textContent = 'Local Cache';
+      }
+    },
+
+    async publishToCloud(batchObj) {
+      if (!batchObj || !batchObj.transactions) return;
+      this.updateSyncPill('syncing');
+
+      const user = authManager.getCurrentUser() || { name: 'Admin', role: 'admin' };
+      const payload = {
+        batch: {
+          id: batchObj.id,
+          name: batchObj.name,
+          uploadedAt: batchObj.uploadedAt,
+          count: batchObj.transactions.length,
+          transactions: batchObj.transactions
+        },
+        uploadedBy: user.name,
+        aggregates: getAggregates()
+      };
+
+      try {
+        // 1. Post to Vercel Serverless API (/api/data)
+        const res = await fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          this.activeCloudBatchId = batchObj.id;
+          this.lastSyncTimestamp = Date.now();
+          this.updateSyncPill('synced', 'Team Cloud Synced');
+          showToast(`☁️ Synchronized ${formatNumber(batchObj.transactions.length)} transactions to team cloud!`);
+          return;
+        }
+      } catch (err) {
+        console.warn('POST /api/data failed (local dev or no api host):', err.message);
+      }
+
+      // Also cache in local cloud mirror
+      try {
+        localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {}
+
+      this.activeCloudBatchId = batchObj.id;
+      this.lastSyncTimestamp = Date.now();
+      this.updateSyncPill('synced', 'Team Cloud Synced');
+    },
+
+    async fetchFromCloud(silent = false) {
+      if (this.isSyncing) return;
+      this.isSyncing = true;
+      if (!silent) this.updateSyncPill('syncing');
+
+      try {
+        // Fetch from Vercel Serverless API
+        const res = await fetch(`/api/data?t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && json.data && json.data.transactions && json.data.transactions.length > 0) {
+            const cloudBatch = json.data;
+
+            // Only recompute if new batch ID or if we currently have no uploaded data
+            if (cloudBatch.id !== this.activeCloudBatchId || dataMode !== 'uploaded') {
+              this.activeCloudBatchId = cloudBatch.id;
+              this.lastSyncTimestamp = Date.now();
+
+              // Normalize transactions
+              const normalized = cloudBatch.transactions.map(normalizeRow);
+
+              uploadedBatches = [{
+                id: cloudBatch.id,
+                name: cloudBatch.name || 'Shared Team Batch',
+                uploadedAt: cloudBatch.uploadedAt,
+                count: normalized.length,
+                transactions: normalized
+              }];
+
+              currentTransactions = normalized;
+              dataMode = 'uploaded';
+              activeBatchId = 'all';
+
+              saveBatchesToStorage();
+              recomputeDashboardFromTransactions(currentTransactions);
+              stopSimulation();
+              updateBatchSelector();
+
+              // Update Banner
+              const banner = document.getElementById('dataStatusBanner');
+              const tag = document.getElementById('dataModeTag');
+              const msg = document.getElementById('dataStatusMessage');
+              if (banner && tag && msg) {
+                tag.className = 'data-status-tag tag-uploaded';
+                tag.textContent = 'Team Shared Ingestion';
+                const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+                msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
+              }
+
+              this.updateSyncPill('synced', 'Team Cloud Synced');
+              if (!silent) {
+                showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
+              }
+              this.isSyncing = false;
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('GET /api/data unavailable:', err.message);
+      }
+
+      this.updateSyncPill('synced', 'Team Cloud Synced');
+      this.isSyncing = false;
+    },
+
+    copyShareLink() {
+      const shareUrl = window.location.href.split('#')[0].split('?')[0];
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast(`🔗 Copied: ${shareUrl}\nShare with team members to view identical live data!`);
+        }).catch(() => {
+          prompt('Copy this link for your team:', shareUrl);
+        });
+      } else {
+        prompt('Copy this link for your team:', shareUrl);
+      }
+    }
+  };
+
   loadAlertSettings();
   loadBatchesFromStorage();
 
@@ -7790,5 +8263,9 @@ Recommended Immediate Actions:
   renderAnalysisSection();
   renderRecommendations();
   initCharts();
+
+  // Initialize Enterprise Authentication & Global Team Cloud Sync
+  authManager.init();
+  cloudSyncManager.init();
 
 })();

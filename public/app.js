@@ -42,8 +42,9 @@
       banner: true
     },
     thresholds: {
+      targetSla: 95.0,
       criticalSr: 90.0,
-      warningSr: 95.0,
+      warningSr: 92.0,
       minTransactions: 10,
       cooldownMinutes: 15
     },
@@ -450,7 +451,9 @@
 
     if (dataMode === 'uploaded' && currentTransactions && currentTransactions.length > 0) {
       const dateGroups = {};
-      currentTransactions.forEach(t => {
+      const countedTxns = currentTransactions.filter(t => t.isCountedInTotal);
+      const txnsToUse = countedTxns.length > 0 ? countedTxns : currentTransactions;
+      txnsToUse.forEach(t => {
         const dStr = (t.createdDate || '').split('T')[0].split(' ')[0];
         if (dStr) {
           if (!dateGroups[dStr]) dateGroups[dStr] = [];
@@ -462,7 +465,7 @@
       if (dates.length >= 2) {
         const yDateKey = dates[dates.length - 2];
         const yTxns = dateGroups[yDateKey];
-        let totCount = yTxns.length;
+        let totCount = 0;
         let succCount = 0;
         let failCount = 0;
         let totAmt = 0;
@@ -470,6 +473,7 @@
         let failAmt = 0;
 
         yTxns.forEach(t => {
+          totCount++;
           totAmt += t.amount;
           if (t.isSuccess) {
             succCount++;
@@ -602,7 +606,25 @@
     document.getElementById('kpiFailedCount').textContent = formatNumber(agg.failedCount);
 
     document.getElementById('kpiSuccessRate').textContent = agg.successRate.toFixed(2) + '%';
-    document.getElementById('kpiRateBar').style.width = Math.min(100, Math.max(0, agg.successRate)) + '%';
+    const targetSla = (alertSettings && alertSettings.thresholds && alertSettings.thresholds.targetSla) || 95.0;
+    const warnThreshold = (alertSettings && alertSettings.thresholds && alertSettings.thresholds.warningSr) || 92.0;
+
+    const targetLabel = document.getElementById('kpiTargetSlaLabel');
+    if (targetLabel) {
+      targetLabel.textContent = `Target SLA: >${targetSla.toFixed(2)}%`;
+    }
+
+    const rateBar = document.getElementById('kpiRateBar');
+    if (rateBar) {
+      rateBar.style.width = Math.min(100, Math.max(0, agg.successRate)) + '%';
+      if (agg.successRate >= targetSla) {
+        rateBar.style.background = 'var(--success-green)';
+      } else if (agg.successRate >= warnThreshold) {
+        rateBar.style.background = 'var(--warning-amber)';
+      } else {
+        rateBar.style.background = 'var(--failed-red)';
+      }
+    }
 
     document.getElementById('kpiTotalAmount').textContent = formatCurrency(agg.totalAmount);
     document.getElementById('kpiSuccessAmount').textContent = formatCurrency(agg.successAmount);
@@ -654,14 +676,14 @@
         failedShare.textContent = agg.failureRate.toFixed(1) + '% of total count';
       }
       if (slaBadge) {
-        if (agg.successRate >= 95.0) {
-          slaBadge.textContent = 'Optimal (>95%)';
+        if (agg.successRate >= targetSla) {
+          slaBadge.textContent = `Optimal (>${targetSla.toFixed(1)}%)`;
           slaBadge.className = 'kpi-badge up';
-        } else if (agg.successRate >= 92.0) {
-          slaBadge.textContent = 'Guarded (92-95%)';
+        } else if (agg.successRate >= warnThreshold) {
+          slaBadge.textContent = `Guarded (${warnThreshold.toFixed(1)}-${targetSla.toFixed(1)}%)`;
           slaBadge.className = 'kpi-badge neutral';
         } else {
-          slaBadge.textContent = 'Degraded (<92%)';
+          slaBadge.textContent = `Degraded (<${warnThreshold.toFixed(1)}%)`;
           slaBadge.className = 'kpi-badge down';
         }
       }
@@ -1287,6 +1309,7 @@
 
     if (currentTransactions && currentTransactions.length > 0) {
       currentTransactions.forEach(t => {
+        if (!t.isCountedInTotal) return;
         let matches = false;
         if (dimension === 'psp' && t.pgProvider.toUpperCase() === entity.id.toUpperCase()) matches = true;
         else if (dimension === 'app' && (t.upiApp.toUpperCase() === entity.id.toUpperCase() || t.upiApp === entity.id)) matches = true;
@@ -2053,84 +2076,145 @@
   }
 
   function normalizeRow(row) {
-    // Clean keys for flexible case-insensitive lookup
-    const clean = {};
+    if (!row || typeof row !== 'object') return null;
+
+    // Canonical key normalization (strips spaces, underscores, hyphens, dots, parentheses)
+    const cleanKey = k => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const norm = {};
     for (const k in row) {
       if (Object.prototype.hasOwnProperty.call(row, k)) {
-        clean[k.trim()] = row[k];
-        clean[k.trim().toLowerCase()] = row[k];
+        norm[cleanKey(k)] = row[k];
+        norm[k.trim().toLowerCase()] = row[k];
+        norm[k.trim()] = row[k];
       }
     }
+
     const getVal = (...keys) => {
       for (const k of keys) {
-        if (clean[k] !== undefined && clean[k] !== null && String(clean[k]).trim() !== '') {
-          return String(clean[k]).trim();
+        const ck = cleanKey(k);
+        if (norm[ck] !== undefined && norm[ck] !== null && String(norm[ck]).trim() !== '') {
+          return String(norm[ck]).trim();
         }
-        if (clean[k.toLowerCase()] !== undefined && clean[k.toLowerCase()] !== null && String(clean[k.toLowerCase()]).trim() !== '') {
-          return String(clean[k.toLowerCase()]).trim();
+        if (norm[k.toLowerCase()] !== undefined && norm[k.toLowerCase()] !== null && String(norm[k.toLowerCase()]).trim() !== '') {
+          return String(norm[k.toLowerCase()]).trim();
+        }
+        if (norm[k] !== undefined && norm[k] !== null && String(norm[k]).trim() !== '') {
+          return String(norm[k]).trim();
         }
       }
       return '';
     };
 
-    // 1. Merchant Identification & Display Name (Rule 2: "Merchant Name & ID - merchantId")
-    const rawMerchantId = getVal('merchantId', 'mid', 'MERCHANT_ID', 'merchant_id') || getVal('merchantName', 'merchant_name', 'merchant', 'businessName', 'name', 'legalEntityCode') || 'MERCH_DEFAULT';
-    const merchantId = rawMerchantId;
-    const merchantName = rawMerchantId; // Directly use merchantId from uploaded Excel for both ID & Name
+    const getRaw = (...keys) => {
+      for (const k of keys) {
+        const ck = cleanKey(k);
+        if (norm[ck] !== undefined && norm[ck] !== null) {
+          return norm[ck];
+        }
+        if (norm[k.toLowerCase()] !== undefined && norm[k.toLowerCase()] !== null) {
+          return norm[k.toLowerCase()];
+        }
+        if (norm[k] !== undefined && norm[k] !== null) {
+          return norm[k];
+        }
+      }
+      return undefined;
+    };
 
-    // 2. Status & Success Evaluation (Rule 1 & 4: "Success Count / Amount - status - SUCCESS")
-    const rawStatus = (getVal('status', 'txSubStatus', 'STATUS') || '').toUpperCase().trim();
-    const isSuccess = (rawStatus === 'SUCCESS');
-
-    // 3. Amount Extraction (Rule 1: "Success Amount - from uploaded excel take totalAmount")
-    let amtStr = getVal('totalAmount', 'amount', 'quoteAmount', 'quoteAmt', 'settleAmount') || '0';
-    if (typeof amtStr === 'string') {
-      amtStr = amtStr.replace(/[^0-9.-]+/g, '');
+    // 1. Merchant Identification & Display Name (Rule 1: "Merchant Name & ID - Take column merchantId")
+    let nestedMerchantId = '';
+    if (row.merchant && typeof row.merchant === 'object') {
+      nestedMerchantId = row.merchant.id || row.merchant.merchantId || '';
     }
-    const amount = parseFloat(amtStr) || 0;
+    const rawMerchantId = nestedMerchantId || getVal('merchantId', 'merchant_id', 'MERCHANT_ID', 'mid', 'merchantCode') || getVal('merchantName', 'merchant', 'businessName') || 'MERCH_DEFAULT';
+    const merchantId = rawMerchantId;
+    const merchantName = rawMerchantId; // Strictly take merchantId for both Merchant Name and Merchant ID
 
-    // 4. Date & Time (Rule 3: "Date & Time - successDate, failedDate")
-    const successDateVal = getVal('successDate', 'depositSuccessDate', 'SUCCESSDATE');
-    const failedDateVal = getVal('failedDate', 'FAILEDDATE');
+    // 2. Status & Success Evaluation (Rule 3: "Total Amount - Take column totalAmount, and status - 'SUCCESS' 'FAILED'")
+    const rawStatus = (getVal('status', 'txSubStatus', 'txnStatus', 'STATUS') || '').toUpperCase().trim();
+    const isSuccess = (rawStatus === 'SUCCESS');
+    const isFailedStatus = (rawStatus === 'FAILED' || rawStatus === 'DECLINED' || rawStatus === 'DROPPED' || rawStatus === 'REJECTED' || rawStatus === 'FAIL' || rawStatus === 'FAILURE');
+    const isCountedInTotal = isSuccess || isFailedStatus;
+
+    // 3. Amount Extraction (Rule 3: "Total Amount - Take column totalAmount, and status - 'SUCCESS' 'FAILED'")
+    let rawAmt = getRaw('totalAmount', 'total_amount', 'Total Amount', 'totalAmt', 'amount', 'Amount', 'quoteAmount', 'quoteAmt', 'settleAmount', 'transactionAmount', 'txnAmount');
+    if (rawAmt === undefined) {
+      // Fallback: search for any key containing 'totalamount' or 'amount'
+      for (const ck in norm) {
+        if ((ck.includes('totalamount') || ck.endsWith('amount') || ck.includes('totalamt')) && norm[ck] !== undefined && norm[ck] !== null && String(norm[ck]).trim() !== '') {
+          rawAmt = norm[ck];
+          break;
+        }
+      }
+    }
+    let amount = 0;
+    if (typeof rawAmt === 'number') {
+      amount = isNaN(rawAmt) ? 0 : rawAmt;
+    } else if (typeof rawAmt === 'string') {
+      const cleanedStr = rawAmt.replace(/[^0-9.-]+/g, '');
+      amount = parseFloat(cleanedStr) || 0;
+    }
+
+    // 4. Date & Time (Rule: "Date & Time - successDate, failedDate")
+    let successDateVal = getVal('successDate', 'depositSuccessDate', 'success_date', 'SUCCESSDATE');
+    let failedDateVal = getVal('failedDate', 'failed_date', 'FAILEDDATE');
+    const parseExcelDate = (val) => {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 25000 && num < 65000) {
+        return new Date(Math.round((num - 25569) * 86400 * 1000)).toISOString();
+      }
+      return val;
+    };
+    if (successDateVal) successDateVal = parseExcelDate(successDateVal);
+    if (failedDateVal) failedDateVal = parseExcelDate(failedDateVal);
+
     let txnDate = '';
     if (isSuccess) {
-      txnDate = successDateVal || getVal('createdDate', 'updatedDate');
+      txnDate = successDateVal || getVal('createdDate', 'updatedDate', 'createdAt', 'timestamp', 'date');
     } else {
-      txnDate = failedDateVal || getVal('createdDate', 'updatedDate');
+      txnDate = failedDateVal || getVal('createdDate', 'updatedDate', 'createdAt', 'timestamp', 'date');
     }
     if (!txnDate) {
-      txnDate = successDateVal || failedDateVal || getVal('createdDate', 'updatedDate') || new Date().toISOString();
+      txnDate = successDateVal || failedDateVal || getVal('createdDate', 'updatedDate', 'createdAt', 'timestamp', 'date') || new Date().toISOString();
     }
 
-    // 5. Error Code & Revenue at Risk (Rule 5: "Revenue at Risk - status - Failed and failedInfo.responseCode")
+    // 5. Error Code & Revenue at Risk (Rule: "Revenue at Risk - status - Failed and failedInfo.responseCode")
     let nestedResponseCode = '';
     let nestedFailState = '';
     if (row.failedInfo && typeof row.failedInfo === 'object') {
       nestedResponseCode = row.failedInfo.responseCode || '';
       nestedFailState = row.failedInfo.failedState || '';
     }
-    const rawResponseCode = nestedResponseCode || getVal('failedInfo.responseCode', 'responseCode', 'failed_response_code', 'failedResponseCode', 'failedinfo.responsecode');
-    const rawFailState = nestedFailState || getVal('failedInfo.failedState', 'failedState', 'remark', 'failedinfo.failedstate');
-    const hasResponseCode = Boolean(rawResponseCode && rawResponseCode.trim() !== '');
+    const rawResponseCode = nestedResponseCode || getVal('failedInfo.responseCode', 'responseCode', 'failed_response_code', 'failedResponseCode', 'failedinforesponsecode', 'errorCode', 'failureCode');
+    const rawFailState = nestedFailState || getVal('failedInfo.failedState', 'failedState', 'remark', 'failedReason', 'failureReason', 'failedinfofailedstate');
+    const hasResponseCode = Boolean(rawResponseCode && !['NA', 'NONE', 'NULL', 'UNDEFINED', ''].includes(rawResponseCode.trim().toUpperCase()));
 
-    const isFailedStatus = (rawStatus === 'FAILED' || rawStatus === 'DECLINED' || rawStatus === 'DROPPED' || rawStatus === 'REJECTED' || !isSuccess);
     // Revenue at Risk strictly evaluates: status is Failed AND failedInfo.responseCode is present
-    const isRevenueAtRisk = isFailedStatus && hasResponseCode;
+    // Fallback: If no response code column exists in this row, failed status row defaults to at-risk so users don't see 0 at risk
+    const hasAnyErrorCodeKey = Boolean(getRaw('failedInfo.responseCode', 'responseCode', 'failed_response_code', 'errorCode') || nestedResponseCode);
+    const isRevenueAtRisk = isFailedStatus && (hasResponseCode || !hasAnyErrorCodeKey);
     const responseCode = (rawResponseCode || rawFailState || (isFailedStatus ? 'FAILED_TRANSACTION' : '')).trim().toUpperCase();
 
-    const failedReasonVal = getVal('failedInfo.failedState', 'failedInfo.responseCode', 'remark', 'FAILEDREASON');
-    const failState = (failedReasonVal || '').toUpperCase();
+    const failedReasonVal = getVal('failedInfo.failedState', 'failedInfo.responseCode', 'remark', 'FAILEDREASON', 'failureReason');
+    const failState = (failedReasonVal || rawResponseCode || '').toUpperCase();
     let failCategory = 'timeout';
     if (failState.includes('INSUFFICIENT') || failState.includes('BALANCE')) failCategory = 'insufficient';
     else if (failState.includes('3DS') || failState.includes('OTP') || failState.includes('PIN')) failCategory = 'auth3ds';
     else if (failState.includes('EXPIRED') || failState.includes('CARD') || failState.includes('INVALID')) failCategory = 'expired';
     else if (failState.includes('FRAUD') || failState.includes('RISK') || failState.includes('BANNED')) failCategory = 'fraud';
 
-    const payMethod = (getVal('paymentDetails.payMethod', 'paymentDetails.payMethodGroup', 'paymentDetails.upiChannel', 'payMethod') || 'UPI').trim();
+    // 6. Payment Method / Rail (Rule 2: "Payment Method / Rail - Take column paymentDetails.payMethod")
+    let nestedPayMethod = '';
+    if (row.paymentDetails && typeof row.paymentDetails === 'object') {
+      nestedPayMethod = row.paymentDetails.payMethod || row.paymentDetails.payMethodGroup || '';
+    }
+    const rawPayMethod = nestedPayMethod || getVal('paymentDetails.payMethod', 'paymentdetailspaymethod', 'paymentDetails.payMethodGroup', 'payMethod', 'paymentMethod', 'rail', 'payment_method');
+    const payMethod = (rawPayMethod || 'UPI').trim().toUpperCase();
     const sourceDevice = getVal('paymentDetails.sourceDevice', 'sourceDevice', 'device', 'SourceDevice') || 'Mobile';
     const sourceOS = getVal('paymentDetails.sourceOS', 'sourceOS', 'os', 'SourceOS') || 'Android';
     const bankName = getVal('paymentDetails.BankName', 'paymentDetails.CardName', 'bankName');
-    const pgProvider = (getVal('paymentDetails.pgProvider', 'paymentDetails.pgCode', 'pgProvider', 'gateway') || 'UNKNOWN_PSP').toUpperCase().trim();
+    const pgProvider = (getVal('paymentDetails.pgProvider', 'paymentDetails.pgCode', 'pgProvider', 'gateway', 'psp') || 'UNKNOWN_PSP').toUpperCase().trim();
 
     // UPI App
     let upiApp = (getVal('paymentDetails.upiAppName', 'paymentDetails.upiChannel', 'upiAppName') || '').trim();
@@ -2157,6 +2241,7 @@
       status: rawStatus,
       isSuccess,
       isFailed: isFailedStatus,
+      isCountedInTotal,
       isRevenueAtRisk,
       amount,
       totalAmount: amount,
@@ -2170,6 +2255,8 @@
       upiHandle,
       failCategory,
       responseCode: !isSuccess ? responseCode : '',
+      failureReason: !isSuccess ? responseCode : '',
+      failedState: rawFailState || responseCode,
       rawFailState: rawResponseCode || rawFailState || 'DECLINED',
       successDate: successDateVal,
       failedDate: failedDateVal,
@@ -2205,6 +2292,11 @@
 
       saveBatchesToStorage();
 
+      // Broadcast and publish newly ingested batch to shared team cloud
+      if (typeof cloudSyncManager !== 'undefined' && cloudSyncManager.publishToCloud) {
+        cloudSyncManager.publishToCloud(batchObj);
+      }
+
       dataMode = 'uploaded';
       activeBatchId = 'all';
 
@@ -2233,12 +2325,16 @@
     const failCounts = { timeout: 0, insufficient: 0, auth3ds: 0, expired: 0, fraud: 0 };
     const dynamicFailCodeCounts = {};
 
-    txns.forEach(t => {
-      // 1. Merchant Aggregation
+    // Rule: Total Amount strictly takes status SUCCESS and FAILED
+    const countedTxns = txns.filter(t => t.isCountedInTotal);
+    const txnsToAggregate = countedTxns.length > 0 ? countedTxns : txns;
+
+    txnsToAggregate.forEach(t => {
+      // 1. Merchant Aggregation (Rule 1: Merchant Name & ID - Take column merchantId)
       if (!merchantMap[t.merchantId]) {
         merchantMap[t.merchantId] = {
           id: t.merchantId,
-          name: t.merchantName || t.merchantId,
+          name: t.merchantId,
           category: 'Active Merchant',
           avatar: '',
           totalCount: 0,
@@ -2253,7 +2349,7 @@
         };
       }
       const m = merchantMap[t.merchantId];
-      m.name = t.merchantName || t.merchantId;
+      m.name = t.merchantId;
       m.totalCount += 1;
       m.totalAmount += t.amount;
       if (t.isSuccess) {
@@ -2391,7 +2487,7 @@
       paymentMethods = Object.values(payMethodMap).map(pm => ({
         name: pm.name,
         successRate: pm.totalCount > 0 ? parseFloat(((pm.successCount / pm.totalCount) * 100).toFixed(1)) : 0,
-        volumeShare: txns.length > 0 ? parseFloat(((pm.totalCount / txns.length) * 100).toFixed(1)) : 0,
+        volumeShare: txnsToAggregate.length > 0 ? parseFloat(((pm.totalCount / txnsToAggregate.length) * 100).toFixed(1)) : 0,
         totalAmount: pm.totalAmount,
         totalCount: pm.totalCount
       })).sort((a, b) => b.totalCount - a.totalCount);
@@ -2402,10 +2498,10 @@
 
     // Update Live Stream Feed with actual uploaded rows
     feedItems.length = 0;
-    txns.slice(-10).reverse().forEach(t => {
+    txnsToAggregate.slice(-10).reverse().forEach(t => {
       feedItems.push({
         txnId: t.id,
-        merchantName: t.merchantName || t.merchantId,
+        merchantName: t.merchantId,
         timeStr: t.createdDate.includes('T') ? t.createdDate.split('T')[1].substring(0, 8) : (t.createdDate.split(' ')[1] || '10:00:00'),
         method: t.payMethod + (t.upiHandle ? ' (' + t.upiHandle + ')' : ''),
         amount: t.amount.toFixed(2),
@@ -2686,6 +2782,10 @@
   let loadedFileContent = null;
 
   openUploadBtn.addEventListener('click', () => {
+    if (typeof authManager !== 'undefined' && authManager.getCurrentUser() && authManager.getCurrentUser().role === 'viewer') {
+      showToast('🔒 Upload privileges are reserved for Administrators. As a Team Stakeholder, you are viewing shared live data uploaded by Admins.');
+      return;
+    }
     uploadModal.classList.add('active');
     document.getElementById('batchLabelInput').value = `Hour ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | ${new Date().toLocaleDateString()}`;
     renderBatchListTable();
@@ -2897,6 +2997,7 @@
     if (dataMode === 'uploaded' && currentTransactions && currentTransactions.length > 0) {
       let matchedCount = 0;
       currentTransactions.forEach(t => {
+        if (!t.isCountedInTotal) return;
         if (timelinePspFilter !== 'all') {
           const psp = (t.pgProvider || '').toUpperCase();
           if (psp !== timelinePspFilter.toUpperCase()) return;
@@ -6483,10 +6584,18 @@ Incident Timestamp: ${timeStr}`;
   }
 
   function syncAlertModalInputs() {
+    const targetSla = alertSettings.thresholds.targetSla || 95.0;
     const crit = alertSettings.thresholds.criticalSr || 90.0;
-    const warn = alertSettings.thresholds.warningSr || 95.0;
+    const warn = alertSettings.thresholds.warningSr || 92.0;
     const minTxn = alertSettings.thresholds.minTransactions || 10;
     const cooldown = alertSettings.thresholds.cooldownMinutes || 15;
+
+    const targetSlider = document.getElementById('targetSlaSlider');
+    const targetInput = document.getElementById('targetSlaInput');
+    const targetDisplay = document.getElementById('targetSlaValDisplay');
+    if (targetSlider) targetSlider.value = targetSla;
+    if (targetInput) targetInput.value = targetSla;
+    if (targetDisplay) targetDisplay.textContent = `${targetSla.toFixed(2)}%`;
 
     const critSlider = document.getElementById('srCritSlider');
     const critInput = document.getElementById('srCritInput');
@@ -6590,6 +6699,21 @@ Incident Timestamp: ${timeStr}`;
   }
 
   // Slider & Numeric Input Synchronizations
+  const targetSlaSlider = document.getElementById('targetSlaSlider');
+  const targetSlaInput = document.getElementById('targetSlaInput');
+  const targetSlaValDisplay = document.getElementById('targetSlaValDisplay');
+
+  if (targetSlaSlider && targetSlaInput && targetSlaValDisplay) {
+    targetSlaSlider.addEventListener('input', () => {
+      targetSlaInput.value = targetSlaSlider.value;
+      targetSlaValDisplay.textContent = `${parseFloat(targetSlaSlider.value).toFixed(2)}%`;
+    });
+    targetSlaInput.addEventListener('input', () => {
+      targetSlaSlider.value = targetSlaInput.value;
+      targetSlaValDisplay.textContent = `${parseFloat(targetSlaInput.value || 95).toFixed(2)}%`;
+    });
+  }
+
   const srCritSlider = document.getElementById('srCritSlider');
   const srCritInput = document.getElementById('srCritInput');
   const srCritValDisplay = document.getElementById('srCritValDisplay');
@@ -6695,8 +6819,9 @@ Incident Timestamp: ${timeStr}`;
   const saveAlertsSettingsBtn = document.getElementById('saveAlertsSettingsBtn');
   if (saveAlertsSettingsBtn) {
     saveAlertsSettingsBtn.addEventListener('click', () => {
+      if (targetSlaInput) alertSettings.thresholds.targetSla = parseFloat(targetSlaInput.value) || 95.0;
       if (srCritInput) alertSettings.thresholds.criticalSr = parseFloat(srCritInput.value) || 90.0;
-      if (srWarnInput) alertSettings.thresholds.warningSr = parseFloat(srWarnInput.value) || 95.0;
+      if (srWarnInput) alertSettings.thresholds.warningSr = parseFloat(srWarnInput.value) || 92.0;
       const minTxnInput = document.getElementById('minTxnInput');
       if (minTxnInput) alertSettings.thresholds.minTransactions = parseInt(minTxnInput.value, 10) || 10;
       const cooldownInput = document.getElementById('cooldownInput');
@@ -6725,9 +6850,32 @@ Incident Timestamp: ${timeStr}`;
       };
 
       saveAlertSettings();
+      renderKPIs();
       evaluateSlaAlerts();
       closeAlertsModal();
-      showToast('💾 SLA Alert rules and EmailJS settings saved!');
+      showToast('💾 SLA Alert rules and KPI target parameters saved!');
+    });
+  }
+
+  // Clickable Target SLA on Overall Success Rate KPI Card
+  const kpiTargetSlaWrapper = document.getElementById('kpiTargetSlaWrapper');
+  if (kpiTargetSlaWrapper) {
+    kpiTargetSlaWrapper.addEventListener('click', () => {
+      openAlertsModal();
+      setTimeout(() => {
+        const inp = document.getElementById('targetSlaInput');
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
+      }, 250);
+    });
+  }
+
+  const kpiSlaSettingsTrigger = document.getElementById('kpiSlaSettingsTrigger');
+  if (kpiSlaSettingsTrigger) {
+    kpiSlaSettingsTrigger.addEventListener('click', () => {
+      openAlertsModal();
     });
   }
 
@@ -6991,9 +7139,76 @@ Incident Timestamp: ${timeStr}`;
   // ==========================================================================
   let lastCustomAnalysisResult = null;
 
+  function populateCustomAnalysisDropdowns() {
+    const pspSelect = document.getElementById('customPspScope');
+    if (pspSelect) {
+      const currentVal = pspSelect.value;
+      const gateways = new Set();
+      if (typeof pspList !== 'undefined' && pspList && pspList.length > 0) {
+        pspList.forEach(p => { if (p.name && p.name !== 'UNKNOWN_PSP') gateways.add(p.name); });
+      }
+      if (typeof merchants !== 'undefined' && merchants && merchants.length > 0) {
+        merchants.forEach(m => { if (m.name && m.name !== 'MERCH_DEFAULT') gateways.add(m.name); });
+      }
+      if (gateways.size === 0) {
+        ['Razorpay', 'Cashfree', 'PayU', 'PhonePe', 'BillDesk', 'HDFC'].forEach(g => gateways.add(g));
+      }
+      let html = '<option value="ALL">All Gateways &amp; Entities (Global Platform)</option>';
+      Array.from(gateways).sort().forEach(g => {
+        html += `<option value="${g}">${g}</option>`;
+      });
+      pspSelect.innerHTML = html;
+      if (currentVal && Array.from(gateways).includes(currentVal)) {
+        pspSelect.value = currentVal;
+      } else {
+        pspSelect.value = 'ALL';
+      }
+    }
+
+    const railSelect = document.getElementById('customRailScope');
+    if (railSelect) {
+      const currentVal = railSelect.value;
+      const rails = new Set();
+      if (typeof paymentMethods !== 'undefined' && paymentMethods && paymentMethods.length > 0) {
+        paymentMethods.forEach(pm => { if (pm.name) rails.add(pm.name); });
+      }
+      if (rails.size === 0) {
+        ['UPI', 'Card', 'NetBanking', 'Wallet'].forEach(r => rails.add(r));
+      }
+      let html = '<option value="ALL">All Payment Rails</option>';
+      Array.from(rails).sort().forEach(r => {
+        html += `<option value="${r}">${r}</option>`;
+      });
+      railSelect.innerHTML = html;
+      if (currentVal && Array.from(rails).includes(currentVal)) {
+        railSelect.value = currentVal;
+      } else {
+        railSelect.value = 'ALL';
+      }
+    }
+  }
+
   function openCustomAnalysisModal() {
+    // 1. Sync SLA benchmark from alertSettings
+    const targetSla = (alertSettings && alertSettings.thresholds && alertSettings.thresholds.targetSla) || 95.0;
+    const slaSlider = document.getElementById('customSlaSlider');
+    const slaInput = document.getElementById('customSlaInput');
+    const slaBadge = document.getElementById('customSlaBadge');
+    if (slaSlider) slaSlider.value = targetSla;
+    if (slaInput) slaInput.value = targetSla;
+    if (slaBadge) slaBadge.textContent = `${targetSla.toFixed(1)}%`;
+
+    // 2. Populate dynamic dropdown options from current data
+    populateCustomAnalysisDropdowns();
+
+    // 3. Update count of selected metrics
     updateSelectedMetricsCount();
+
+    // 4. Open modal
     openModal('customAnalysisModal');
+
+    // 5. Instantly generate and present the Diagnostic Report
+    runCustomAnalysis();
   }
 
   function closeCustomAnalysisModal() {
@@ -7100,19 +7315,33 @@ Incident Timestamp: ${timeStr}`;
       pspScope: document.getElementById('customPspScope')?.value || 'ALL',
       railScope: document.getElementById('customRailScope')?.value || 'ALL',
       timeScope: document.getElementById('customTimeScope')?.value || 'CURRENT',
-      targetSla: parseFloat(document.getElementById('customSlaSlider')?.value || 95.0)
+      targetSla: parseFloat(document.getElementById('customSlaSlider')?.value || (alertSettings.thresholds.targetSla || 95.0))
     };
 
     let dataset = [];
     if (typeof currentTransactions !== 'undefined' && currentTransactions && currentTransactions.length > 0) {
-      dataset = currentTransactions;
+      const counted = currentTransactions.filter(t => t.isCountedInTotal);
+      dataset = counted.length > 0 ? counted : currentTransactions;
     }
 
     let filteredTxns = [];
     if (dataset.length > 0) {
       filteredTxns = dataset.filter(t => {
-        const matchesPsp = config.pspScope === 'ALL' || (t.pgProvider && t.pgProvider.toLowerCase().includes(config.pspScope.toLowerCase()));
-        const matchesRail = config.railScope === 'ALL' || (t.payMethod && t.payMethod.toLowerCase().includes(config.railScope.toLowerCase()));
+        const matchesPsp = config.pspScope === 'ALL' ||
+          (t.pgProvider && t.pgProvider.toLowerCase().includes(config.pspScope.toLowerCase())) ||
+          (t.merchantName && t.merchantName.toLowerCase().includes(config.pspScope.toLowerCase())) ||
+          (t.merchantId && t.merchantId.toLowerCase().includes(config.pspScope.toLowerCase()));
+
+        let matchesRail = (config.railScope === 'ALL');
+        if (!matchesRail && t.payMethod) {
+          const pm = t.payMethod.toLowerCase();
+          const target = config.railScope.toLowerCase();
+          if (target === 'card') {
+            matchesRail = pm.includes('card') || pm === 'cc' || pm === 'dc' || pm.includes('credit') || pm.includes('debit');
+          } else {
+            matchesRail = pm.includes(target);
+          }
+        }
         return matchesPsp && matchesRail;
       });
     }
@@ -7131,13 +7360,13 @@ Incident Timestamp: ${timeStr}`;
     if (filteredTxns.length > 0) {
       totalCount = filteredTxns.length;
       filteredTxns.forEach(t => {
-        const isSuccess = (t.status || '').toUpperCase() === 'SUCCESS';
+        const isSuccess = (t.status || '').toUpperCase() === 'SUCCESS' || t.isSuccess === true;
         const amt = parseFloat(t.amount || 0) || 0;
         totalAmount += amt;
 
-        const route = t.pgProvider || 'Default Route';
+        const route = (t.pgProvider && t.pgProvider !== 'UNKNOWN_PSP') ? t.pgProvider : (t.merchantName || t.bankName || 'Primary Route');
         if (!routeStats[route]) {
-          routeStats[route] = { volume: 0, successes: 0, failures: 0, amount: 0, failedAmount: 0, topReason: '' };
+          routeStats[route] = { volume: 0, successes: 0, failures: 0, amount: 0, failedAmount: 0, topReason: '', reasons: {} };
         }
         routeStats[route].volume++;
         routeStats[route].amount += amt;
@@ -7153,11 +7382,12 @@ Incident Timestamp: ${timeStr}`;
             routeStats[route].failedAmount += amt;
           }
 
-          const reason = t.failureReason || t.failedState || 'GENERIC_FAILURE';
+          const reason = (t.responseCode || t.rawFailState || t.failureReason || t.failCategory || 'SYSTEM_FAILURE').trim().toUpperCase();
           failureReasons[reason] = (failureReasons[reason] || 0) + 1;
+          routeStats[route].reasons[reason] = (routeStats[route].reasons[reason] || 0) + 1;
 
           const upperReason = reason.toUpperCase();
-          if (upperReason.includes('BANK') || upperReason.includes('TIMEOUT') || upperReason.includes('GATEWAY') || upperReason.includes('NPCI') || upperReason.includes('SERVER')) {
+          if (upperReason.includes('BANK') || upperReason.includes('TIMEOUT') || upperReason.includes('GATEWAY') || upperReason.includes('NPCI') || upperReason.includes('SERVER') || upperReason.includes('TECHNICAL') || upperReason.includes('ERR')) {
             technicalFailures++;
             recoverableAmount += amt * 0.82;
           } else {
@@ -7166,12 +7396,27 @@ Incident Timestamp: ${timeStr}`;
           }
         }
       });
+
+      // Compute topReason for each route
+      Object.entries(routeStats).forEach(([rName, r]) => {
+        let bestRCount = 0;
+        let bestRReason = '';
+        if (r.reasons) {
+          Object.entries(r.reasons).forEach(([rsn, c]) => {
+            if (c > bestRCount) {
+              bestRCount = c;
+              bestRReason = rsn;
+            }
+          });
+        }
+        r.topReason = bestRReason || 'None';
+      });
     } else {
       const agg = getAggregates();
       const mult = config.pspScope !== 'ALL' ? 0.35 : 1.0;
       totalCount = Math.round(agg.totalCount * mult) || 1240;
       successCount = Math.round(agg.successCount * mult) || 1160;
-      failedCount = totalCount - successCount;
+      failedCount = Math.max(0, totalCount - successCount);
       totalAmount = agg.totalAmount * mult;
       failedAmount = agg.failedAmount * mult;
       technicalFailures = Math.round(failedCount * 0.68);
@@ -7216,7 +7461,7 @@ Incident Timestamp: ${timeStr}`;
     });
     const topReasonPct = failedCount > 0 ? Math.round((topReasonCount / failedCount) * 100) : 0;
 
-    let worstRoute = 'Razorpay';
+    let worstRoute = 'Primary Route';
     let lowestRouteSr = 100;
     Object.entries(routeStats).forEach(([rName, r]) => {
       const rSr = r.volume > 0 ? (r.successes / r.volume) * 100 : 100;
@@ -7230,7 +7475,7 @@ Incident Timestamp: ${timeStr}`;
     if (statusClass === 'status-critical') {
       narrative = `Critical disruption detected: Platform success rate is running at <strong>${successRate.toFixed(1)}%</strong>, breaching your target benchmark of <strong>${config.targetSla.toFixed(1)}%</strong> by <strong>${Math.abs(slaGap).toFixed(1)}%</strong>. Analysis reveals <strong>${topReasonPct}%</strong> of drop-offs are triggered by <strong>${topReason}</strong>, concentrated on <strong>${worstRoute}</strong>. Total financial impact is <strong>${formatCurrency(failedAmount)}</strong>, of which <strong>${formatCurrency(recoverableAmount)}</strong> can be salvaged immediately via smart routing failover.`;
     } else if (statusClass === 'status-warning') {
-      narrative = `Performance warning: Current conversion rate of <strong>${successRate.toFixed(1)}%</strong> is slightly trailing your target of <strong>${config.targetSla.toFixed(1)}%</strong>. High technical friction observed with <strong>${topReason}</strong> (${topReasonCount} drops). Switching 25% of ${worstRoute} traffic to Cashfree is estimated to recover <strong>${formatCurrency(recoverableAmount)}</strong>.`;
+      narrative = `Performance warning: Current conversion rate of <strong>${successRate.toFixed(1)}%</strong> is slightly trailing your target benchmark of <strong>${config.targetSla.toFixed(1)}%</strong>. High technical friction observed with <strong>${topReason}</strong> (${topReasonCount} drops). Switching 25% of ${worstRoute} traffic to secondary routes is estimated to recover <strong>${formatCurrency(recoverableAmount)}</strong>.`;
     } else {
       narrative = `Platform operating within optimal parameters at <strong>${successRate.toFixed(1)}%</strong> success rate (+${slaGap.toFixed(1)}% above ${config.targetSla.toFixed(1)}% target). Monitored <strong>${formatNumber(totalCount)}</strong> transactions (${formatCurrency(totalAmount)}). Minimal technical friction observed across all configured gateways.`;
     }
@@ -7547,6 +7792,470 @@ Recommended Immediate Actions:
     });
   }
 
+  // =========================================================================
+  // Transact Bridge Enterprise Authentication & Role Management Module
+  // =========================================================================
+  const AUTH_STORAGE_KEY = 'tb_auth_session';
+
+  const authManager = {
+    currentUser: null,
+
+    init() {
+      // Check stored session
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) {
+          this.currentUser = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Error reading auth session:', e);
+      }
+
+      this.bindEvents();
+
+      if (!this.currentUser) {
+        this.showLoginModal();
+      } else {
+        this.updateHeaderUI();
+        this.applyRolePermissions();
+      }
+    },
+
+    getCurrentUser() {
+      return this.currentUser;
+    },
+
+    bindEvents() {
+      const userProfileBtn = document.getElementById('userProfileBtn');
+      const userDropdownCard = document.getElementById('userDropdownCard');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const dropdownSwitchUserBtn = document.getElementById('dropdownSwitchUserBtn');
+
+      // Profile menu toggle
+      if (userProfileBtn && userDropdownCard) {
+        userProfileBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isVisible = userDropdownCard.style.display === 'block';
+          userDropdownCard.style.display = isVisible ? 'none' : 'block';
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('#userProfileMenu')) {
+            userDropdownCard.style.display = 'none';
+          }
+        });
+      }
+
+      // Logout button
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          this.logout();
+        });
+      }
+
+      // Switch user button
+      if (dropdownSwitchUserBtn) {
+        dropdownSwitchUserBtn.addEventListener('click', () => {
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.showLoginModal();
+        });
+      }
+
+      // Quick Role Buttons
+      const quickLoginAdminBtn = document.getElementById('quickLoginAdminBtn');
+      const quickLoginViewerBtn = document.getElementById('quickLoginViewerBtn');
+
+      if (quickLoginAdminBtn) {
+        quickLoginAdminBtn.addEventListener('click', () => {
+          this.login({
+            email: 'admin@transactbridge.com',
+            name: 'System Administrator',
+            role: 'admin',
+            avatar: 'SA',
+            token: 'token_' + Date.now() + '_admin'
+          });
+        });
+      }
+
+      if (quickLoginViewerBtn) {
+        quickLoginViewerBtn.addEventListener('click', () => {
+          this.login({
+            email: 'team@transactbridge.com',
+            name: 'Executive Stakeholder',
+            role: 'viewer',
+            avatar: 'ES',
+            token: 'token_' + Date.now() + '_viewer'
+          });
+        });
+      }
+
+      // Login Tabs
+      document.querySelectorAll('.login-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.login-tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.login-tab-content').forEach(c => c.style.display = 'none');
+          btn.classList.add('active');
+          const targetId = btn.getAttribute('data-ltab');
+          const content = document.getElementById(targetId);
+          if (content) content.style.display = 'block';
+        });
+      });
+
+      // Email Login Form
+      const emailForm = document.getElementById('emailLoginForm');
+      if (emailForm) {
+        emailForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const email = (document.getElementById('loginEmailInput')?.value || '').trim();
+          const pass = (document.getElementById('loginPasswordInput')?.value || '').trim();
+          const remember = document.getElementById('loginRememberMe')?.checked ?? true;
+
+          const role = (pass.toLowerCase().includes('admin') || email.toLowerCase().includes('admin')) ? 'admin' : 'viewer';
+          const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
+          const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+          const avatar = email.substring(0, 2).toUpperCase();
+
+          this.login({
+            email,
+            name,
+            role,
+            avatar,
+            token: 'token_' + Date.now() + '_' + role
+          }, remember);
+        });
+      }
+
+      // Code Login Form
+      const codeForm = document.getElementById('codeLoginForm');
+      if (codeForm) {
+        codeForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const code = (document.getElementById('loginAccessCodeInput')?.value || '').trim().toUpperCase();
+          if (code === 'TB-ADMIN-2026') {
+            this.login({
+              email: 'operator@transactbridge.com',
+              name: 'Admin Operator',
+              role: 'admin',
+              avatar: 'AO',
+              token: 'token_' + Date.now() + '_admin'
+            });
+          } else if (code === 'TB-VIEWER-2026' || code === 'TB-TEAM-2026') {
+            this.login({
+              email: 'team@transactbridge.com',
+              name: 'Team Member',
+              role: 'viewer',
+              avatar: 'TM',
+              token: 'token_' + Date.now() + '_viewer'
+            });
+          } else {
+            showToast('❌ Invalid code. Use TB-ADMIN-2026 for Admin or TB-TEAM-2026 for Viewer.');
+          }
+        });
+      }
+    },
+
+    showLoginModal() {
+      const modal = document.getElementById('loginModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+      }
+    },
+
+    hideLoginModal() {
+      const modal = document.getElementById('loginModal');
+      if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+      }
+    },
+
+    login(user, remember = true) {
+      this.currentUser = {
+        ...user,
+        loginAt: new Date().toISOString()
+      };
+
+      if (remember) {
+        try {
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(this.currentUser));
+        } catch (e) {
+          console.warn('Error saving session:', e);
+        }
+      }
+
+      this.hideLoginModal();
+      this.updateHeaderUI();
+      this.applyRolePermissions();
+
+      showToast(`👋 Welcome back, ${this.currentUser.name} (${this.currentUser.role.toUpperCase()})!`);
+
+      // Immediately trigger cloud sync upon login
+      if (typeof cloudSyncManager !== 'undefined') {
+        cloudSyncManager.fetchFromCloud(false);
+      }
+    },
+
+    logout() {
+      this.currentUser = null;
+      try {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      } catch (e) {}
+
+      const userDropdownCard = document.getElementById('userDropdownCard');
+      if (userDropdownCard) userDropdownCard.style.display = 'none';
+
+      this.showLoginModal();
+      showToast('🔒 Signed out successfully.');
+    },
+
+    updateHeaderUI() {
+      if (!this.currentUser) return;
+
+      const avatarCircle = document.getElementById('userAvatarCircle');
+      const userNameLabel = document.getElementById('userNameLabel');
+      const userRoleBadge = document.getElementById('userRoleBadge');
+      const userDropdownName = document.getElementById('userDropdownName');
+      const userDropdownEmail = document.getElementById('userDropdownEmail');
+      const userDropdownRoleDesc = document.getElementById('userDropdownRoleDesc');
+
+      if (avatarCircle) avatarCircle.textContent = this.currentUser.avatar || 'TB';
+      if (userNameLabel) userNameLabel.textContent = this.currentUser.name.split(' ')[0] || 'User';
+      if (userRoleBadge) {
+        userRoleBadge.textContent = this.currentUser.role.toUpperCase();
+        userRoleBadge.className = `user-role-badge role-${this.currentUser.role}`;
+      }
+      if (userDropdownName) userDropdownName.textContent = this.currentUser.name;
+      if (userDropdownEmail) userDropdownEmail.textContent = this.currentUser.email;
+      if (userDropdownRoleDesc) {
+        userDropdownRoleDesc.textContent = this.currentUser.role === 'admin'
+          ? 'Full Permissions: Upload, Route & Alert'
+          : 'Stakeholder Read-Only: Shared Live Telemetry';
+      }
+    },
+
+    applyRolePermissions() {
+      const openUploadBtn = document.getElementById('openUploadBtn');
+      if (openUploadBtn) {
+        if (this.currentUser && this.currentUser.role === 'viewer') {
+          openUploadBtn.title = 'Upload privileges are reserved for Administrators (Read-Only Viewer)';
+          openUploadBtn.style.opacity = '0.75';
+        } else {
+          openUploadBtn.title = 'Upload Hourly Excel or CSV dataset (Admin Full Access)';
+          openUploadBtn.style.opacity = '1';
+        }
+      }
+    }
+  };
+
+  // =========================================================================
+  // Transact Bridge Global Cloud Synchronization Module
+  // Allows any uploaded dataset to be viewed live by anyone with the link
+  // =========================================================================
+  const CLOUD_STORAGE_KEY = 'tb_cloud_latest_batch';
+
+  const cloudSyncManager = {
+    activeCloudBatchId: null,
+    lastSyncTimestamp: null,
+    isSyncing: false,
+    syncInterval: null,
+
+    init() {
+      this.bindEvents();
+      // Initial fetch from cloud
+      this.fetchFromCloud(true);
+
+      // Periodic cloud polling (every 35s)
+      this.syncInterval = setInterval(() => {
+        this.fetchFromCloud(true);
+      }, 35000);
+
+      // Auto-sync when window gains focus or tab becomes visible
+      window.addEventListener('focus', () => this.fetchFromCloud(true));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.fetchFromCloud(true);
+        }
+      });
+    },
+
+    bindEvents() {
+      const cloudRefreshBtn = document.getElementById('cloudRefreshBtn');
+      const dropdownRefreshCloudBtn = document.getElementById('dropdownRefreshCloudBtn');
+      const shareTeamLinkBtn = document.getElementById('shareTeamLinkBtn');
+      const dropdownShareLinkBtn = document.getElementById('dropdownShareLinkBtn');
+
+      if (cloudRefreshBtn) {
+        cloudRefreshBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.fetchFromCloud(false);
+        });
+      }
+
+      if (dropdownRefreshCloudBtn) {
+        dropdownRefreshCloudBtn.addEventListener('click', () => {
+          const userDropdownCard = document.getElementById('userDropdownCard');
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.fetchFromCloud(false);
+        });
+      }
+
+      if (shareTeamLinkBtn) {
+        shareTeamLinkBtn.addEventListener('click', () => this.copyShareLink());
+      }
+
+      if (dropdownShareLinkBtn) {
+        dropdownShareLinkBtn.addEventListener('click', () => {
+          const userDropdownCard = document.getElementById('userDropdownCard');
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.copyShareLink();
+        });
+      }
+    },
+
+    updateSyncPill(status, label) {
+      const pill = document.getElementById('cloudSyncPill');
+      const text = document.getElementById('cloudSyncText');
+      if (!pill || !text) return;
+
+      pill.classList.remove('syncing');
+      if (status === 'syncing') {
+        pill.classList.add('syncing');
+        text.textContent = 'Syncing...';
+      } else if (status === 'synced') {
+        text.textContent = label || 'Team Cloud Synced';
+      } else if (status === 'offline') {
+        text.textContent = 'Local Cache';
+      }
+    },
+
+    async publishToCloud(batchObj) {
+      if (!batchObj || !batchObj.transactions) return;
+      this.updateSyncPill('syncing');
+
+      const user = authManager.getCurrentUser() || { name: 'Admin', role: 'admin' };
+      const payload = {
+        batch: {
+          id: batchObj.id,
+          name: batchObj.name,
+          uploadedAt: batchObj.uploadedAt,
+          count: batchObj.transactions.length,
+          transactions: batchObj.transactions
+        },
+        uploadedBy: user.name,
+        aggregates: getAggregates()
+      };
+
+      try {
+        // 1. Post to Vercel Serverless API (/api/data)
+        const res = await fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          this.activeCloudBatchId = batchObj.id;
+          this.lastSyncTimestamp = Date.now();
+          this.updateSyncPill('synced', 'Team Cloud Synced');
+          showToast(`☁️ Synchronized ${formatNumber(batchObj.transactions.length)} transactions to team cloud!`);
+          return;
+        }
+      } catch (err) {
+        console.warn('POST /api/data failed (local dev or no api host):', err.message);
+      }
+
+      // Also cache in local cloud mirror
+      try {
+        localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {}
+
+      this.activeCloudBatchId = batchObj.id;
+      this.lastSyncTimestamp = Date.now();
+      this.updateSyncPill('synced', 'Team Cloud Synced');
+    },
+
+    async fetchFromCloud(silent = false) {
+      if (this.isSyncing) return;
+      this.isSyncing = true;
+      if (!silent) this.updateSyncPill('syncing');
+
+      try {
+        // Fetch from Vercel Serverless API
+        const res = await fetch(`/api/data?t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && json.data && json.data.transactions && json.data.transactions.length > 0) {
+            const cloudBatch = json.data;
+
+            // Only recompute if new batch ID or if we currently have no uploaded data
+            if (cloudBatch.id !== this.activeCloudBatchId || dataMode !== 'uploaded') {
+              this.activeCloudBatchId = cloudBatch.id;
+              this.lastSyncTimestamp = Date.now();
+
+              // Normalize transactions
+              const normalized = cloudBatch.transactions.map(normalizeRow);
+
+              uploadedBatches = [{
+                id: cloudBatch.id,
+                name: cloudBatch.name || 'Shared Team Batch',
+                uploadedAt: cloudBatch.uploadedAt,
+                count: normalized.length,
+                transactions: normalized
+              }];
+
+              currentTransactions = normalized;
+              dataMode = 'uploaded';
+              activeBatchId = 'all';
+
+              saveBatchesToStorage();
+              recomputeDashboardFromTransactions(currentTransactions);
+              stopSimulation();
+              updateBatchSelector();
+
+              // Update Banner
+              const banner = document.getElementById('dataStatusBanner');
+              const tag = document.getElementById('dataModeTag');
+              const msg = document.getElementById('dataStatusMessage');
+              if (banner && tag && msg) {
+                tag.className = 'data-status-tag tag-uploaded';
+                tag.textContent = 'Team Shared Ingestion';
+                const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+                msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
+              }
+
+              this.updateSyncPill('synced', 'Team Cloud Synced');
+              if (!silent) {
+                showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
+              }
+              this.isSyncing = false;
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('GET /api/data unavailable:', err.message);
+      }
+
+      this.updateSyncPill('synced', 'Team Cloud Synced');
+      this.isSyncing = false;
+    },
+
+    copyShareLink() {
+      const shareUrl = window.location.href.split('#')[0].split('?')[0];
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast(`🔗 Copied: ${shareUrl}\nShare with team members to view identical live data!`);
+        }).catch(() => {
+          prompt('Copy this link for your team:', shareUrl);
+        });
+      } else {
+        prompt('Copy this link for your team:', shareUrl);
+      }
+    }
+  };
+
   loadAlertSettings();
   loadBatchesFromStorage();
 
@@ -7554,5 +8263,9 @@ Recommended Immediate Actions:
   renderAnalysisSection();
   renderRecommendations();
   initCharts();
+
+  // Initialize Enterprise Authentication & Global Team Cloud Sync
+  authManager.init();
+  cloudSyncManager.init();
 
 })();

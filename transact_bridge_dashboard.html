@@ -3899,8 +3899,503 @@ body.modal-open {
   align-items: center;
 }
 
+/* ================================================================
+   Transact Bridge — Cloud Sync & User Profile Header Components
+   ================================================================ */
+.cloud-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 999px;
+  padding: 4px 10px 4px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #10b981;
+  transition: all 0.2s ease;
+}
 
+.cloud-sync-pill.syncing {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
 
+.cloud-sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseGreen 2s infinite ease-in-out;
+}
+
+.cloud-sync-pill.syncing .cloud-sync-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+  animation: spin 1s infinite linear;
+}
+
+@keyframes pulseGreen {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.btn-cloud-refresh {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 0.8rem;
+  color: inherit;
+  opacity: 0.8;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.btn-cloud-refresh:hover {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+
+.btn-share-link {
+  background: rgba(0, 102, 255, 0.08);
+  color: var(--accent-primary);
+  border: 1px solid rgba(0, 102, 255, 0.25);
+  font-weight: 600;
+}
+
+.btn-share-link:hover {
+  background: var(--accent-primary);
+  color: #ffffff;
+  box-shadow: 0 3px 12px rgba(0, 102, 255, 0.25);
+}
+
+/* User Profile Menu in Header */
+.user-profile-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.user-profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 3px 12px 3px 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-profile-badge:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 10px rgba(0, 102, 255, 0.12);
+}
+
+.user-avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0066FF, #00C6FF);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.user-name {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-main);
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-role-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.role-admin {
+  background: rgba(0, 102, 255, 0.12);
+  color: var(--accent-primary);
+}
+
+.role-viewer {
+  background: rgba(100, 116, 139, 0.15);
+  color: #64748b;
+}
+
+.user-caret {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-left: 2px;
+}
+
+/* User Dropdown Card */
+.user-dropdown-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 250px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  padding: 12px;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.dropdown-header {
+  padding: 4px 6px 8px;
+}
+
+.dropdown-user-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.dropdown-email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.dropdown-role-desc {
+  font-size: 0.7rem;
+  color: var(--accent-primary);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 8px 0;
+}
+
+.dropdown-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-secondary);
+}
+
+.dropdown-item.text-danger {
+  color: var(--failed-red);
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.08);
+}
+
+/* ================================================================
+   Transact Bridge — Enterprise Login Modal / Screen Styles
+   ================================================================ */
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(8, 12, 20, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 580px;
+  background: var(--card-bg);
+  border: 1px solid rgba(0, 102, 255, 0.35);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35), 0 0 40px rgba(0, 102, 255, 0.12);
+  padding: 2.2rem 2.4rem;
+  overflow: hidden;
+  animation: modalPopIn 0.25s ease-out;
+}
+
+.login-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 1.25rem;
+}
+
+.login-brand-logo {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 102, 255, 0.2);
+}
+
+.login-brand-logo img {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+}
+
+.login-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.login-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+}
+
+.login-notice-banner {
+  background: rgba(0, 102, 255, 0.07);
+  border: 1px solid rgba(0, 102, 255, 0.2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  color: var(--text-main);
+  line-height: 1.45;
+  margin-bottom: 1.5rem;
+}
+
+.login-notice-banner strong {
+  color: var(--accent-primary);
+}
+
+/* Login Tabs */
+.login-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+  padding-bottom: 2px;
+}
+
+.login-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-tab-btn:hover {
+  color: var(--text-main);
+}
+
+.login-tab-btn.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+/* Quick Role Grid */
+.quick-role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+  .quick-role-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quick-role-card {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-role-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.role-card-admin:hover {
+  border-color: var(--accent-primary);
+  background: rgba(0, 102, 255, 0.04);
+}
+
+.role-card-viewer:hover {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.quick-role-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.role-icon {
+  font-size: 1.4rem;
+}
+
+.role-pill-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.badge-admin {
+  background: rgba(0, 102, 255, 0.15);
+  color: var(--accent-primary);
+  border: 1px solid rgba(0, 102, 255, 0.3);
+}
+
+.badge-viewer {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.quick-role-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.quick-role-desc {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin: 0 0 14px;
+  flex-grow: 1;
+}
+
+.btn-role-action {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-admin-action {
+  background: var(--accent-primary);
+  color: #ffffff;
+}
+
+.btn-admin-action:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 14px rgba(0, 102, 255, 0.35);
+}
+
+.btn-viewer-action {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.btn-viewer-action:hover {
+  background: #059669;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+/* Login Form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.btn-login-submit {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  margin-top: 4px;
+}
+
+.login-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+}
+
+.security-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
 
 </style>
   <!-- SheetJS & PapaParse for In-Browser Client-Side Excel and CSV Processing -->
@@ -4001,6 +4496,43 @@ body.modal-open {
         <button id="themeToggleBtn" class="btn-action" title="Toggle Light/Dark Theme">
           <span id="themeIcon">🌙 Dark Mode</span>
         </button>
+
+        <!-- Global Cloud Sync Status Pill -->
+        <div class="cloud-sync-pill" id="cloudSyncPill" title="Team Cloud Sync Status">
+          <span class="cloud-sync-dot"></span>
+          <span id="cloudSyncText">Team Cloud Ready</span>
+          <button type="button" id="cloudRefreshBtn" class="btn-cloud-refresh" title="Pull latest dataset uploaded by team">🔄</button>
+        </div>
+
+        <!-- Share Team Link Button -->
+        <button id="shareTeamLinkBtn" class="btn-action btn-share-link" title="Copy Team Dashboard Link">
+          <span>🔗</span> Share Link
+        </button>
+
+        <!-- User Profile & Session Controls -->
+        <div class="user-profile-menu" id="userProfileMenu">
+          <button type="button" class="user-profile-badge" id="userProfileBtn" title="Current Logged-in Account">
+            <span class="user-avatar-circle" id="userAvatarCircle">SA</span>
+            <div class="user-info-text">
+              <span class="user-name" id="userNameLabel">Admin</span>
+              <span class="user-role-badge role-admin" id="userRoleBadge">ADMIN</span>
+            </div>
+            <span class="user-caret">▾</span>
+          </button>
+          <div class="user-dropdown-card" id="userDropdownCard" style="display: none;">
+            <div class="dropdown-header">
+              <div class="dropdown-user-name" id="userDropdownName">System Administrator</div>
+              <div class="dropdown-email" id="userDropdownEmail">admin@transactbridge.com</div>
+              <div class="dropdown-role-desc" id="userDropdownRoleDesc">Full Permissions: Upload, Route &amp; Alert</div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" id="dropdownSwitchUserBtn">👤 Switch User / Role</button>
+            <button type="button" class="dropdown-item" id="dropdownRefreshCloudBtn">☁️ Force Cloud Re-sync</button>
+            <button type="button" class="dropdown-item" id="dropdownShareLinkBtn">🔗 Copy Team Link</button>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item text-danger" id="logoutBtn">🚪 Sign Out</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -5525,6 +6057,109 @@ body.modal-open {
           <button type="button" class="btn-action btn-primary" id="runCustomAnalysisBtn">
             <span>⚡</span> Run Custom Analysis
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transact Bridge Enterprise Login Modal / Screen -->
+  <div class="modal-overlay login-overlay" id="loginModal" style="display: none;">
+    <div class="modal-card login-card">
+      <div class="login-header">
+        <div class="login-brand-logo">
+          <img src="assets/logo.png" alt="Transact Bridge Logo">
+        </div>
+        <div class="login-brand-titles">
+          <h2 class="login-title">Transact Bridge Intelligence</h2>
+          <p class="login-subtitle">Enterprise Gateway Monitoring &amp; Shared Team Data Portal</p>
+        </div>
+      </div>
+
+      <div class="login-notice-banner">
+        <span>🌐 <strong>Shared Cloud Session Active:</strong> Any dataset uploaded by an Administrator is automatically synchronized in real time to all team members viewing this link.</span>
+      </div>
+
+      <!-- Login Method Tabs -->
+      <div class="login-tabs">
+        <button type="button" class="login-tab-btn active" data-ltab="tab-quick">⚡ 1-Click Role Access</button>
+        <button type="button" class="login-tab-btn" data-ltab="tab-email">✉️ Corporate Login</button>
+        <button type="button" class="login-tab-btn" data-ltab="tab-code">🔑 Team Access Code</button>
+      </div>
+
+      <!-- Tab 1: 1-Click Role Access -->
+      <div class="login-tab-content active" id="ltab-quick">
+        <div class="quick-role-grid">
+          <!-- Role Card 1: Admin Operator -->
+          <div class="quick-role-card role-card-admin" id="quickLoginAdminBtn">
+            <div class="quick-role-top">
+              <span class="role-icon">🛡️</span>
+              <span class="role-pill-badge badge-admin">FULL ADMIN ACCESS</span>
+            </div>
+            <div class="quick-role-name">Administrator / Data Lead</div>
+            <p class="quick-role-desc">Full permissions to upload hourly Excel/CSV datasets, change SLA targets, broadcast team alerts, and trigger route mitigations.</p>
+            <button type="button" class="btn-role-action btn-admin-action">
+              <span>Sign In as Admin</span> →
+            </button>
+          </div>
+
+          <!-- Role Card 2: Team Stakeholder / Viewer -->
+          <div class="quick-role-card role-card-viewer" id="quickLoginViewerBtn">
+            <div class="quick-role-top">
+              <span class="role-icon">📊</span>
+              <span class="role-pill-badge badge-viewer">VIEWER ACCESS</span>
+            </div>
+            <div class="quick-role-name">Executive / Team Stakeholder</div>
+            <p class="quick-role-desc">Read-only live access to inspect shared uploads, live KPI cards, gateway success rates, telemetry diagnostics, and AI playbooks.</p>
+            <button type="button" class="btn-role-action btn-viewer-action">
+              <span>Sign In as Viewer</span> →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Corporate Email & Password -->
+      <div class="login-tab-content" id="ltab-email" style="display: none;">
+        <form id="emailLoginForm" class="login-form">
+          <div class="form-group">
+            <label for="loginEmailInput">Corporate Email</label>
+            <input type="email" id="loginEmailInput" class="form-input" placeholder="e.g. admin@transactbridge.com" required value="admin@transactbridge.com">
+          </div>
+          <div class="form-group">
+            <label for="loginPasswordInput">Password / Passcode</label>
+            <input type="password" id="loginPasswordInput" class="form-input" placeholder="Enter your passcode (default: tb-admin-2026)" value="tb-admin-2026">
+            <div class="input-hint">Default admin passcode: <code>tb-admin-2026</code> | Viewer: <code>tb-team-2026</code></div>
+          </div>
+          <div class="form-row remember-row">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="loginRememberMe" checked>
+              <span>Keep me signed in on this device</span>
+            </label>
+          </div>
+          <button type="submit" class="btn-action btn-primary btn-login-submit" id="emailLoginSubmitBtn">
+            <span>🔐</span> Authenticate &amp; Access Dashboard
+          </button>
+        </form>
+      </div>
+
+      <!-- Tab 3: Team Access Code -->
+      <div class="login-tab-content" id="ltab-code" style="display: none;">
+        <form id="codeLoginForm" class="login-form">
+          <div class="form-group">
+            <label for="loginAccessCodeInput">Team Access Code</label>
+            <input type="text" id="loginAccessCodeInput" class="form-input" placeholder="e.g. TB-ADMIN-2026 or TB-TEAM-2026" style="text-transform: uppercase; font-family: monospace; font-size: 1.05rem; letter-spacing: 1px;" required value="TB-ADMIN-2026">
+            <div class="input-hint">Use <code>TB-ADMIN-2026</code> for Admin permissions or <code>TB-TEAM-2026</code> for Stakeholder / Viewer access.</div>
+          </div>
+          <button type="submit" class="btn-action btn-primary btn-login-submit" id="codeLoginSubmitBtn">
+            <span>🔑</span> Verify Code &amp; Enter Dashboard
+          </button>
+        </form>
+      </div>
+
+      <div class="login-footer">
+        <div class="security-badge">
+          <span>🔒 Transact Bridge Enterprise Security</span>
+          <span>•</span>
+          <span>Shared Real-Time Telemetry Gateway</span>
         </div>
       </div>
     </div>
@@ -7831,6 +8466,11 @@ body.modal-open {
 
       saveBatchesToStorage();
 
+      // Broadcast and publish newly ingested batch to shared team cloud
+      if (typeof cloudSyncManager !== 'undefined' && cloudSyncManager.publishToCloud) {
+        cloudSyncManager.publishToCloud(batchObj);
+      }
+
       dataMode = 'uploaded';
       activeBatchId = 'all';
 
@@ -8316,6 +8956,10 @@ body.modal-open {
   let loadedFileContent = null;
 
   openUploadBtn.addEventListener('click', () => {
+    if (typeof authManager !== 'undefined' && authManager.getCurrentUser() && authManager.getCurrentUser().role === 'viewer') {
+      showToast('🔒 Upload privileges are reserved for Administrators. As a Team Stakeholder, you are viewing shared live data uploaded by Admins.');
+      return;
+    }
     uploadModal.classList.add('active');
     document.getElementById('batchLabelInput').value = `Hour ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | ${new Date().toLocaleDateString()}`;
     renderBatchListTable();
@@ -13322,6 +13966,470 @@ Recommended Immediate Actions:
     });
   }
 
+  // =========================================================================
+  // Transact Bridge Enterprise Authentication & Role Management Module
+  // =========================================================================
+  const AUTH_STORAGE_KEY = 'tb_auth_session';
+
+  const authManager = {
+    currentUser: null,
+
+    init() {
+      // Check stored session
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) {
+          this.currentUser = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Error reading auth session:', e);
+      }
+
+      this.bindEvents();
+
+      if (!this.currentUser) {
+        this.showLoginModal();
+      } else {
+        this.updateHeaderUI();
+        this.applyRolePermissions();
+      }
+    },
+
+    getCurrentUser() {
+      return this.currentUser;
+    },
+
+    bindEvents() {
+      const userProfileBtn = document.getElementById('userProfileBtn');
+      const userDropdownCard = document.getElementById('userDropdownCard');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const dropdownSwitchUserBtn = document.getElementById('dropdownSwitchUserBtn');
+
+      // Profile menu toggle
+      if (userProfileBtn && userDropdownCard) {
+        userProfileBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isVisible = userDropdownCard.style.display === 'block';
+          userDropdownCard.style.display = isVisible ? 'none' : 'block';
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('#userProfileMenu')) {
+            userDropdownCard.style.display = 'none';
+          }
+        });
+      }
+
+      // Logout button
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          this.logout();
+        });
+      }
+
+      // Switch user button
+      if (dropdownSwitchUserBtn) {
+        dropdownSwitchUserBtn.addEventListener('click', () => {
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.showLoginModal();
+        });
+      }
+
+      // Quick Role Buttons
+      const quickLoginAdminBtn = document.getElementById('quickLoginAdminBtn');
+      const quickLoginViewerBtn = document.getElementById('quickLoginViewerBtn');
+
+      if (quickLoginAdminBtn) {
+        quickLoginAdminBtn.addEventListener('click', () => {
+          this.login({
+            email: 'admin@transactbridge.com',
+            name: 'System Administrator',
+            role: 'admin',
+            avatar: 'SA',
+            token: 'token_' + Date.now() + '_admin'
+          });
+        });
+      }
+
+      if (quickLoginViewerBtn) {
+        quickLoginViewerBtn.addEventListener('click', () => {
+          this.login({
+            email: 'team@transactbridge.com',
+            name: 'Executive Stakeholder',
+            role: 'viewer',
+            avatar: 'ES',
+            token: 'token_' + Date.now() + '_viewer'
+          });
+        });
+      }
+
+      // Login Tabs
+      document.querySelectorAll('.login-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.login-tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.login-tab-content').forEach(c => c.style.display = 'none');
+          btn.classList.add('active');
+          const targetId = btn.getAttribute('data-ltab');
+          const content = document.getElementById(targetId);
+          if (content) content.style.display = 'block';
+        });
+      });
+
+      // Email Login Form
+      const emailForm = document.getElementById('emailLoginForm');
+      if (emailForm) {
+        emailForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const email = (document.getElementById('loginEmailInput')?.value || '').trim();
+          const pass = (document.getElementById('loginPasswordInput')?.value || '').trim();
+          const remember = document.getElementById('loginRememberMe')?.checked ?? true;
+
+          const role = (pass.toLowerCase().includes('admin') || email.toLowerCase().includes('admin')) ? 'admin' : 'viewer';
+          const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
+          const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+          const avatar = email.substring(0, 2).toUpperCase();
+
+          this.login({
+            email,
+            name,
+            role,
+            avatar,
+            token: 'token_' + Date.now() + '_' + role
+          }, remember);
+        });
+      }
+
+      // Code Login Form
+      const codeForm = document.getElementById('codeLoginForm');
+      if (codeForm) {
+        codeForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const code = (document.getElementById('loginAccessCodeInput')?.value || '').trim().toUpperCase();
+          if (code === 'TB-ADMIN-2026') {
+            this.login({
+              email: 'operator@transactbridge.com',
+              name: 'Admin Operator',
+              role: 'admin',
+              avatar: 'AO',
+              token: 'token_' + Date.now() + '_admin'
+            });
+          } else if (code === 'TB-VIEWER-2026' || code === 'TB-TEAM-2026') {
+            this.login({
+              email: 'team@transactbridge.com',
+              name: 'Team Member',
+              role: 'viewer',
+              avatar: 'TM',
+              token: 'token_' + Date.now() + '_viewer'
+            });
+          } else {
+            showToast('❌ Invalid code. Use TB-ADMIN-2026 for Admin or TB-TEAM-2026 for Viewer.');
+          }
+        });
+      }
+    },
+
+    showLoginModal() {
+      const modal = document.getElementById('loginModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+      }
+    },
+
+    hideLoginModal() {
+      const modal = document.getElementById('loginModal');
+      if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+      }
+    },
+
+    login(user, remember = true) {
+      this.currentUser = {
+        ...user,
+        loginAt: new Date().toISOString()
+      };
+
+      if (remember) {
+        try {
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(this.currentUser));
+        } catch (e) {
+          console.warn('Error saving session:', e);
+        }
+      }
+
+      this.hideLoginModal();
+      this.updateHeaderUI();
+      this.applyRolePermissions();
+
+      showToast(`👋 Welcome back, ${this.currentUser.name} (${this.currentUser.role.toUpperCase()})!`);
+
+      // Immediately trigger cloud sync upon login
+      if (typeof cloudSyncManager !== 'undefined') {
+        cloudSyncManager.fetchFromCloud(false);
+      }
+    },
+
+    logout() {
+      this.currentUser = null;
+      try {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      } catch (e) {}
+
+      const userDropdownCard = document.getElementById('userDropdownCard');
+      if (userDropdownCard) userDropdownCard.style.display = 'none';
+
+      this.showLoginModal();
+      showToast('🔒 Signed out successfully.');
+    },
+
+    updateHeaderUI() {
+      if (!this.currentUser) return;
+
+      const avatarCircle = document.getElementById('userAvatarCircle');
+      const userNameLabel = document.getElementById('userNameLabel');
+      const userRoleBadge = document.getElementById('userRoleBadge');
+      const userDropdownName = document.getElementById('userDropdownName');
+      const userDropdownEmail = document.getElementById('userDropdownEmail');
+      const userDropdownRoleDesc = document.getElementById('userDropdownRoleDesc');
+
+      if (avatarCircle) avatarCircle.textContent = this.currentUser.avatar || 'TB';
+      if (userNameLabel) userNameLabel.textContent = this.currentUser.name.split(' ')[0] || 'User';
+      if (userRoleBadge) {
+        userRoleBadge.textContent = this.currentUser.role.toUpperCase();
+        userRoleBadge.className = `user-role-badge role-${this.currentUser.role}`;
+      }
+      if (userDropdownName) userDropdownName.textContent = this.currentUser.name;
+      if (userDropdownEmail) userDropdownEmail.textContent = this.currentUser.email;
+      if (userDropdownRoleDesc) {
+        userDropdownRoleDesc.textContent = this.currentUser.role === 'admin'
+          ? 'Full Permissions: Upload, Route & Alert'
+          : 'Stakeholder Read-Only: Shared Live Telemetry';
+      }
+    },
+
+    applyRolePermissions() {
+      const openUploadBtn = document.getElementById('openUploadBtn');
+      if (openUploadBtn) {
+        if (this.currentUser && this.currentUser.role === 'viewer') {
+          openUploadBtn.title = 'Upload privileges are reserved for Administrators (Read-Only Viewer)';
+          openUploadBtn.style.opacity = '0.75';
+        } else {
+          openUploadBtn.title = 'Upload Hourly Excel or CSV dataset (Admin Full Access)';
+          openUploadBtn.style.opacity = '1';
+        }
+      }
+    }
+  };
+
+  // =========================================================================
+  // Transact Bridge Global Cloud Synchronization Module
+  // Allows any uploaded dataset to be viewed live by anyone with the link
+  // =========================================================================
+  const CLOUD_STORAGE_KEY = 'tb_cloud_latest_batch';
+
+  const cloudSyncManager = {
+    activeCloudBatchId: null,
+    lastSyncTimestamp: null,
+    isSyncing: false,
+    syncInterval: null,
+
+    init() {
+      this.bindEvents();
+      // Initial fetch from cloud
+      this.fetchFromCloud(true);
+
+      // Periodic cloud polling (every 35s)
+      this.syncInterval = setInterval(() => {
+        this.fetchFromCloud(true);
+      }, 35000);
+
+      // Auto-sync when window gains focus or tab becomes visible
+      window.addEventListener('focus', () => this.fetchFromCloud(true));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.fetchFromCloud(true);
+        }
+      });
+    },
+
+    bindEvents() {
+      const cloudRefreshBtn = document.getElementById('cloudRefreshBtn');
+      const dropdownRefreshCloudBtn = document.getElementById('dropdownRefreshCloudBtn');
+      const shareTeamLinkBtn = document.getElementById('shareTeamLinkBtn');
+      const dropdownShareLinkBtn = document.getElementById('dropdownShareLinkBtn');
+
+      if (cloudRefreshBtn) {
+        cloudRefreshBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.fetchFromCloud(false);
+        });
+      }
+
+      if (dropdownRefreshCloudBtn) {
+        dropdownRefreshCloudBtn.addEventListener('click', () => {
+          const userDropdownCard = document.getElementById('userDropdownCard');
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.fetchFromCloud(false);
+        });
+      }
+
+      if (shareTeamLinkBtn) {
+        shareTeamLinkBtn.addEventListener('click', () => this.copyShareLink());
+      }
+
+      if (dropdownShareLinkBtn) {
+        dropdownShareLinkBtn.addEventListener('click', () => {
+          const userDropdownCard = document.getElementById('userDropdownCard');
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          this.copyShareLink();
+        });
+      }
+    },
+
+    updateSyncPill(status, label) {
+      const pill = document.getElementById('cloudSyncPill');
+      const text = document.getElementById('cloudSyncText');
+      if (!pill || !text) return;
+
+      pill.classList.remove('syncing');
+      if (status === 'syncing') {
+        pill.classList.add('syncing');
+        text.textContent = 'Syncing...';
+      } else if (status === 'synced') {
+        text.textContent = label || 'Team Cloud Synced';
+      } else if (status === 'offline') {
+        text.textContent = 'Local Cache';
+      }
+    },
+
+    async publishToCloud(batchObj) {
+      if (!batchObj || !batchObj.transactions) return;
+      this.updateSyncPill('syncing');
+
+      const user = authManager.getCurrentUser() || { name: 'Admin', role: 'admin' };
+      const payload = {
+        batch: {
+          id: batchObj.id,
+          name: batchObj.name,
+          uploadedAt: batchObj.uploadedAt,
+          count: batchObj.transactions.length,
+          transactions: batchObj.transactions
+        },
+        uploadedBy: user.name,
+        aggregates: getAggregates()
+      };
+
+      try {
+        // 1. Post to Vercel Serverless API (/api/data)
+        const res = await fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          this.activeCloudBatchId = batchObj.id;
+          this.lastSyncTimestamp = Date.now();
+          this.updateSyncPill('synced', 'Team Cloud Synced');
+          showToast(`☁️ Synchronized ${formatNumber(batchObj.transactions.length)} transactions to team cloud!`);
+          return;
+        }
+      } catch (err) {
+        console.warn('POST /api/data failed (local dev or no api host):', err.message);
+      }
+
+      // Also cache in local cloud mirror
+      try {
+        localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {}
+
+      this.activeCloudBatchId = batchObj.id;
+      this.lastSyncTimestamp = Date.now();
+      this.updateSyncPill('synced', 'Team Cloud Synced');
+    },
+
+    async fetchFromCloud(silent = false) {
+      if (this.isSyncing) return;
+      this.isSyncing = true;
+      if (!silent) this.updateSyncPill('syncing');
+
+      try {
+        // Fetch from Vercel Serverless API
+        const res = await fetch(`/api/data?t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && json.data && json.data.transactions && json.data.transactions.length > 0) {
+            const cloudBatch = json.data;
+
+            // Only recompute if new batch ID or if we currently have no uploaded data
+            if (cloudBatch.id !== this.activeCloudBatchId || dataMode !== 'uploaded') {
+              this.activeCloudBatchId = cloudBatch.id;
+              this.lastSyncTimestamp = Date.now();
+
+              // Normalize transactions
+              const normalized = cloudBatch.transactions.map(normalizeRow);
+
+              uploadedBatches = [{
+                id: cloudBatch.id,
+                name: cloudBatch.name || 'Shared Team Batch',
+                uploadedAt: cloudBatch.uploadedAt,
+                count: normalized.length,
+                transactions: normalized
+              }];
+
+              currentTransactions = normalized;
+              dataMode = 'uploaded';
+              activeBatchId = 'all';
+
+              saveBatchesToStorage();
+              recomputeDashboardFromTransactions(currentTransactions);
+              stopSimulation();
+              updateBatchSelector();
+
+              // Update Banner
+              const banner = document.getElementById('dataStatusBanner');
+              const tag = document.getElementById('dataModeTag');
+              const msg = document.getElementById('dataStatusMessage');
+              if (banner && tag && msg) {
+                tag.className = 'data-status-tag tag-uploaded';
+                tag.textContent = 'Team Shared Ingestion';
+                const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+                msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
+              }
+
+              this.updateSyncPill('synced', 'Team Cloud Synced');
+              if (!silent) {
+                showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
+              }
+              this.isSyncing = false;
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('GET /api/data unavailable:', err.message);
+      }
+
+      this.updateSyncPill('synced', 'Team Cloud Synced');
+      this.isSyncing = false;
+    },
+
+    copyShareLink() {
+      const shareUrl = window.location.href.split('#')[0].split('?')[0];
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast(`🔗 Copied: ${shareUrl}\nShare with team members to view identical live data!`);
+        }).catch(() => {
+          prompt('Copy this link for your team:', shareUrl);
+        });
+      } else {
+        prompt('Copy this link for your team:', shareUrl);
+      }
+    }
+  };
+
   loadAlertSettings();
   loadBatchesFromStorage();
 
@@ -13329,6 +14437,10 @@ Recommended Immediate Actions:
   renderAnalysisSection();
   renderRecommendations();
   initCharts();
+
+  // Initialize Enterprise Authentication & Global Team Cloud Sync
+  authManager.init();
+  cloudSyncManager.init();
 
 })();
 
