@@ -26,6 +26,84 @@
   let uploadedBatches = [];
   let currentTransactions = [];
   let customDodComparison = null;
+  let dualUploadState = {
+    primary: null,
+    baseline: null
+  };
+
+  // SLA & Alert System State
+  const ALERT_STORAGE_KEY = 'transact_alert_settings';
+  const ALERT_LOG_STORAGE_KEY = 'transact_alert_log';
+
+  const defaultAlertSettings = {
+    enabledChannels: {
+      email: true,
+      whatsapp: true,
+      banner: true
+    },
+    thresholds: {
+      criticalSr: 90.0,
+      warningSr: 95.0,
+      minTransactions: 10,
+      cooldownMinutes: 15
+    },
+    recipients: {
+      emails: ['ops@transactbridge.io', 'lead-devops@payments.com'],
+      phones: ['+91 98765 43210']
+    },
+    webhookUrl: ''
+  };
+
+  let alertSettings = JSON.parse(JSON.stringify(defaultAlertSettings));
+  let alertLog = [];
+  let lastAlertTimestamp = 0;
+  let slaBannerDismissed = false;
+  let isBreachSimulated = false;
+
+  function loadAlertSettings() {
+    try {
+      const saved = localStorage.getItem(ALERT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        alertSettings = {
+          ...defaultAlertSettings,
+          ...parsed,
+          enabledChannels: { ...defaultAlertSettings.enabledChannels, ...(parsed.enabledChannels || {}) },
+          thresholds: { ...defaultAlertSettings.thresholds, ...(parsed.thresholds || {}) },
+          recipients: { ...defaultAlertSettings.recipients, ...(parsed.recipients || {}) }
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to load alert settings', e);
+    }
+
+    try {
+      const savedLog = localStorage.getItem(ALERT_LOG_STORAGE_KEY);
+      if (savedLog) {
+        alertLog = JSON.parse(savedLog);
+      }
+    } catch (e) {
+      console.warn('Failed to load alert log', e);
+    }
+  }
+
+  function saveAlertSettings() {
+    try {
+      localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+    } catch (e) {
+      console.warn('Failed to persist alert settings', e);
+    }
+  }
+
+  function saveAlertLog() {
+    try {
+      localStorage.setItem(ALERT_LOG_STORAGE_KEY, JSON.stringify(alertLog.slice(0, 50)));
+    } catch (e) {
+      console.warn('Failed to persist alert log', e);
+    }
+  }
+
+  loadAlertSettings();
 
   // Analysis Reports State
   let activeAnalysisTab = 'psp'; // 'psp', 'app', 'handle', 'merchant'
@@ -4320,10 +4398,7 @@
   // ==========================================
   // Day-over-Day Comparison & Dual-File Ingestion Controller
   // ==========================================
-  let dualUploadState = {
-    primary: null,    // { file, name, rows, txns, summary }
-    baseline: null    // { file, name, rows, txns, summary }
-  };
+
 
   function parseFileToRows(file) {
     return new Promise((resolve, reject) => {
@@ -5391,77 +5466,6 @@
   // ==========================================
   // SLA & Success Rate Alert Engine (WhatsApp & Email)
   // ==========================================
-  const ALERT_STORAGE_KEY = 'transact_alert_settings';
-  const ALERT_LOG_STORAGE_KEY = 'transact_alert_log';
-
-  const defaultAlertSettings = {
-    enabledChannels: {
-      email: true,
-      whatsapp: true,
-      banner: true
-    },
-    thresholds: {
-      criticalSr: 90.0,
-      warningSr: 95.0,
-      minTransactions: 10,
-      cooldownMinutes: 15
-    },
-    recipients: {
-      emails: ['ops@transactbridge.io', 'lead-devops@payments.com'],
-      phones: ['+91 98765 43210']
-    },
-    webhookUrl: ''
-  };
-
-  let alertSettings = JSON.parse(JSON.stringify(defaultAlertSettings));
-  let alertLog = [];
-  let lastAlertTimestamp = 0;
-  let slaBannerDismissed = false;
-  let isBreachSimulated = false;
-
-  function loadAlertSettings() {
-    try {
-      const saved = localStorage.getItem(ALERT_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        alertSettings = {
-          ...defaultAlertSettings,
-          ...parsed,
-          enabledChannels: { ...defaultAlertSettings.enabledChannels, ...(parsed.enabledChannels || {}) },
-          thresholds: { ...defaultAlertSettings.thresholds, ...(parsed.thresholds || {}) },
-          recipients: { ...defaultAlertSettings.recipients, ...(parsed.recipients || {}) }
-        };
-      }
-    } catch (e) {
-      console.warn('Failed to load alert settings', e);
-    }
-
-    try {
-      const savedLog = localStorage.getItem(ALERT_LOG_STORAGE_KEY);
-      if (savedLog) {
-        alertLog = JSON.parse(savedLog);
-      }
-    } catch (e) {
-      console.warn('Failed to load alert log', e);
-    }
-  }
-
-  function saveAlertSettings() {
-    try {
-      localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
-    } catch (e) {
-      console.warn('Failed to persist alert settings', e);
-    }
-  }
-
-  function saveAlertLog() {
-    try {
-      localStorage.setItem(ALERT_LOG_STORAGE_KEY, JSON.stringify(alertLog.slice(0, 50)));
-    } catch (e) {
-      console.warn('Failed to persist alert log', e);
-    }
-  }
-
   function cleanPhoneNumber(phone) {
     if (!phone) return '';
     return phone.replace(/[^0-9]/g, '');
