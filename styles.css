@@ -1036,28 +1036,35 @@ canvas {
   border: 1px solid rgba(255,255,255,0.3);
 }
 
-/* Modal Dialog */
+body.modal-open {
+  overflow: hidden;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 10, 20, 0.75);
-  backdrop-filter: blur(5px);
+  background: rgba(0, 10, 20, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.25s ease;
+  pointer-events: none;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
   padding: 1rem;
 }
 
 .modal-overlay.active {
-  opacity: 1;
-  visibility: visible;
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 .modal-card {
@@ -2367,8 +2374,8 @@ canvas {
    DoD Comparison Modal Layout
    ========================================== */
 .dod-modal-card {
-  max-width: 860px;
-  width: 95%;
+  max-width: 680px;
+  width: 100%;
 }
 
 .dod-stat-grid {
@@ -2477,7 +2484,8 @@ canvas {
 }
 
 .recoverable-modal-card {
-  max-width: 900px;
+  max-width: 680px;
+  width: 100%;
 }
 
 .recovery-stat-grid {
@@ -2606,7 +2614,8 @@ canvas {
    PSP-Wise Smart Routing Analysis Modal UI
    ========================================== */
 .psp-routing-modal-card {
-  max-width: 880px;
+  max-width: 680px;
+  width: 100%;
 }
 
 .psp-hero-grid {

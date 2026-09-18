@@ -671,7 +671,7 @@
   </div>
 
   <!-- Live API Integration Modal -->
-  <div class="modal-overlay" id="apiIntegrationModal" style="display: none;">
+  <div class="modal-overlay" id="apiIntegrationModal">
     <div class="modal-card api-modal-card">
       <div class="modal-header">
         <div class="modal-header-left">
@@ -793,14 +793,17 @@
   </div>
 
   <!-- Day-over-Day Comparison Modal -->
-  <div class="modal-overlay" id="dodComparisonModal" style="display: none;">
-    <div class="modal-card dod-modal-card">
+  <div class="modal-overlay" id="dodComparisonModal">
+    <div class="modal-card" style="max-width: 680px;">
       <div class="modal-header">
-        <div class="modal-header-left">
-          <span class="modal-icon" style="font-size: 1.3rem;">⚖️</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="dodModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6;">⚖️</span>
           <div>
-            <h3 class="modal-title" style="margin: 0; font-size: 1.15rem;">Day-over-Day (DoD) Performance Comparison</h3>
-            <p class="modal-subtitle" style="margin: 2px 0 0; font-size: 0.75rem; color: var(--text-dim);">Detailed variance report comparing Current Day (Today) vs. Previous Day (Yesterday) across volume, conversion rates, gateways &amp; drop reasons.</p>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="modal-title" id="dodModalTitle" style="margin: 0; font-size: 1.2rem;">Day-over-Day Performance</h3>
+              <span id="dodModalBadge" class="status-chip healthy">OPTIMAL</span>
+            </div>
+            <div id="dodModalSubtitle" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">T vs. T-1 Comparative Variance &amp; AI Directives · Identifier: DoD_Stream_Benchmark</div>
           </div>
         </div>
         <button class="modal-close-btn" id="closeDodModalBtn">&times;</button>
@@ -810,26 +813,34 @@
         <!-- Filled dynamically by renderDodModal() -->
       </div>
 
-      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <button class="btn-action" id="exportDodCsvBtn">
           <span>📥</span> Export DoD Report (CSV)
         </button>
-        <button class="btn-action btn-primary" id="closeDodModalFooterBtn">
-          Done
-        </button>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-action btn-secondary" id="toggleDodOverlayModalBtn" style="font-size: 0.78rem;">
+            <span>📅</span> Timeline Overlay
+          </button>
+          <button class="btn-action btn-primary" id="closeDodModalFooterBtn">
+            Done
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Recoverable Volume Solution & Strategy Modal -->
-  <div class="modal-overlay" id="recoverableVolumeModal" style="display: none;">
-    <div class="modal-card recoverable-modal-card">
+  <div class="modal-overlay" id="recoverableVolumeModal">
+    <div class="modal-card" style="max-width: 680px;">
       <div class="modal-header">
-        <div class="modal-header-left">
-          <span class="modal-icon" style="font-size: 1.3rem;">💡</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="recoverableModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(0, 210, 255, 0.15); border: 1px solid rgba(0, 210, 255, 0.3); color: #00d2ff;">💡</span>
           <div>
-            <h3 class="modal-title" style="margin: 0; font-size: 1.15rem;">Recoverable Volume Solution &amp; Recapture Engine</h3>
-            <p class="modal-subtitle" style="margin: 2px 0 0; font-size: 0.75rem; color: var(--text-dim);">Algorithmic strategy to recapture up to 65% of uncollected volume via cascading failovers, VPA redundancy &amp; omnichannel triggers.</p>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="modal-title" id="recoverableModalTitle" style="margin: 0; font-size: 1.2rem;">Recoverable Volume Analysis</h3>
+              <span id="recoverableModalBadge" class="status-chip healthy">OPTIMAL</span>
+            </div>
+            <div id="recoverableModalSubtitle" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">Algorithmic Recapture Suite (paymentDetails.uncollected) · Identifier: RECOVERY_ENGINE</div>
           </div>
         </div>
         <button class="modal-close-btn" id="closeRecoverableModalBtn">&times;</button>
@@ -851,14 +862,17 @@
   </div>
 
   <!-- PSP-Wise Smart Routing Analysis Modal -->
-  <div class="modal-overlay" id="pspRoutingModal" style="display: none;">
-    <div class="modal-card psp-routing-modal-card">
+  <div class="modal-overlay" id="pspRoutingModal">
+    <div class="modal-card" style="max-width: 680px;">
       <div class="modal-header">
-        <div class="modal-header-left">
-          <span class="modal-icon" style="font-size: 1.3rem;">⚡</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="pspModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6;">RZ</span>
           <div>
-            <h3 class="modal-title" id="pspRoutingModalTitle" style="margin: 0; font-size: 1.15rem;">PSP-Wise Smart Routing Analysis</h3>
-            <p class="modal-subtitle" id="pspRoutingModalSubtitle" style="margin: 2px 0 0; font-size: 0.75rem; color: var(--text-dim);">Deep-dive uplift delta, failure code distribution &amp; automated failover partner directives.</p>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="modal-title" id="pspRoutingModalTitle" style="margin: 0; font-size: 1.2rem;">PSP-Wise Smart Routing Analysis</h3>
+              <span id="pspModalBadge" class="status-chip healthy">OPTIMAL</span>
+            </div>
+            <div id="pspRoutingModalSubtitle" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">Payment Service Provider (paymentDetails.pgProvider) · Identifier: RAZORPAY</div>
           </div>
         </div>
         <button class="modal-close-btn" id="closePspRoutingModalBtn">&times;</button>
