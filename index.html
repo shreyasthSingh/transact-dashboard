@@ -185,6 +185,7 @@
             <div class="kpi-icon-wrap">📊</div>
           </div>
           <div class="kpi-value" id="kpiTotalCount">0</div>
+          <div class="kpi-sparkline-svg" id="sparkline-total"></div>
           <div class="kpi-footer">
             <span>Processed Gateway Volume</span>
             <span class="kpi-badge up" id="kpiTotalBadge">Total Txns</span>
@@ -198,6 +199,7 @@
             <div class="kpi-icon-wrap">✓</div>
           </div>
           <div class="kpi-value text-success" id="kpiSuccessCount">0</div>
+          <div class="kpi-sparkline-svg" id="sparkline-success"></div>
           <div class="kpi-footer">
             <span id="kpiSuccessShare">0% of total</span>
             <span class="kpi-badge up">Settled</span>
@@ -211,6 +213,7 @@
             <div class="kpi-icon-wrap">✕</div>
           </div>
           <div class="kpi-value text-failed" id="kpiFailedCount">0</div>
+          <div class="kpi-sparkline-svg" id="sparkline-failed"></div>
           <div class="kpi-footer">
             <span id="kpiFailedShare">0% of total</span>
             <span class="kpi-badge down">Declined / Errored</span>
@@ -224,6 +227,7 @@
             <div class="kpi-icon-wrap">🎯</div>
           </div>
           <div class="kpi-value" id="kpiSuccessRate">0.00%</div>
+          <div class="kpi-sparkline-svg" id="sparkline-rate"></div>
           <div class="rate-progress-bar-bg">
             <div class="rate-progress-bar-fill" id="kpiRateBar" style="width: 0%;"></div>
           </div>
@@ -240,6 +244,7 @@
             <div class="kpi-icon-wrap">💳</div>
           </div>
           <div class="kpi-value" id="kpiTotalAmount">₹0.00</div>
+          <div class="kpi-sparkline-svg" id="sparkline-amount"></div>
           <div class="kpi-footer">
             <span>Gross Processed Volume</span>
             <span class="kpi-badge up">Volume</span>
@@ -253,6 +258,7 @@
             <div class="kpi-icon-wrap">💰</div>
           </div>
           <div class="kpi-value text-success" id="kpiSuccessAmount">₹0.00</div>
+          <div class="kpi-sparkline-svg" id="sparkline-succ-amount"></div>
           <div class="kpi-footer">
             <span id="kpiSuccessAmtShare">0% collected</span>
             <span class="kpi-badge up">Captured</span>
@@ -266,6 +272,7 @@
             <div class="kpi-icon-wrap">⚠️</div>
           </div>
           <div class="kpi-value text-failed" id="kpiFailedAmount">₹0.00</div>
+          <div class="kpi-sparkline-svg" id="sparkline-fail-amount"></div>
           <div class="kpi-footer">
             <span id="kpiFailedAmtShare">0% uncollected</span>
             <span class="kpi-badge down">Failed Volume</span>
@@ -690,19 +697,22 @@
 
   <!-- Detailed Entity Diagnostics & Inspection Modal -->
   <div class="modal-overlay" id="analysisInspectModal">
-    <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-card">
       <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span id="inspectModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px;">🔍</span>
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <h3 class="modal-title" id="inspectModalTitle" style="margin: 0; font-size: 1.2rem;">Entity Deep Dive</h3>
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <span id="inspectModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; flex-shrink: 0;">🔍</span>
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="modal-title" id="inspectModalTitle" style="margin: 0; font-size: 1.15rem;">Entity Deep Dive</h3>
               <span id="inspectModalBadge" class="status-chip healthy">Optimal</span>
             </div>
             <div id="inspectModalSubtitle" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">Diagnostics &amp; Failure Attribution</div>
           </div>
         </div>
-        <button class="modal-close-btn" id="inspectModalCloseBtn">&times;</button>
+        <div class="modal-header-actions">
+          <button type="button" class="modal-size-toggle-btn" title="Toggle Fullscreen / Windowed" aria-label="Toggle Fullscreen">⛶</button>
+          <button class="modal-close-btn" id="inspectModalCloseBtn">&times;</button>
+        </div>
       </div>
       <div class="modal-body" id="inspectModalBody">
         <!-- Content populated dynamically by openAnalysisInspectModal in app.js -->
@@ -834,19 +844,22 @@
 
   <!-- Day-over-Day Comparison Modal -->
   <div class="modal-overlay" id="dodComparisonModal">
-    <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-card dod-modal-card">
       <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span id="dodModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6;">⚖️</span>
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <h3 class="modal-title" id="dodModalTitle" style="margin: 0; font-size: 1.2rem;">Day-over-Day Performance</h3>
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <span id="dodModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; flex-shrink: 0;">⚖️</span>
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="modal-title" id="dodModalTitle" style="margin: 0; font-size: 1.15rem;">Day-over-Day Performance</h3>
               <span id="dodModalBadge" class="status-chip healthy">OPTIMAL</span>
             </div>
             <div id="dodModalSubtitle" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">T vs. T-1 Comparative Variance &amp; AI Directives · Identifier: DoD_Stream_Benchmark</div>
           </div>
         </div>
-        <button class="modal-close-btn" id="closeDodModalBtn">&times;</button>
+        <div class="modal-header-actions">
+          <button type="button" class="modal-size-toggle-btn" title="Toggle Fullscreen / Windowed" aria-label="Toggle Fullscreen">⛶</button>
+          <button class="modal-close-btn" id="closeDodModalBtn">&times;</button>
+        </div>
       </div>
 
       <!-- Comparison Source Selector & Dual-File Ingestion Toolbar -->
@@ -930,7 +943,7 @@
         </div>
       </div>
 
-      <div class="modal-body" id="dodModalBody" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
+      <div class="modal-body" id="dodModalBody">
         <!-- Filled dynamically by renderDodModal() -->
       </div>
 
@@ -955,22 +968,25 @@
 
   <!-- Recoverable Volume Solution & Strategy Modal -->
   <div class="modal-overlay" id="recoverableVolumeModal">
-    <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-card recoverable-modal-card">
       <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span id="recoverableModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(0, 210, 255, 0.15); border: 1px solid rgba(0, 210, 255, 0.3); color: #00d2ff;">💡</span>
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <h3 class="modal-title" id="recoverableModalTitle" style="margin: 0; font-size: 1.2rem;">Recoverable Volume Analysis</h3>
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <span id="recoverableModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(0, 210, 255, 0.15); border: 1px solid rgba(0, 210, 255, 0.3); color: #00d2ff; flex-shrink: 0;">💡</span>
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="modal-title" id="recoverableModalTitle" style="margin: 0; font-size: 1.15rem;">Recoverable Volume Analysis</h3>
               <span id="recoverableModalBadge" class="status-chip healthy">OPTIMAL</span>
             </div>
             <div id="recoverableModalSubtitle" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">Algorithmic Recapture Suite (paymentDetails.uncollected) · Identifier: RECOVERY_ENGINE</div>
           </div>
         </div>
-        <button class="modal-close-btn" id="closeRecoverableModalBtn">&times;</button>
+        <div class="modal-header-actions">
+          <button type="button" class="modal-size-toggle-btn" title="Toggle Fullscreen / Windowed" aria-label="Toggle Fullscreen">⛶</button>
+          <button class="modal-close-btn" id="closeRecoverableModalBtn">&times;</button>
+        </div>
       </div>
 
-      <div class="modal-body" id="recoverableModalBody" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
+      <div class="modal-body" id="recoverableModalBody">
         <!-- Filled dynamically by renderRecoverableModal() -->
       </div>
 
@@ -987,22 +1003,25 @@
 
   <!-- PSP-Wise Smart Routing Analysis Modal -->
   <div class="modal-overlay" id="pspRoutingModal">
-    <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-card psp-routing-modal-card">
       <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span id="pspModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6;">RZ</span>
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <h3 class="modal-title" id="pspRoutingModalTitle" style="margin: 0; font-size: 1.2rem;">PSP-Wise Smart Routing Analysis</h3>
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <span id="pspModalAvatar" class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; flex-shrink: 0;">RZ</span>
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="modal-title" id="pspRoutingModalTitle" style="margin: 0; font-size: 1.15rem;">PSP-Wise Smart Routing Analysis</h3>
               <span id="pspModalBadge" class="status-chip healthy">OPTIMAL</span>
             </div>
             <div id="pspRoutingModalSubtitle" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">Payment Service Provider (paymentDetails.pgProvider) · Identifier: RAZORPAY</div>
           </div>
         </div>
-        <button class="modal-close-btn" id="closePspRoutingModalBtn">&times;</button>
+        <div class="modal-header-actions">
+          <button type="button" class="modal-size-toggle-btn" title="Toggle Fullscreen / Windowed" aria-label="Toggle Fullscreen">⛶</button>
+          <button class="modal-close-btn" id="closePspRoutingModalBtn">&times;</button>
+        </div>
       </div>
 
-      <div class="modal-body" id="pspRoutingModalBody" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
+      <div class="modal-body" id="pspRoutingModalBody">
         <!-- Filled dynamically by renderPspRoutingModal() -->
       </div>
 
@@ -1021,11 +1040,11 @@
   <div class="modal-overlay" id="alertsConfigModal">
     <div class="modal-card alerts-modal-card">
       <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;">🚨</span>
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <h3 class="modal-title" style="margin: 0; font-size: 1.2rem;">SLA &amp; Success Rate Alerts Engine</h3>
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <span class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; flex-shrink: 0;">🚨</span>
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="modal-title" style="margin: 0; font-size: 1.15rem;">SLA &amp; Success Rate Alerts Engine</h3>
               <span id="alertStatusChip" class="status-chip healthy">ACTIVE</span>
             </div>
             <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
@@ -1033,10 +1052,13 @@
             </div>
           </div>
         </div>
-        <button class="modal-close-btn" id="closeAlertsModalBtn">&times;</button>
+        <div class="modal-header-actions">
+          <button type="button" class="modal-size-toggle-btn" title="Toggle Fullscreen / Windowed" aria-label="Toggle Fullscreen">⛶</button>
+          <button class="modal-close-btn" id="closeAlertsModalBtn">&times;</button>
+        </div>
       </div>
 
-      <div class="modal-body" id="alertsModalBody" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
+      <div class="modal-body" id="alertsModalBody">
         <!-- Card 1: Trigger Thresholds -->
         <div class="alert-section-card">
           <div class="alert-section-header">

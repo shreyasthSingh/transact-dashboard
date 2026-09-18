@@ -699,9 +699,84 @@
       topRouteElem.textContent = topPsp ? `${topPsp.name || topPsp.id} (${((topPsp.success/(topPsp.count||1))*100).toFixed(1)}% SR)` : 'Razorpay + @paytm (96.4% SR)';
     }
 
+    // Render SVG Sparklines inside Bento KPI cards
+    updateKpiSparklines();
+
     // Evaluate SLA Alert status and emergency banner
     if (typeof evaluateSlaAlerts === 'function') {
       evaluateSlaAlerts(agg);
+    }
+  }
+
+  function renderSparklineSvg(containerId, points, strokeColor, fillColor) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!points || points.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    const width = 120;
+    const height = 28;
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const range = (max - min) || 1;
+    const padding = 2;
+    const usableHeight = height - padding * 2;
+    const step = (width - 4) / Math.max(1, points.length - 1);
+
+    const coords = points.map((p, i) => {
+      const x = 2 + i * step;
+      const y = height - padding - ((p - min) / range) * usableHeight;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    const polylinePoints = coords.join(' ');
+    const areaPoints = `2,${height} ${polylinePoints} ${width - 2},${height}`;
+    const gradId = 'grad-' + containerId.replace(/[^a-zA-Z0-9]/g, '');
+
+    container.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width: 100%; height: 28px; overflow: visible;">
+        <defs>
+          <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${fillColor || strokeColor}" stop-opacity="0.32" />
+            <stop offset="100%" stop-color="${fillColor || strokeColor}" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
+        <polygon points="${areaPoints}" fill="url(#${gradId})" />
+        <polyline fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${polylinePoints}" />
+      </svg>
+    `;
+  }
+
+  function updateKpiSparklines() {
+    try {
+      if (typeof getTimelineDataset !== 'function') return;
+      const timeline = getTimelineDataset();
+      if (!timeline || !timeline.volumeData || timeline.volumeData.length === 0) return;
+      
+      const volData = timeline.volumeData;
+      const failedData = timeline.failedData || volData.map(() => 0);
+      const succData = volData.map((v, i) => Math.max(0, v - (failedData[i] || 0)));
+      const rateData = timeline.rateData;
+
+      // Sparklines for Cards 1-4
+      renderSparklineSvg('sparkline-total', volData, '#6366f1', '#5227ff');
+      renderSparklineSvg('sparkline-success', succData, '#10b981', '#10b981');
+      renderSparklineSvg('sparkline-failed', failedData, '#f43f5e', '#f43f5e');
+      renderSparklineSvg('sparkline-rate', rateData, '#818cf8', '#6366f1');
+
+      // Sparklines for Cards 5-7 (Amount variations)
+      const agg = getAggregates();
+      const avgTicket = agg.totalCount > 0 ? (agg.totalAmount / agg.totalCount) : 1200;
+      const volAmtData = volData.map(v => Math.round(v * avgTicket));
+      const succAmtData = succData.map(v => Math.round(v * avgTicket));
+      const failAmtData = failedData.map(v => Math.round(v * avgTicket));
+
+      renderSparklineSvg('sparkline-amount', volAmtData, '#6366f1', '#5227ff');
+      renderSparklineSvg('sparkline-succ-amount', succAmtData, '#10b981', '#10b981');
+      renderSparklineSvg('sparkline-fail-amount', failAmtData, '#f43f5e', '#f43f5e');
+    } catch (e) {
+      console.warn('Sparkline rendering notice:', e);
     }
   }
 
@@ -2938,11 +3013,11 @@
     // Highlight hovered bucket column
     if (hoveredTimelineIdx !== null && hoveredTimelineIdx >= 0 && hoveredTimelineIdx < numPoints) {
       const hx = padding.left + step * hoveredTimelineIdx;
-      ctx.fillStyle = isDark ? 'rgba(0, 122, 255, 0.14)' : 'rgba(0, 122, 255, 0.08)';
+      ctx.fillStyle = isDark ? 'rgba(82, 39, 255, 0.14)' : 'rgba(82, 39, 255, 0.08)';
       ctx.fillRect(hx, padding.top, step, chartH);
 
       // Subtle vertical guideline
-      ctx.strokeStyle = isDark ? 'rgba(0, 122, 255, 0.45)' : 'rgba(0, 122, 255, 0.35)';
+      ctx.strokeStyle = isDark ? 'rgba(99, 102, 241, 0.45)' : 'rgba(82, 39, 255, 0.35)';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       ctx.beginPath();
@@ -3023,7 +3098,7 @@
     const rateMax = 100;
 
     ctx.beginPath();
-    ctx.strokeStyle = '#007aff';
+    ctx.strokeStyle = '#6366f1';
     ctx.lineWidth = 2.5;
 
     rateData.forEach((rate, idx) => {
@@ -3047,20 +3122,20 @@
       if (isHovered) {
         ctx.beginPath();
         ctx.arc(x, y, 7.5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0, 122, 255, 0.35)';
+        ctx.fillStyle = 'rgba(99, 102, 241, 0.35)';
         ctx.fill();
 
         ctx.beginPath();
         ctx.arc(x, y, 4.5, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
-        ctx.strokeStyle = '#007aff';
+        ctx.strokeStyle = '#5227ff';
         ctx.lineWidth = 2.5;
         ctx.stroke();
       } else {
         ctx.beginPath();
         ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#007aff';
+        ctx.fillStyle = '#6366f1';
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
@@ -4207,6 +4282,23 @@
     }
   });
 
+  // Modal Fullscreen / Window Size Toggle Handler
+  document.querySelectorAll('.modal-size-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = btn.closest('.modal-card');
+      if (!card) return;
+      const isMax = card.classList.toggle('modal-card-maximized');
+      btn.innerHTML = isMax ? '⊡' : '⛶';
+      btn.title = isMax ? 'Restore Window Size' : 'Expand to Fullscreen';
+      if (isMax) {
+        showToast('⛶ Expanded to Fullscreen Mode');
+      } else {
+        showToast('⊡ Restored Standard Window Size');
+      }
+    });
+  });
+
   function renderDodModal() {
     const bodyEl = document.getElementById('dodModalBody');
     const titleEl = document.getElementById('dodModalTitle');
@@ -4318,13 +4410,13 @@
           const shiftColor = err.shift <= 0 ? '#10b981' : '#f43f5e';
           return `
             <div class="inspect-row-item">
-              <div style="display: flex; align-items: center; gap: 8px; min-width: 220px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex: 1 1 180px; min-width: 0;">
                 <span class="inspect-code-badge">${err.code}</span>
               </div>
               <div class="inspect-bar-container">
                 <div class="inspect-bar-fill" style="width: ${pct}%;"></div>
               </div>
-              <div style="text-align: right; min-width: 140px; font-size: 0.8rem;">
+              <div style="text-align: right; flex: 0 0 auto; font-size: 0.8rem; white-space: nowrap;">
                 <strong>${formatNumber(cnt)}</strong> <span style="color: var(--text-dim);">(${pct}%)</span>
                 <span style="color: ${shiftColor}; font-size: 0.74rem; font-weight: 600; margin-left: 6px;">${shiftText}</span>
               </div>
@@ -4346,11 +4438,11 @@
           const shiftColor = (g.shift !== undefined && g.shift >= 0) ? '#10b981' : '#f43f5e';
           return `
             <div class="inspect-row-item">
-              <div style="min-width: 160px; font-weight: 700; font-size: 0.82rem; color: var(--text-main);">${cleanName}</div>
+              <div style="flex: 1 1 150px; min-width: 0; font-weight: 700; font-size: 0.82rem; color: var(--text-main); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${cleanName}</div>
               <div class="inspect-bar-container">
                 <div class="inspect-bar-fill" style="background: #10b981; width: ${barW.toFixed(1)}%;"></div>
               </div>
-              <div style="text-align: right; min-width: 170px; font-size: 0.78rem;">
+              <div style="text-align: right; flex: 0 0 auto; font-size: 0.78rem; white-space: nowrap;">
                 <strong style="color: #10b981;">${gwSR.toFixed(1)}% SR</strong>
                 <span style="color: var(--text-dim);">· ${formatNumber(g.volume || g.count || 0)} txns</span>
                 <span style="color: ${shiftColor}; font-size: 0.72rem; font-weight: 600; margin-left: 4px;">(${shiftText})</span>
