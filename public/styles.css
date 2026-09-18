@@ -3565,4 +3565,285 @@ body.modal-open {
   }
 }
 
+/* ==========================================================================
+   ⚡ 1-Click Trigger Custom Analysis Engine Styles
+   ========================================================================== */
+
+.btn-trigger-analysis {
+  background: linear-gradient(135deg, rgba(17, 50, 252, 0.1), rgba(99, 102, 241, 0.16)) !important;
+  color: var(--accent-primary) !important;
+  border: 1px solid rgba(17, 50, 252, 0.35) !important;
+  font-weight: 700 !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-trigger-analysis:hover {
+  background: linear-gradient(135deg, rgba(17, 50, 252, 0.18), rgba(99, 102, 241, 0.28)) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(17, 50, 252, 0.18);
+}
+
+@keyframes pulseLightning {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    transform: scale(1.22);
+    filter: drop-shadow(0 0 5px #f59e0b);
+  }
+}
+
+.pulse-icon-lightning {
+  display: inline-block;
+  animation: pulseLightning 2.8s infinite ease-in-out;
+}
+
+.custom-analysis-modal-card {
+  max-width: 880px !important;
+  width: 95% !important;
+}
+
+.analysis-cfg-section {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.25rem;
+}
+
+.analysis-cfg-title {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.preset-chips-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preset-chip {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-chip:hover {
+  background: var(--border-color);
+}
+
+.preset-chip.active {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(17, 50, 252, 0.25);
+}
+
+.metric-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.metric-chip-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.metric-chip-card:hover {
+  border-color: rgba(17, 50, 252, 0.4);
+}
+
+.metric-chip-card input[type="checkbox"] {
+  margin-top: 3px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.metric-chip-card:has(input:checked) {
+  border-color: var(--accent-primary);
+  background: rgba(17, 50, 252, 0.04);
+  box-shadow: 0 1px 4px rgba(17, 50, 252, 0.08);
+}
+
+[data-theme="dark"] .metric-chip-card:has(input:checked) {
+  background: rgba(17, 50, 252, 0.15);
+  border-color: #3b82f6;
+}
+
+.metric-chip-content {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.metric-chip-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.metric-chip-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-chip-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.metric-chip-desc {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+  line-height: 1.25;
+}
+
+/* Diagnostic Report Views */
+.diag-report-callout {
+  padding: 1.2rem 1.4rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  border-left: 5px solid #ef4444;
+  background: var(--bg-canvas);
+  margin-bottom: 16px;
+}
+
+.diag-report-callout.status-critical {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.diag-report-callout.status-warning {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.diag-report-callout.status-healthy {
+  border-left-color: #10b981;
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.diag-callout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.diag-status-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-critical .diag-status-pill {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.status-warning .diag-status-pill {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.status-healthy .diag-status-pill {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.diag-timestamp {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.diag-title {
+  margin: 4px 0 6px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.diag-narrative {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.diag-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.diag-kpi-card {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.diag-kpi-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diag-kpi-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 4px 0 2px;
+}
+
+.diag-kpi-sub {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.diag-breakdown-card {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+}
+
+.diag-breakdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
 

@@ -87,6 +87,11 @@
           <span>●</span> <span id="simStatusText">Streaming Active</span>
         </button>
 
+        <!-- Trigger Custom Analysis Button -->
+        <button id="triggerAnalysisBtn" class="btn-action btn-trigger-analysis" title="Trigger Custom Diagnostic & Incident Analysis (Alt + A)">
+          <span class="pulse-icon-lightning">⚡</span> Trigger Analysis
+        </button>
+
         <!-- CSV Export Button -->
         <button id="exportCsvBtn" class="btn-action btn-primary" title="Export Merchant Report as CSV">
           <span>📥</span> Export Report
@@ -1262,6 +1267,243 @@
           <button class="btn-action" id="cancelAlertsModalBtn">Cancel</button>
           <button class="btn-action btn-primary" id="saveAlertsSettingsBtn">
             <span>💾</span> Save &amp; Activate Alert Rules
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⚡ 1-Click Trigger Custom Analysis & Incident Diagnostic Modal -->
+  <div class="modal-overlay" id="customAnalysisModal">
+    <div class="modal-card custom-analysis-modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <span class="entity-avatar" style="width: 40px; height: 40px; font-size: 1.2rem; border-radius: 8px; background: rgba(17, 50, 252, 0.12); border: 1px solid rgba(17, 50, 252, 0.3); color: var(--accent-primary); flex-shrink: 0;">⚡</span>
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="modal-title" style="margin: 0; font-size: 1.15rem;">Trigger Custom Analysis &amp; Diagnostic</h3>
+              <span class="status-chip healthy" id="customAnalysisStatusChip">READY</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
+              On-Demand Incident Root-Cause Scanner · Multi-Metric Customization Engine (Alt + A)
+            </div>
+          </div>
+        </div>
+        <div class="modal-header-actions">
+          <button type="button" class="modal-size-toggle-btn" title="Toggle Fullscreen / Windowed" aria-label="Toggle Fullscreen">⛶</button>
+          <button class="modal-close-btn" id="closeCustomAnalysisModalBtn">&times;</button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs inside Modal -->
+      <div class="modal-tabs" style="padding: 0 1.5rem; background: var(--card-header-bg); border-bottom: 1px solid var(--border-color);">
+        <button class="modal-tab-btn active" id="tabCustomConfigBtn" data-view="config">⚙️ 1. Customize Metrics &amp; Scope</button>
+        <button class="modal-tab-btn" id="tabCustomReportBtn" data-view="report">📊 2. Diagnostic Report &amp; Actions</button>
+      </div>
+
+      <div class="modal-body" id="customAnalysisModalBody">
+        <!-- View 1: Configuration & Metric Customization -->
+        <div id="customAnalysisConfigView">
+          <!-- Presets Row -->
+          <div class="analysis-cfg-section">
+            <label class="analysis-cfg-title">⚡ Quick Presets (1-Click Objective Setup)</label>
+            <div class="preset-chips-row">
+              <button type="button" class="preset-chip active" data-preset="root-cause">🚨 Drop-off &amp; Root Cause</button>
+              <button type="button" class="preset-chip" data-preset="revenue">💸 Revenue Leakage</button>
+              <button type="button" class="preset-chip" data-preset="routing">🔀 Smart-Routing Audit</button>
+              <button type="button" class="preset-chip" data-preset="dod">📅 Day-over-Day Drift</button>
+              <button type="button" class="preset-chip" data-preset="full">🛠️ Comprehensive Audit</button>
+            </div>
+          </div>
+
+          <!-- Customizable Metrics Selection Grid -->
+          <div class="analysis-cfg-section" style="margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label class="analysis-cfg-title" style="margin: 0;">📊 Select Metrics to Include in Analysis</label>
+              <span style="font-size: 0.75rem; color: var(--text-dim);" id="selectedMetricsCount">5 metrics active</span>
+            </div>
+            <div class="metric-chips-grid">
+              <label class="metric-chip-card">
+                <input type="checkbox" id="mCheckSr" checked />
+                <div class="metric-chip-content">
+                  <span class="metric-chip-icon">🎯</span>
+                  <div class="metric-chip-text">
+                    <span class="metric-chip-name">Success Rate &amp; SLA</span>
+                    <span class="metric-chip-desc">Calculates conversion % and flags breach against threshold</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="metric-chip-card">
+                <input type="checkbox" id="mCheckRevLoss" checked />
+                <div class="metric-chip-content">
+                  <span class="metric-chip-icon">💸</span>
+                  <div class="metric-chip-text">
+                    <span class="metric-chip-name">Revenue Impact &amp; Drop-off ₹</span>
+                    <span class="metric-chip-desc">Aggregates failed ₹ volume and transaction loss</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="metric-chip-card">
+                <input type="checkbox" id="mCheckRecoverable" checked />
+                <div class="metric-chip-content">
+                  <span class="metric-chip-icon">💡</span>
+                  <div class="metric-chip-text">
+                    <span class="metric-chip-name">Recoverable Volume &amp; Failover Gain</span>
+                    <span class="metric-chip-desc">Estimates salvageable revenue via smart rerouting</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="metric-chip-card">
+                <input type="checkbox" id="mCheckFriction" checked />
+                <div class="metric-chip-content">
+                  <span class="metric-chip-icon">⚖️</span>
+                  <div class="metric-chip-text">
+                    <span class="metric-chip-name">Technical vs User Friction</span>
+                    <span class="metric-chip-desc">Splits bank/gateway downtime from user cancellations</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="metric-chip-card">
+                <input type="checkbox" id="mCheckRoutes" checked />
+                <div class="metric-chip-content">
+                  <span class="metric-chip-icon">🔀</span>
+                  <div class="metric-chip-text">
+                    <span class="metric-chip-name">Gateway &amp; Route Concentration</span>
+                    <span class="metric-chip-desc">Identifies worst-performing PSPs and UPI bank handles</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="metric-chip-card">
+                <input type="checkbox" id="mCheckRails" />
+                <div class="metric-chip-content">
+                  <span class="metric-chip-icon">💳</span>
+                  <div class="metric-chip-text">
+                    <span class="metric-chip-name">Payment Rails &amp; Latency</span>
+                    <span class="metric-chip-desc">UPI, Cards, NetBanking distribution and timeout metrics</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Scope Filters & Threshold Settings -->
+          <div class="analysis-cfg-section" style="margin-top: 16px;">
+            <label class="analysis-cfg-title">🎯 Analysis Scope &amp; Target Thresholds</label>
+            <div class="alert-grid-2col">
+              <div class="alert-form-field">
+                <label class="alert-label">Gateway / PSP Scope</label>
+                <select id="customPspScope" class="select-custom" style="width: 100%;">
+                  <option value="ALL" selected>All Gateways (Global Platform)</option>
+                  <option value="Razorpay">Razorpay</option>
+                  <option value="Cashfree">Cashfree</option>
+                  <option value="PayU">PayU</option>
+                  <option value="PhonePe">PhonePe PG</option>
+                  <option value="BillDesk">BillDesk</option>
+                  <option value="HDFC">HDFC SmartHub</option>
+                </select>
+              </div>
+
+              <div class="alert-form-field">
+                <label class="alert-label">Payment Rail / Method</label>
+                <select id="customRailScope" class="select-custom" style="width: 100%;">
+                  <option value="ALL" selected>All Payment Rails</option>
+                  <option value="UPI">UPI (Intent &amp; Collect)</option>
+                  <option value="Card">Credit &amp; Debit Cards</option>
+                  <option value="NetBanking">NetBanking</option>
+                  <option value="Wallet">Digital Wallets</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="alert-grid-2col" style="margin-top: 12px;">
+              <div class="alert-form-field">
+                <label class="alert-label">Time Window Horizon</label>
+                <select id="customTimeScope" class="select-custom" style="width: 100%;">
+                  <option value="CURRENT" selected>Current Active Dataset / Window</option>
+                  <option value="15m">Last 15 Minutes (Spike Detection)</option>
+                  <option value="1h">Last 1 Hour</option>
+                  <option value="4h">Last 4 Hours</option>
+                  <option value="24h">Full Day (Today 24h)</option>
+                </select>
+              </div>
+
+              <div class="alert-form-field">
+                <label class="alert-label">
+                  Target SLA Benchmark:
+                  <span class="alert-val-badge" id="customSlaBadge">95.0%</span>
+                </label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <input type="range" id="customSlaSlider" min="80" max="99" step="0.5" value="95" class="recovery-slider" />
+                  <input type="number" id="customSlaInput" min="80" max="99" step="0.5" value="95" class="alert-num-input" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 2: Generated Diagnostic Report -->
+        <div id="customAnalysisReportView" style="display: none;">
+          <!-- Executive Callout Box -->
+          <div class="diag-report-callout" id="diagReportCallout">
+            <div class="diag-callout-header">
+              <span class="diag-status-pill" id="diagStatusPill">CRITICAL ISSUE</span>
+              <span class="diag-timestamp" id="diagTimestamp">Triggered just now</span>
+            </div>
+            <h4 class="diag-title" id="diagTitle">Diagnostic Analysis Summary</h4>
+            <p class="diag-narrative" id="diagNarrative">Running analysis...</p>
+          </div>
+
+          <!-- Dynamic Metric Scorecards Grid (Generated from selected metrics) -->
+          <div class="diag-kpi-grid" id="diagKpiGrid">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Breakdown & Root Cause Entities -->
+          <div class="diag-breakdown-card" style="margin-top: 16px;">
+            <div class="diag-breakdown-header">
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600;">🔍 Root-Cause &amp; Route Breakdown</h4>
+              <span style="font-size: 0.75rem; color: var(--text-dim);" id="diagSampleInfo">Based on 1,420 transactions</span>
+            </div>
+            <div class="table-responsive" style="max-height: 240px; overflow-y: auto; margin-top: 10px;">
+              <table class="data-table" id="diagBreakdownTable">
+                <thead>
+                  <tr>
+                    <th>Dimension / Route</th>
+                    <th>Volume</th>
+                    <th>Failures</th>
+                    <th>Success Rate</th>
+                    <th>Top Failure Reason</th>
+                    <th>Impact Status</th>
+                  </tr>
+                </thead>
+                <tbody id="diagBreakdownTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div id="diagConfigFooterActions">
+          <button type="button" class="btn-action" id="resetCustomAnalysisBtn">Reset to Defaults</button>
+        </div>
+        <div id="diagReportFooterActions" style="display: none; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-action" id="modifyAnalysisCriteriaBtn">⚙️ Edit Criteria</button>
+          <button type="button" class="btn-action" id="copyDiagBriefBtn" title="Copy incident brief to clipboard">📋 Copy Incident Brief</button>
+          <button type="button" class="btn-action btn-sla-wa" id="sendDiagWhatsappBtn" title="Send WhatsApp alert">💬 WhatsApp</button>
+          <button type="button" class="btn-action btn-sla-email" id="sendDiagEmailBtn" title="Send Email alert">✉️ Email</button>
+          <button type="button" class="btn-action" id="exportDiagCsvBtn" title="Export as CSV">📥 Export CSV</button>
+        </div>
+        <div>
+          <button type="button" class="btn-action btn-primary" id="runCustomAnalysisBtn">
+            <span>⚡</span> Run Custom Analysis
           </button>
         </div>
       </div>
