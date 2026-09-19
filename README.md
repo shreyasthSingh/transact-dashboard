@@ -97,3 +97,25 @@ To test the dashboard locally before deploying to Vercel:
 python3 -m http.server 3000
 ```
 Then open `http://localhost:3000` in your web browser.
+
+---
+
+## 🔐 Enterprise Credentials & Role Permissions
+
+The portal supports password-authenticated role access:
+
+| Role | User ID (Email) | Password | Default Capabilities |
+| :--- | :--- | :--- | :--- |
+| **👑 Platform Administrator** | `Shreyasth@transactbridge.com` | `Shreyasth@1234` | Full access: File ingestion, SLA threshold customization, alert dispatching, route mitigations, and team permission controls. |
+| **👁️ Operations Viewer** | `Ops@transactbridge.com` | `Transact@12` | View-only live telemetry, KPI analysis, and shared team transaction feeds. Capabilities dynamically governed by Admin policy. |
+
+### 🛡️ Admin Permission Control Center
+When signed in as **Shreyasth@transactbridge.com**, click **"🛡️ Permissions"** in the top navigation bar or user profile dropdown to configure privileges for Viewer sessions:
+1. **Upload Hourly Data** (`canUpload`)
+2. **Modify Target SLA Threshold** (`canAdjustSla`)
+3. **Configure & Dispatch Alerts** (`canDispatchAlerts`)
+4. **Trigger Custom Analysis & Incident Failovers** (`canTriggerAnalysis`)
+5. **Export Analytics Reports** (`canExportReports`)
+6. **View Financials & Revenue at Risk** (`canViewFinancials`)
+
+Changes are instantly broadcasted to all active team sessions via cloud telemetry!

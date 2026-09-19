@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Transact Bridge - Enterprise Transaction Monitoring Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2.6.0">
   <!-- SheetJS & PapaParse for In-Browser Client-Side Excel and CSV Processing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -116,23 +116,29 @@
           <span>🔗</span> Share Link
         </button>
 
+        <!-- Admin Role Permission Control Center -->
+        <button id="openPermissionsBtn" class="btn-action btn-permissions" title="Admin Permission Control Center (Admin Only)" style="display: none;">
+          <span>🛡️</span> Permissions
+        </button>
+
         <!-- User Profile & Session Controls -->
         <div class="user-profile-menu" id="userProfileMenu">
           <button type="button" class="user-profile-badge" id="userProfileBtn" title="Current Logged-in Account">
-            <span class="user-avatar-circle" id="userAvatarCircle">SA</span>
+            <span class="user-avatar-circle" id="userAvatarCircle">SS</span>
             <div class="user-info-text">
-              <span class="user-name" id="userNameLabel">Admin</span>
+              <span class="user-name" id="userNameLabel">Shreyasth</span>
               <span class="user-role-badge role-admin" id="userRoleBadge">ADMIN</span>
             </div>
             <span class="user-caret">▾</span>
           </button>
           <div class="user-dropdown-card" id="userDropdownCard" style="display: none;">
             <div class="dropdown-header">
-              <div class="dropdown-user-name" id="userDropdownName">System Administrator</div>
-              <div class="dropdown-email" id="userDropdownEmail">admin@transactbridge.com</div>
-              <div class="dropdown-role-desc" id="userDropdownRoleDesc">Full Permissions: Upload, Route &amp; Alert</div>
+              <div class="dropdown-user-name" id="userDropdownName">Shreyasth Singh</div>
+              <div class="dropdown-email" id="userDropdownEmail">Shreyasth@transactbridge.com</div>
+              <div class="dropdown-role-desc" id="userDropdownRoleDesc">Platform Administrator (Full Control)</div>
             </div>
             <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" id="dropdownPermissionsBtn" style="display: none;">🛡️ Role Permissions</button>
             <button type="button" class="dropdown-item" id="dropdownSwitchUserBtn">👤 Switch User / Role</button>
             <button type="button" class="dropdown-item" id="dropdownRefreshCloudBtn">☁️ Force Cloud Re-sync</button>
             <button type="button" class="dropdown-item" id="dropdownShareLinkBtn">🔗 Copy Team Link</button>
@@ -1669,105 +1675,248 @@
     </div>
   </div>
 
-  <!-- Transact Bridge Enterprise Login Modal / Screen -->
+  <!-- Transact Bridge Enterprise Corporate Sign-In Modal -->
   <div class="modal-overlay login-overlay" id="loginModal" style="display: none;">
-    <div class="modal-card login-card">
-      <div class="login-header">
-        <div class="login-brand-logo">
-          <img src="assets/logo.png" alt="Transact Bridge Logo">
+    <div class="modal-card login-card-executive">
+      <div class="login-glow-aura"></div>
+      
+      <!-- Brand Header -->
+      <div class="login-header-executive">
+        <div class="login-brand-badge">
+          <img src="assets/logo.png" alt="Transact Bridge Logo" class="login-logo-img">
         </div>
-        <div class="login-brand-titles">
-          <h2 class="login-title">Transact Bridge Intelligence</h2>
-          <p class="login-subtitle">Enterprise Gateway Monitoring &amp; Shared Team Data Portal</p>
-        </div>
-      </div>
-
-      <div class="login-notice-banner">
-        <span>🌐 <strong>Shared Cloud Session Active:</strong> Any dataset uploaded by an Administrator is automatically synchronized in real time to all team members viewing this link.</span>
-      </div>
-
-      <!-- Login Method Tabs -->
-      <div class="login-tabs">
-        <button type="button" class="login-tab-btn active" data-ltab="tab-quick">⚡ 1-Click Role Access</button>
-        <button type="button" class="login-tab-btn" data-ltab="tab-email">✉️ Corporate Login</button>
-        <button type="button" class="login-tab-btn" data-ltab="tab-code">🔑 Team Access Code</button>
-      </div>
-
-      <!-- Tab 1: 1-Click Role Access -->
-      <div class="login-tab-content active" id="ltab-quick">
-        <div class="quick-role-grid">
-          <!-- Role Card 1: Admin Operator -->
-          <div class="quick-role-card role-card-admin" id="quickLoginAdminBtn">
-            <div class="quick-role-top">
-              <span class="role-icon">🛡️</span>
-              <span class="role-pill-badge badge-admin">FULL ADMIN ACCESS</span>
-            </div>
-            <div class="quick-role-name">Administrator / Data Lead</div>
-            <p class="quick-role-desc">Full permissions to upload hourly Excel/CSV datasets, change SLA targets, broadcast team alerts, and trigger route mitigations.</p>
-            <button type="button" class="btn-role-action btn-admin-action">
-              <span>Sign In as Admin</span> →
-            </button>
-          </div>
-
-          <!-- Role Card 2: Team Stakeholder / Viewer -->
-          <div class="quick-role-card role-card-viewer" id="quickLoginViewerBtn">
-            <div class="quick-role-top">
-              <span class="role-icon">📊</span>
-              <span class="role-pill-badge badge-viewer">VIEWER ACCESS</span>
-            </div>
-            <div class="quick-role-name">Executive / Team Stakeholder</div>
-            <p class="quick-role-desc">Read-only live access to inspect shared uploads, live KPI cards, gateway success rates, telemetry diagnostics, and AI playbooks.</p>
-            <button type="button" class="btn-role-action btn-viewer-action">
-              <span>Sign In as Viewer</span> →
-            </button>
-          </div>
+        <div class="login-title-group">
+          <div class="login-platform-pill">ENTERPRISE GATEWAY INTELLIGENCE</div>
+          <h2 class="login-executive-title">Transact Bridge Portal</h2>
+          <p class="login-executive-subtitle">Authorized Operations &amp; Merchant Telemetry Gateway</p>
         </div>
       </div>
 
-      <!-- Tab 2: Corporate Email & Password -->
-      <div class="login-tab-content" id="ltab-email" style="display: none;">
-        <form id="emailLoginForm" class="login-form">
-          <div class="form-group">
-            <label for="loginEmailInput">Corporate Email</label>
-            <input type="email" id="loginEmailInput" class="form-input" placeholder="e.g. admin@transactbridge.com" required value="admin@transactbridge.com">
+      <!-- Cloud Sync Realtime Advisory -->
+      <div class="login-cloud-advisory">
+        <span class="advisory-icon">🌐</span>
+        <span><strong>Shared Team Portal:</strong> Datasets uploaded by an Administrator are synchronized instantly across all authorized sessions.</span>
+      </div>
+
+      <!-- Single Aesthetic Corporate Login Form -->
+      <form id="corporateLoginForm" class="login-form-executive" autocomplete="on">
+        <!-- Corporate Email -->
+        <div class="form-group-executive">
+          <label for="loginEmailInput" class="form-label-executive">
+            <span>Corporate Identity (Email)</span>
+          </label>
+          <div class="input-icon-wrap">
+            <span class="input-leading-icon">✉️</span>
+            <input 
+              type="email" 
+              id="loginEmailInput" 
+              class="form-input-executive" 
+              placeholder="e.g. Shreyasth@transactbridge.com" 
+              required 
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+            >
           </div>
-          <div class="form-group">
-            <label for="loginPasswordInput">Password / Passcode</label>
-            <input type="password" id="loginPasswordInput" class="form-input" placeholder="Enter your passcode (default: tb-admin-2026)" value="tb-admin-2026">
-            <div class="input-hint">Default admin passcode: <code>tb-admin-2026</code> | Viewer: <code>tb-team-2026</code></div>
-          </div>
-          <div class="form-row remember-row">
-            <label class="checkbox-wrap">
-              <input type="checkbox" id="loginRememberMe" checked>
-              <span>Keep me signed in on this device</span>
+        </div>
+
+        <!-- Password with Eye Toggle -->
+        <div class="form-group-executive">
+          <div class="label-row-executive">
+            <label for="loginPasswordInput" class="form-label-executive">
+              <span>Security Passcode</span>
             </label>
           </div>
-          <button type="submit" class="btn-action btn-primary btn-login-submit" id="emailLoginSubmitBtn">
-            <span>🔐</span> Authenticate &amp; Access Dashboard
-          </button>
-        </form>
-      </div>
-
-      <!-- Tab 3: Team Access Code -->
-      <div class="login-tab-content" id="ltab-code" style="display: none;">
-        <form id="codeLoginForm" class="login-form">
-          <div class="form-group">
-            <label for="loginAccessCodeInput">Team Access Code</label>
-            <input type="text" id="loginAccessCodeInput" class="form-input" placeholder="e.g. TB-ADMIN-2026 or TB-TEAM-2026" style="text-transform: uppercase; font-family: monospace; font-size: 1.05rem; letter-spacing: 1px;" required value="TB-ADMIN-2026">
-            <div class="input-hint">Use <code>TB-ADMIN-2026</code> for Admin permissions or <code>TB-TEAM-2026</code> for Stakeholder / Viewer access.</div>
+          <div class="input-icon-wrap">
+            <span class="input-leading-icon">🔒</span>
+            <input 
+              type="password" 
+              id="loginPasswordInput" 
+              class="form-input-executive" 
+              placeholder="Enter account password" 
+              required 
+              autocomplete="current-password"
+            >
+            <button type="button" class="btn-toggle-password" id="togglePasswordBtn" title="Show or hide password" aria-label="Toggle password visibility">
+              <span id="pwdEyeIcon">👁️</span>
+            </button>
           </div>
-          <button type="submit" class="btn-action btn-primary btn-login-submit" id="codeLoginSubmitBtn">
-            <span>🔑</span> Verify Code &amp; Enter Dashboard
-          </button>
-        </form>
-      </div>
-
-      <div class="login-footer">
-        <div class="security-badge">
-          <span>🔒 Transact Bridge Enterprise Security</span>
-          <span>•</span>
-          <span>Shared Real-Time Telemetry Gateway</span>
         </div>
+
+        <!-- Quick Credential Autofill Chips -->
+        <div class="quick-creds-container">
+          <span class="quick-creds-label">Quick Sign-In:</span>
+          <div class="quick-creds-pills">
+            <button type="button" class="quick-fill-pill pill-admin" id="fillAdminCreds" title="Fill Administrator credentials">
+              👑 Shreyasth (Admin)
+            </button>
+            <button type="button" class="quick-fill-pill pill-ops" id="fillOpsCreds" title="Fill Operations Viewer credentials">
+              👁️ Ops (Viewer)
+            </button>
+          </div>
+        </div>
+
+        <!-- Remember Me Checkbox -->
+        <div class="form-row-remember">
+          <label class="checkbox-wrap-executive">
+            <input type="checkbox" id="loginRememberMe" checked>
+            <span class="checkbox-custom"></span>
+            <span class="checkbox-label-text">Remember session on this secure workstation</span>
+          </label>
+        </div>
+
+        <!-- Error Notification Banner -->
+        <div class="login-error-banner" id="loginErrorMsg" style="display: none;"></div>
+
+        <!-- Sign In Button -->
+        <button type="submit" class="btn-executive-submit" id="corporateLoginSubmitBtn">
+          <span class="submit-icon">🔐</span>
+          <span class="submit-label">Sign In to Gateway Dashboard</span>
+          <span class="submit-arrow">→</span>
+        </button>
+      </form>
+
+      <!-- Security Footer -->
+      <div class="login-footer-executive">
+        <div class="security-meta-badge">
+          <span>🛡️ TLS 1.3 / 256-Bit Encrypted</span>
+          <span class="meta-dot">•</span>
+          <span>Role-Based Access Control</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Role Permission Management Modal -->
+  <div class="modal-overlay" id="permissionsModal" style="display: none;">
+    <div class="modal-card permissions-card">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <div class="perm-title-row">
+            <span class="perm-header-icon">🛡️</span>
+            <div>
+              <h3 class="modal-title">Role Permission Management</h3>
+              <p class="modal-subtitle">Configure operational capabilities for Viewer accounts (Ops@transactbridge.com)</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-header-actions">
+          <button type="button" class="modal-close" id="closePermissionsBtn" title="Close modal">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body permissions-body">
+        <div class="perm-notice-box">
+          <span>⚡ <strong>Live Dynamic Policy:</strong> Changes saved here are automatically synchronized across all team members viewing this dashboard via cloud telemetry.</span>
+        </div>
+
+        <div class="role-matrix-summary">
+          <div class="role-matrix-item admin-matrix-item">
+            <div class="matrix-badge">👑 Administrator (Shreyasth@transactbridge.com)</div>
+            <div class="matrix-desc">Always possesses full, unrestricted access across all features, file ingestion, SLA thresholds, and cloud synchronization.</div>
+          </div>
+          <div class="role-matrix-item viewer-matrix-item">
+            <div class="matrix-badge">👁️ Viewer / Operations (Ops@transactbridge.com)</div>
+            <div class="matrix-desc">Governed by the granular policy toggles configured below:</div>
+          </div>
+        </div>
+
+        <div class="permissions-toggle-grid">
+          <!-- Perm 1: Upload Hourly Data -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">📤</div>
+              <div>
+                <div class="perm-name">Upload Hourly Data</div>
+                <div class="perm-desc">Allow Viewers to upload hourly transaction files (Excel/CSV) and publish them to team cloud.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Upload Hourly Data permission">
+              <input type="checkbox" id="permUpload">
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <!-- Perm 2: Modify Target SLA -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">🎯</div>
+              <div>
+                <div class="perm-name">Modify Target SLA Threshold</div>
+                <div class="perm-desc">Permit Viewer to adjust target SLA percentage slider and incident trigger thresholds.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Modify Target SLA permission">
+              <input type="checkbox" id="permAdjustSla">
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <!-- Perm 3: Configure & Dispatch Alerts -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">🔔</div>
+              <div>
+                <div class="perm-name">Configure &amp; Dispatch Alerts</div>
+                <div class="perm-desc">Allow Viewer to configure automated alert rules, recipients, and dispatch email/webhook alerts.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Alerts permission">
+              <input type="checkbox" id="permDispatchAlerts">
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <!-- Perm 4: Trigger Custom Analysis -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">⚡</div>
+              <div>
+                <div class="perm-name">Trigger Custom Analysis &amp; Incident Failovers</div>
+                <div class="perm-desc">Permit running ad-hoc multi-metric diagnostic scans, routing simulations, and recovery playbooks.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Custom Analysis permission">
+              <input type="checkbox" id="permTriggerAnalysis">
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <!-- Perm 5: Export Analytics Reports -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">📥</div>
+              <div>
+                <div class="perm-name">Export Analytics Reports</div>
+                <div class="perm-desc">Permit downloading merchant breakdown, gateway diagnostics, and audit logs as CSV files.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Report Export permission">
+              <input type="checkbox" id="permExportReports" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <!-- Perm 6: View Financials & Revenue at Risk -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">💰</div>
+              <div>
+                <div class="perm-name">View Financials &amp; Revenue at Risk</div>
+                <div class="perm-desc">Display sensitive monetary metrics, total transaction values, and financial risk forecasts.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Financial Visibility permission">
+              <input type="checkbox" id="permViewFinancials" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer perm-footer">
+        <button type="button" class="btn-action" id="resetPermissionsBtn">↺ Reset to Default Policy</button>
+        <button type="button" class="btn-action btn-primary" id="savePermissionsBtn">
+          <span>💾</span> Save &amp; Broadcast to Cloud
+        </button>
       </div>
     </div>
   </div>
@@ -1775,6 +1924,6 @@
   <!-- Tooltip Element for Canvas Charts -->
   <div id="chart-tooltip"></div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.6.0"></script>
 </body>
 </html>

@@ -1946,6 +1946,10 @@
   }
 
   function exportCSV() {
+    if (typeof permissionsManager !== 'undefined' && !permissionsManager.hasPermission('canExportReports')) {
+      showToast('🔒 Report export is restricted by Administrator policy. Contact Shreyasth@transactbridge.com.');
+      return;
+    }
     const cur = CURRENCIES[currentCurrency];
     const headers = [
       'Dimension',
@@ -2782,8 +2786,8 @@
   let loadedFileContent = null;
 
   openUploadBtn.addEventListener('click', () => {
-    if (typeof authManager !== 'undefined' && authManager.getCurrentUser() && authManager.getCurrentUser().role === 'viewer') {
-      showToast('🔒 Upload privileges are reserved for Administrators. As a Team Stakeholder, you are viewing shared live data uploaded by Admins.');
+    if (typeof permissionsManager !== 'undefined' && !permissionsManager.hasPermission('canUpload')) {
+      showToast('🔒 Upload privileges are restricted for your role. Contact Shreyasth@transactbridge.com to request access.');
       return;
     }
     uploadModal.classList.add('active');
@@ -6670,6 +6674,10 @@ Incident Timestamp: ${timeStr}`;
   }
 
   function openAlertsModal() {
+    if (typeof permissionsManager !== 'undefined' && !permissionsManager.hasPermission('canDispatchAlerts')) {
+      showToast('🔒 Alert configuration is restricted by Administrator policy. Contact Shreyasth@transactbridge.com.');
+      return;
+    }
     syncAlertModalInputs();
     renderAlertEmailChips();
     renderAlertPhoneChips();
@@ -7189,6 +7197,10 @@ Incident Timestamp: ${timeStr}`;
   }
 
   function openCustomAnalysisModal() {
+    if (typeof permissionsManager !== 'undefined' && !permissionsManager.hasPermission('canTriggerAnalysis')) {
+      showToast('🔒 Custom Analysis is restricted by Administrator policy. Contact Shreyasth@transactbridge.com.');
+      return;
+    }
     // 1. Sync SLA benchmark from alertSettings
     const targetSla = (alertSettings && alertSettings.thresholds && alertSettings.thresholds.targetSla) || 95.0;
     const slaSlider = document.getElementById('customSlaSlider');
@@ -7793,9 +7805,30 @@ Recommended Immediate Actions:
   }
 
   // =========================================================================
-  // Transact Bridge Enterprise Authentication & Role Management Module
+  // Transact Bridge Enterprise Authentication & Corporate Security Module
   // =========================================================================
   const AUTH_STORAGE_KEY = 'tb_auth_session';
+
+  const AUTHORIZED_ACCOUNTS = [
+    {
+      email: 'shreyasth@transactbridge.com',
+      displayEmail: 'Shreyasth@transactbridge.com',
+      password: 'Shreyasth@1234',
+      name: 'Shreyasth Singh',
+      role: 'admin',
+      avatar: 'SS',
+      title: 'Platform Administrator'
+    },
+    {
+      email: 'ops@transactbridge.com',
+      displayEmail: 'Ops@transactbridge.com',
+      password: 'Transact@12',
+      name: 'Operations Team',
+      role: 'viewer',
+      avatar: 'OP',
+      title: 'Operations Stakeholder'
+    }
+  ];
 
   const authManager = {
     currentUser: null,
@@ -7805,7 +7838,15 @@ Recommended Immediate Actions:
       try {
         const stored = localStorage.getItem(AUTH_STORAGE_KEY);
         if (stored) {
-          this.currentUser = JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          const cleanStoredEmail = String(parsed.email || '').trim().toLowerCase();
+          const validAccount = AUTHORIZED_ACCOUNTS.find(a => a.email === cleanStoredEmail && a.role === parsed.role);
+          if (validAccount) {
+            this.currentUser = { ...validAccount, ...parsed, email: validAccount.displayEmail };
+          } else {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            this.currentUser = null;
+          }
         }
       } catch (e) {
         console.warn('Error reading auth session:', e);
@@ -7817,7 +7858,9 @@ Recommended Immediate Actions:
         this.showLoginModal();
       } else {
         this.updateHeaderUI();
-        this.applyRolePermissions();
+        if (typeof permissionsManager !== 'undefined') {
+          permissionsManager.applyPermissions();
+        }
       }
     },
 
@@ -7831,7 +7874,7 @@ Recommended Immediate Actions:
       const logoutBtn = document.getElementById('logoutBtn');
       const dropdownSwitchUserBtn = document.getElementById('dropdownSwitchUserBtn');
 
-      // Profile menu toggle
+      // Profile menu dropdown toggle
       if (userProfileBtn && userDropdownCard) {
         userProfileBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -7861,97 +7904,132 @@ Recommended Immediate Actions:
         });
       }
 
-      // Quick Role Buttons
-      const quickLoginAdminBtn = document.getElementById('quickLoginAdminBtn');
-      const quickLoginViewerBtn = document.getElementById('quickLoginViewerBtn');
-
-      if (quickLoginAdminBtn) {
-        quickLoginAdminBtn.addEventListener('click', () => {
-          this.login({
-            email: 'admin@transactbridge.com',
-            name: 'System Administrator',
-            role: 'admin',
-            avatar: 'SA',
-            token: 'token_' + Date.now() + '_admin'
-          });
-        });
-      }
-
-      if (quickLoginViewerBtn) {
-        quickLoginViewerBtn.addEventListener('click', () => {
-          this.login({
-            email: 'team@transactbridge.com',
-            name: 'Executive Stakeholder',
-            role: 'viewer',
-            avatar: 'ES',
-            token: 'token_' + Date.now() + '_viewer'
-          });
-        });
-      }
-
-      // Login Tabs
-      document.querySelectorAll('.login-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.login-tab-btn').forEach(b => b.classList.remove('active'));
-          document.querySelectorAll('.login-tab-content').forEach(c => c.style.display = 'none');
-          btn.classList.add('active');
-          const targetId = btn.getAttribute('data-ltab');
-          const content = document.getElementById(targetId);
-          if (content) content.style.display = 'block';
-        });
-      });
-
-      // Email Login Form
-      const emailForm = document.getElementById('emailLoginForm');
-      if (emailForm) {
-        emailForm.addEventListener('submit', (e) => {
+      // Password show/hide toggle
+      const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+      const loginPasswordInput = document.getElementById('loginPasswordInput');
+      const pwdEyeIcon = document.getElementById('pwdEyeIcon');
+      if (togglePasswordBtn && loginPasswordInput) {
+        togglePasswordBtn.addEventListener('click', (e) => {
           e.preventDefault();
-          const email = (document.getElementById('loginEmailInput')?.value || '').trim();
-          const pass = (document.getElementById('loginPasswordInput')?.value || '').trim();
+          const isPassword = loginPasswordInput.type === 'password';
+          loginPasswordInput.type = isPassword ? 'text' : 'password';
+          if (pwdEyeIcon) pwdEyeIcon.textContent = isPassword ? '🙈' : '👁️';
+        });
+      }
+
+      // Quick Credential Autofill Helper Chips
+      const fillAdminCreds = document.getElementById('fillAdminCreds');
+      const fillOpsCreds = document.getElementById('fillOpsCreds');
+      const loginEmailInput = document.getElementById('loginEmailInput');
+
+      if (fillAdminCreds) {
+        fillAdminCreds.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (loginEmailInput) loginEmailInput.value = 'Shreyasth@transactbridge.com';
+          if (loginPasswordInput) loginPasswordInput.value = 'Shreyasth@1234';
+          this.hideLoginError();
+        });
+      }
+
+      if (fillOpsCreds) {
+        fillOpsCreds.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (loginEmailInput) loginEmailInput.value = 'Ops@transactbridge.com';
+          if (loginPasswordInput) loginPasswordInput.value = 'Transact@12';
+          this.hideLoginError();
+        });
+      }
+
+      // Corporate Login Form Submit Handler
+      const corporateLoginForm = document.getElementById('corporateLoginForm');
+      if (corporateLoginForm) {
+        corporateLoginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = (loginEmailInput?.value || '').trim();
+          const password = (loginPasswordInput?.value || '').trim();
           const remember = document.getElementById('loginRememberMe')?.checked ?? true;
+          const submitBtn = document.getElementById('corporateLoginSubmitBtn');
 
-          const role = (pass.toLowerCase().includes('admin') || email.toLowerCase().includes('admin')) ? 'admin' : 'viewer';
-          const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
-          const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-          const avatar = email.substring(0, 2).toUpperCase();
+          if (!email || !password) {
+            this.showLoginError('Please enter both corporate email and password.');
+            return;
+          }
 
-          this.login({
-            email,
-            name,
-            role,
-            avatar,
-            token: 'token_' + Date.now() + '_' + role
-          }, remember);
-        });
-      }
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>⏳</span> Authenticating...';
+          }
 
-      // Code Login Form
-      const codeForm = document.getElementById('codeLoginForm');
-      if (codeForm) {
-        codeForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const code = (document.getElementById('loginAccessCodeInput')?.value || '').trim().toUpperCase();
-          if (code === 'TB-ADMIN-2026') {
-            this.login({
-              email: 'operator@transactbridge.com',
-              name: 'Admin Operator',
-              role: 'admin',
-              avatar: 'AO',
-              token: 'token_' + Date.now() + '_admin'
-            });
-          } else if (code === 'TB-VIEWER-2026' || code === 'TB-TEAM-2026') {
-            this.login({
-              email: 'team@transactbridge.com',
-              name: 'Team Member',
-              role: 'viewer',
-              avatar: 'TM',
-              token: 'token_' + Date.now() + '_viewer'
-            });
-          } else {
-            showToast('❌ Invalid code. Use TB-ADMIN-2026 for Admin or TB-TEAM-2026 for Viewer.');
+          try {
+            // Attempt server-side auth endpoint
+            let serverSuccess = false;
+            try {
+              const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+              });
+              const json = await res.json();
+              if (res.ok && json.success && json.user) {
+                this.login(json.user, remember);
+                serverSuccess = true;
+                return;
+              } else if (res.status === 401 || res.status === 400) {
+                this.showLoginError(json.error || 'Invalid credentials. Please verify your email and password.');
+                return;
+              }
+            } catch (netErr) {
+              // Endpoint unavailable (local static file or offline), fallback to client validation
+            }
+
+            if (!serverSuccess) {
+              const cleanEmail = email.toLowerCase();
+              const account = AUTHORIZED_ACCOUNTS.find(a => a.email === cleanEmail);
+              if (!account) {
+                this.showLoginError('Account not recognized. Authorized accounts: Shreyasth@transactbridge.com or Ops@transactbridge.com');
+                return;
+              }
+              if (account.password !== password) {
+                this.showLoginError('Incorrect password. Please verify your password and try again.');
+                return;
+              }
+
+              this.login({
+                email: account.displayEmail,
+                name: account.name,
+                role: account.role,
+                avatar: account.avatar,
+                title: account.title,
+                token: 'token_' + Date.now() + '_' + account.role
+              }, remember);
+            }
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<span class="submit-icon">🔐</span><span class="submit-label">Sign In to Gateway Dashboard</span><span class="submit-arrow">→</span>';
+            }
           }
         });
       }
+    },
+
+    showLoginError(msg) {
+      const errBox = document.getElementById('loginErrorMsg');
+      if (errBox) {
+        errBox.textContent = `❌ ${msg}`;
+        errBox.style.display = 'block';
+      }
+      const card = document.querySelector('.login-card-executive');
+      if (card) {
+        card.classList.remove('shake');
+        void card.offsetWidth;
+        card.classList.add('shake');
+      }
+    },
+
+    hideLoginError() {
+      const errBox = document.getElementById('loginErrorMsg');
+      if (errBox) errBox.style.display = 'none';
     },
 
     showLoginModal() {
@@ -7959,6 +8037,11 @@ Recommended Immediate Actions:
       if (modal) {
         modal.style.display = 'flex';
         modal.classList.add('active');
+        this.hideLoginError();
+        const emailInput = document.getElementById('loginEmailInput');
+        if (emailInput && !emailInput.value) {
+          emailInput.focus();
+        }
       }
     },
 
@@ -7967,6 +8050,7 @@ Recommended Immediate Actions:
       if (modal) {
         modal.style.display = 'none';
         modal.classList.remove('active');
+        this.hideLoginError();
       }
     },
 
@@ -7986,7 +8070,10 @@ Recommended Immediate Actions:
 
       this.hideLoginModal();
       this.updateHeaderUI();
-      this.applyRolePermissions();
+      if (typeof permissionsManager !== 'undefined') {
+        permissionsManager.applyPermissions();
+        permissionsManager.fetchPermissionsFromCloud();
+      }
 
       showToast(`👋 Welcome back, ${this.currentUser.name} (${this.currentUser.role.toUpperCase()})!`);
 
@@ -8004,6 +8091,9 @@ Recommended Immediate Actions:
 
       const userDropdownCard = document.getElementById('userDropdownCard');
       if (userDropdownCard) userDropdownCard.style.display = 'none';
+
+      const pwdInput = document.getElementById('loginPasswordInput');
+      if (pwdInput) pwdInput.value = '';
 
       this.showLoginModal();
       showToast('🔒 Signed out successfully.');
@@ -8029,22 +8119,293 @@ Recommended Immediate Actions:
       if (userDropdownEmail) userDropdownEmail.textContent = this.currentUser.email;
       if (userDropdownRoleDesc) {
         userDropdownRoleDesc.textContent = this.currentUser.role === 'admin'
-          ? 'Full Permissions: Upload, Route & Alert'
-          : 'Stakeholder Read-Only: Shared Live Telemetry';
+          ? 'Platform Administrator (Full Permissions)'
+          : 'Operations Stakeholder (Managed Permissions)';
+      }
+    }
+  };
+
+  // =========================================================================
+  // Admin Dynamic Permission Management Module
+  // Controls operational capabilities for Viewer accounts (Ops@transactbridge.com)
+  // =========================================================================
+  const DEFAULT_PERMISSIONS = {
+    canUpload: false,
+    canAdjustSla: false,
+    canDispatchAlerts: false,
+    canTriggerAnalysis: false,
+    canExportReports: true,
+    canViewFinancials: true
+  };
+
+  const PERMISSIONS_STORAGE_KEY = 'tb_role_permissions';
+
+  const permissionsManager = {
+    viewerPermissions: { ...DEFAULT_PERMISSIONS },
+
+    init() {
+      this.loadPermissions();
+      this.bindEvents();
+      this.applyPermissions();
+      this.fetchPermissionsFromCloud();
+    },
+
+    loadPermissions() {
+      try {
+        const stored = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
+        if (stored) {
+          this.viewerPermissions = { ...DEFAULT_PERMISSIONS, ...JSON.parse(stored) };
+        }
+      } catch (e) {
+        console.warn('Error reading permissions from storage:', e);
       }
     },
 
-    applyRolePermissions() {
+    savePermissions(perms, broadcast = true) {
+      this.viewerPermissions = { ...this.viewerPermissions, ...perms };
+      try {
+        localStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(this.viewerPermissions));
+      } catch (e) {}
+
+      this.applyPermissions();
+
+      if (broadcast) {
+        this.broadcastPermissions();
+      }
+    },
+
+    hasPermission(permKey) {
+      const user = authManager.getCurrentUser();
+      if (!user) return false;
+      if (user.role === 'admin') return true; // Administrator always has unrestricted access
+      return !!this.viewerPermissions[permKey];
+    },
+
+    applyPermissions() {
+      const user = authManager.getCurrentUser();
+      const isAdmin = user && user.role === 'admin';
+
+      // Header and Profile Permissions button: only visible to Admin
+      const openPermissionsBtn = document.getElementById('openPermissionsBtn');
+      if (openPermissionsBtn) {
+        openPermissionsBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+      }
+      const dropdownPermissionsBtn = document.getElementById('dropdownPermissionsBtn');
+      if (dropdownPermissionsBtn) {
+        dropdownPermissionsBtn.style.display = isAdmin ? 'flex' : 'none';
+      }
+
+      // 1. canUpload: Upload Hourly Data button
       const openUploadBtn = document.getElementById('openUploadBtn');
       if (openUploadBtn) {
-        if (this.currentUser && this.currentUser.role === 'viewer') {
-          openUploadBtn.title = 'Upload privileges are reserved for Administrators (Read-Only Viewer)';
-          openUploadBtn.style.opacity = '0.75';
-        } else {
-          openUploadBtn.title = 'Upload Hourly Excel or CSV dataset (Admin Full Access)';
+        if (isAdmin || this.hasPermission('canUpload')) {
+          openUploadBtn.classList.remove('perm-restricted');
+          openUploadBtn.title = 'Upload Hourly Excel or CSV dataset';
           openUploadBtn.style.opacity = '1';
+        } else {
+          openUploadBtn.classList.add('perm-restricted');
+          openUploadBtn.title = '🔒 Upload restricted by Administrator policy';
+          openUploadBtn.style.opacity = '0.6';
         }
       }
+
+      // 2. canAdjustSla: SLA Slider and inputs
+      const customSlaSlider = document.getElementById('customSlaSlider');
+      const customSlaInput = document.getElementById('customSlaInput');
+      const canSla = isAdmin || this.hasPermission('canAdjustSla');
+      if (customSlaSlider) {
+        customSlaSlider.disabled = !canSla;
+        customSlaSlider.title = canSla ? 'Adjust Target SLA' : '🔒 Target SLA modification locked by Administrator';
+      }
+      if (customSlaInput) {
+        customSlaInput.disabled = !canSla;
+      }
+
+      // 3. canDispatchAlerts: Alert buttons
+      const openAlertsModalBtn = document.getElementById('openAlertsModalBtn');
+      const slaConfigureBtn = document.getElementById('slaConfigureBtn');
+      const canAlerts = isAdmin || this.hasPermission('canDispatchAlerts');
+      [openAlertsModalBtn, slaConfigureBtn].forEach(btn => {
+        if (btn) {
+          if (canAlerts) {
+            btn.classList.remove('perm-restricted');
+            btn.style.opacity = '1';
+          } else {
+            btn.classList.add('perm-restricted');
+            btn.style.opacity = '0.6';
+          }
+        }
+      });
+
+      // 4. canTriggerAnalysis: Trigger Custom Analysis buttons
+      const triggerAnalysisBtn = document.getElementById('triggerAnalysisBtn');
+      const runCustomAnalysisBtn = document.getElementById('runCustomAnalysisBtn');
+      const canTrigger = isAdmin || this.hasPermission('canTriggerAnalysis');
+      [triggerAnalysisBtn, runCustomAnalysisBtn].forEach(btn => {
+        if (btn) {
+          if (canTrigger) {
+            btn.classList.remove('perm-restricted');
+            btn.style.opacity = '1';
+          } else {
+            btn.classList.add('perm-restricted');
+            btn.style.opacity = '0.6';
+          }
+        }
+      });
+
+      // 5. canExportReports: CSV Export buttons
+      const exportCsvBtn = document.getElementById('exportCsvBtn');
+      const exportDiagCsvBtn = document.getElementById('exportDiagCsvBtn');
+      const exportAlertLogCsvBtn = document.getElementById('exportAlertLogCsvBtn');
+      const canExport = isAdmin || this.hasPermission('canExportReports');
+      [exportCsvBtn, exportDiagCsvBtn, exportAlertLogCsvBtn].forEach(btn => {
+        if (btn) {
+          if (canExport) {
+            btn.classList.remove('perm-restricted');
+            btn.style.opacity = '1';
+          } else {
+            btn.classList.add('perm-restricted');
+            btn.style.opacity = '0.6';
+          }
+        }
+      });
+
+      // 6. canViewFinancials: Sensitive financial metrics masking
+      const canViewFin = isAdmin || this.hasPermission('canViewFinancials');
+      document.body.classList.toggle('hide-financials', !canViewFin);
+
+      this.updateModalInputs();
+    },
+
+    updateModalInputs() {
+      const p = this.viewerPermissions;
+      const ids = {
+        permUpload: p.canUpload,
+        permAdjustSla: p.canAdjustSla,
+        permDispatchAlerts: p.canDispatchAlerts,
+        permTriggerAnalysis: p.canTriggerAnalysis,
+        permExportReports: p.canExportReports,
+        permViewFinancials: p.canViewFinancials
+      };
+      Object.entries(ids).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!val;
+      });
+    },
+
+    bindEvents() {
+      const openPermissionsBtn = document.getElementById('openPermissionsBtn');
+      const dropdownPermissionsBtn = document.getElementById('dropdownPermissionsBtn');
+      const closePermissionsBtn = document.getElementById('closePermissionsBtn');
+      const permissionsModal = document.getElementById('permissionsModal');
+      const savePermissionsBtn = document.getElementById('savePermissionsBtn');
+      const resetPermissionsBtn = document.getElementById('resetPermissionsBtn');
+
+      const openModal = () => {
+        const user = authManager.getCurrentUser();
+        if (!user || user.role !== 'admin') {
+          showToast('🔒 Only Administrators can manage role permissions.');
+          return;
+        }
+        this.updateModalInputs();
+        if (permissionsModal) {
+          permissionsModal.style.display = 'flex';
+          permissionsModal.classList.add('active');
+        }
+      };
+
+      const closeModal = () => {
+        if (permissionsModal) {
+          permissionsModal.style.display = 'none';
+          permissionsModal.classList.remove('active');
+        }
+      };
+
+      if (openPermissionsBtn) openPermissionsBtn.addEventListener('click', openModal);
+      if (dropdownPermissionsBtn) {
+        dropdownPermissionsBtn.addEventListener('click', () => {
+          const userDropdownCard = document.getElementById('userDropdownCard');
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          openModal();
+        });
+      }
+      if (closePermissionsBtn) closePermissionsBtn.addEventListener('click', closeModal);
+
+      if (permissionsModal) {
+        permissionsModal.addEventListener('click', (e) => {
+          if (e.target === permissionsModal) closeModal();
+        });
+      }
+
+      if (resetPermissionsBtn) {
+        resetPermissionsBtn.addEventListener('click', () => {
+          this.viewerPermissions = { ...DEFAULT_PERMISSIONS };
+          this.updateModalInputs();
+          showToast('↺ Reset Viewer permissions to default policy.');
+        });
+      }
+
+      if (savePermissionsBtn) {
+        savePermissionsBtn.addEventListener('click', () => {
+          const newPerms = {
+            canUpload: !!document.getElementById('permUpload')?.checked,
+            canAdjustSla: !!document.getElementById('permAdjustSla')?.checked,
+            canDispatchAlerts: !!document.getElementById('permDispatchAlerts')?.checked,
+            canTriggerAnalysis: !!document.getElementById('permTriggerAnalysis')?.checked,
+            canExportReports: !!document.getElementById('permExportReports')?.checked,
+            canViewFinancials: !!document.getElementById('permViewFinancials')?.checked
+          };
+          this.savePermissions(newPerms, true);
+          closeModal();
+          showToast('🛡️ Role permissions successfully updated and broadcast to Team Cloud!');
+        });
+      }
+    },
+
+    async broadcastPermissions() {
+      const payload = {
+        permissions: this.viewerPermissions,
+        updatedBy: authManager.getCurrentUser()?.email || 'Shreyasth@transactbridge.com',
+        updatedAt: new Date().toISOString()
+      };
+      try {
+        fetch('/api/permissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch (_) {}
+
+      try {
+        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch (_) {}
+    },
+
+    async fetchPermissionsFromCloud() {
+      try {
+        const res = await fetch(`/api/permissions?t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.data && json.data.permissions) {
+            this.savePermissions(json.data.permissions, false);
+            return;
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1?t=${Date.now()}`);
+        if (fbRes.ok) {
+          const fbJson = await fbRes.json();
+          if (fbJson && fbJson.permissions) {
+            this.savePermissions(fbJson.permissions, false);
+          }
+        }
+      } catch (_) {}
     }
   };
 
@@ -8166,9 +8527,14 @@ Recommended Immediate Actions:
         console.warn('POST /api/data failed (local dev or no api host):', err.message);
       }
 
-      // Also cache in local cloud mirror
+      // Also cache in local cloud mirror and durable cloud relay
       try {
         localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(payload));
+        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
       } catch (e) {}
 
       this.activeCloudBatchId = batchObj.id;
@@ -8181,54 +8547,55 @@ Recommended Immediate Actions:
       this.isSyncing = true;
       if (!silent) this.updateSyncPill('syncing');
 
+      const applyCloudBatch = (cloudBatch) => {
+        if (!cloudBatch || !cloudBatch.transactions || cloudBatch.transactions.length === 0) return false;
+        if (cloudBatch.id === this.activeCloudBatchId && dataMode === 'uploaded') return false;
+
+        this.activeCloudBatchId = cloudBatch.id;
+        this.lastSyncTimestamp = Date.now();
+
+        const normalized = cloudBatch.transactions.map(normalizeRow);
+        uploadedBatches = [{
+          id: cloudBatch.id,
+          name: cloudBatch.name || 'Shared Team Batch',
+          uploadedAt: cloudBatch.uploadedAt,
+          count: normalized.length,
+          transactions: normalized
+        }];
+
+        currentTransactions = normalized;
+        dataMode = 'uploaded';
+        activeBatchId = 'all';
+
+        saveBatchesToStorage();
+        recomputeDashboardFromTransactions(currentTransactions);
+        stopSimulation();
+        updateBatchSelector();
+
+        const banner = document.getElementById('dataStatusBanner');
+        const tag = document.getElementById('dataModeTag');
+        const msg = document.getElementById('dataStatusMessage');
+        if (banner && tag && msg) {
+          tag.className = 'data-status-tag tag-uploaded';
+          tag.textContent = 'Team Shared Ingestion';
+          const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+          msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
+        }
+
+        this.updateSyncPill('synced', 'Team Cloud Synced');
+        if (!silent) {
+          showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
+        }
+        return true;
+      };
+
       try {
-        // Fetch from Vercel Serverless API
+        // 1. Fetch from Vercel Serverless API (/api/data)
         const res = await fetch(`/api/data?t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json && json.success && json.data && json.data.transactions && json.data.transactions.length > 0) {
-            const cloudBatch = json.data;
-
-            // Only recompute if new batch ID or if we currently have no uploaded data
-            if (cloudBatch.id !== this.activeCloudBatchId || dataMode !== 'uploaded') {
-              this.activeCloudBatchId = cloudBatch.id;
-              this.lastSyncTimestamp = Date.now();
-
-              // Normalize transactions
-              const normalized = cloudBatch.transactions.map(normalizeRow);
-
-              uploadedBatches = [{
-                id: cloudBatch.id,
-                name: cloudBatch.name || 'Shared Team Batch',
-                uploadedAt: cloudBatch.uploadedAt,
-                count: normalized.length,
-                transactions: normalized
-              }];
-
-              currentTransactions = normalized;
-              dataMode = 'uploaded';
-              activeBatchId = 'all';
-
-              saveBatchesToStorage();
-              recomputeDashboardFromTransactions(currentTransactions);
-              stopSimulation();
-              updateBatchSelector();
-
-              // Update Banner
-              const banner = document.getElementById('dataStatusBanner');
-              const tag = document.getElementById('dataModeTag');
-              const msg = document.getElementById('dataStatusMessage');
-              if (banner && tag && msg) {
-                tag.className = 'data-status-tag tag-uploaded';
-                tag.textContent = 'Team Shared Ingestion';
-                const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
-                msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
-              }
-
-              this.updateSyncPill('synced', 'Team Cloud Synced');
-              if (!silent) {
-                showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
-              }
+            if (applyCloudBatch(json.data)) {
               this.isSyncing = false;
               return;
             }
@@ -8237,6 +8604,20 @@ Recommended Immediate Actions:
       } catch (err) {
         console.warn('GET /api/data unavailable:', err.message);
       }
+
+      // 2. Fetch from durable public cloud relay fallback
+      try {
+        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1?t=${Date.now()}`);
+        if (fbRes.ok) {
+          const fbBatch = await fbRes.json();
+          if (fbBatch && fbBatch.transactions && fbBatch.transactions.length > 0) {
+            if (applyCloudBatch(fbBatch)) {
+              this.isSyncing = false;
+              return;
+            }
+          }
+        }
+      } catch (_) {}
 
       this.updateSyncPill('synced', 'Team Cloud Synced');
       this.isSyncing = false;
@@ -8264,8 +8645,9 @@ Recommended Immediate Actions:
   renderRecommendations();
   initCharts();
 
-  // Initialize Enterprise Authentication & Global Team Cloud Sync
+  // Initialize Enterprise Authentication, Permissions Engine & Global Team Cloud Sync
   authManager.init();
+  permissionsManager.init();
   cloudSyncManager.init();
 
 })();
