@@ -194,7 +194,7 @@ module.exports = async (req, res) => {
         source: 'none',
         data: null,
         alertSettings: inMemoryAlertSettings,
-        message: 'No uploaded team data yet. Displaying demo baseline.'
+        message: 'No uploaded team data yet. Dashboard in clean empty state.'
       });
     } catch (err) {
       console.error('Error fetching shared data:', err);
@@ -212,6 +212,24 @@ module.exports = async (req, res) => {
 
       if (!body) {
         return res.status(400).json({ success: false, error: 'Empty request body.' });
+      }
+
+      // 0. Dedicated Clear Action (Remove all shared data)
+      if (body.clear === true || body.action === 'clear') {
+        inMemoryStore = null;
+        if (kvUrl && kvToken) {
+          try {
+            await upstashCommand(kvUrl, kvToken, ['DEL', 'tb_shared_transactions_latest'], 3000);
+          } catch (_) {}
+        }
+        try {
+          fetch(NTFY_TXS_TOPIC, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Title': 'Team Data Cleared' },
+            body: JSON.stringify({ action: 'batch_cleared', timestamp: new Date().toISOString() })
+          }).catch(() => {});
+        } catch (_) {}
+        return res.status(200).json({ success: true, message: 'All shared team data cleared. Dashboard in clean empty state.' });
       }
 
       // 1. Dedicated Alert Configuration Save

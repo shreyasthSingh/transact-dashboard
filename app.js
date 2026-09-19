@@ -145,239 +145,15 @@
   // Day-over-Day (DoD) Comparison State
   let isDodMode = false;
 
-  // Demo PSP Data (paymentDetails.pgProvider)
-  const defaultDemoPsp = [
-    { id: 'RAZORPAY', name: 'Razorpay Gateway', count: 1380000, success: 1324800, failed: 55200, amount: 690000000, successAmt: 662400000, failedAmt: 27600000 },
-    { id: 'CASHFREE', name: 'Cashfree Payments', count: 840000, success: 798000, failed: 42000, amount: 420000000, successAmt: 399000000, failedAmt: 21000000 },
-    { id: 'PAYU', name: 'PayU Payments', count: 520000, success: 478400, failed: 41600, amount: 260000000, successAmt: 239200000, failedAmt: 20800000 },
-    { id: 'BILLDESK', name: 'BillDesk India', count: 340000, success: 312800, failed: 27200, amount: 238000000, successAmt: 218960000, failedAmt: 19040000 },
-    { id: 'STRIPE', name: 'Stripe India', count: 180000, success: 174600, failed: 5400, amount: 144000000, successAmt: 139680000, failedAmt: 4320000 },
-    { id: 'PHONEPE_PG', name: 'PhonePe PG', count: 160000, success: 153600, failed: 6400, amount: 96000000, successAmt: 92160000, failedAmt: 3840000 },
-    { id: 'PAYTM_PG', name: 'Paytm Payment Gateway', count: 95000, success: 84550, failed: 10450, amount: 57000000, successAmt: 50730000, failedAmt: 6270000 }
-  ];
-
-  // Demo UPI App Data (paymentDetails.upiAppName) - Comprehensive Ecosystem
-  const defaultDemoUpiApp = [
-    { id: 'PhonePe', name: 'PhonePe', sourceDevice: 'Mobile', sourceOS: 'Android', count: 1220000, success: 1179740, failed: 40260, amount: 488000000, successAmt: 471896000, failedAmt: 16104000 },
-    { id: 'Google Pay', name: 'Google Pay (Android)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 980000, success: 942760, failed: 37240, amount: 392000000, successAmt: 377104000, failedAmt: 14896000 },
-    { id: 'Google Pay iOS', name: 'Google Pay (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 320000, success: 310400, failed: 9600, amount: 160000000, successAmt: 155200000, failedAmt: 4800000 },
-    { id: 'Paytm', name: 'Paytm UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
-    { id: 'Paytm Web', name: 'Paytm Web / Desktop', sourceDevice: 'Desktop', sourceOS: 'Windows', count: 85000, success: 80750, failed: 4250, amount: 42500000, successAmt: 40375000, failedAmt: 2125000 },
-    { id: 'CRED', name: 'CRED UPI', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 290000, success: 283040, failed: 6960, amount: 232000000, successAmt: 226432000, failedAmt: 5568000 },
-    { id: 'BHIM', name: 'BHIM UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 140000, success: 131600, failed: 8400, amount: 42000000, successAmt: 39480000, failedAmt: 2520000 },
-    { id: 'Amazon Pay', name: 'Amazon Pay UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
-    { id: 'Amazon Web', name: 'Amazon Pay (Windows Web)', sourceDevice: 'Desktop', sourceOS: 'Windows', count: 62000, success: 58900, failed: 3100, amount: 31000000, successAmt: 29450000, failedAmt: 1550000 },
-    { id: 'WhatsApp', name: 'WhatsApp Pay', sourceDevice: 'Mobile', sourceOS: 'Android', count: 65000, success: 60450, failed: 4550, amount: 19500000, successAmt: 18135000, failedAmt: 1365000 },
-    { id: 'PayZapp', name: 'PayZapp (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 45000, success: 38250, failed: 6750, amount: 22500000, successAmt: 19125000, failedAmt: 3375000 },
-    { id: 'Airtel Pay', name: 'Airtel Payments Bank', sourceDevice: 'Mobile', sourceOS: 'Android', count: 42000, success: 39480, failed: 2520, amount: 16800000, successAmt: 15792000, failedAmt: 1008000 },
-    { id: 'Mobikwik', name: 'Mobikwik UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 38000, success: 35340, failed: 2660, amount: 15200000, successAmt: 14136000, failedAmt: 1064000 },
-    { id: 'Jupiter', name: 'Jupiter UPI (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 28000, success: 26880, failed: 1120, amount: 14000000, successAmt: 13440000, failedAmt: 560000 },
-    { id: 'Fi Money', name: 'Fi Money UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 24000, success: 23280, failed: 720, amount: 12000000, successAmt: 11640000, failedAmt: 360000 },
-    { id: 'Navi', name: 'Navi UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 20000, success: 19100, failed: 900, amount: 10000000, successAmt: 9550000, failedAmt: 450000 },
-    { id: 'Tata Neu', name: 'Tata Neu UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 18000, success: 17280, failed: 720, amount: 9000000, successAmt: 8640000, failedAmt: 360000 },
-    { id: 'Desktop Checkout', name: 'Web UPI Checkout (macOS)', sourceDevice: 'Desktop', sourceOS: 'macOS', count: 16000, success: 15360, failed: 640, amount: 12800000, successAmt: 12288000, failedAmt: 512000 }
-  ];
-
-  // Demo UPI Handle Data (paymentDetails.payMethodIdentifier after @) - Complete Banking Network
-  const defaultDemoUpiHandle = [
-    { id: '@okaxis', name: '@okaxis (Google Pay - Axis Bank)', count: 490000, success: 472850, failed: 17150, amount: 196000000, successAmt: 189140000, failedAmt: 6860000 },
-    { id: '@ybl', name: '@ybl (PhonePe - Yes Bank)', count: 620000, success: 600160, failed: 19840, amount: 248000000, successAmt: 240064000, failedAmt: 7936000 },
-    { id: '@oksbi', name: '@oksbi (Google Pay - SBI)', count: 340000, success: 312800, failed: 27200, amount: 136000000, successAmt: 125120000, failedAmt: 10880000 },
-    { id: '@paytm', name: '@paytm (Paytm VPA)', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
-    { id: '@okhdfcbank', name: '@okhdfcbank (Google Pay - HDFC)', count: 280000, success: 271600, failed: 8400, amount: 140000000, successAmt: 135800000, failedAmt: 4200000 },
-    { id: '@ibl', name: '@ibl (PhonePe - ICICI Bank)', count: 410000, success: 396880, failed: 13120, amount: 164000000, successAmt: 158752000, failedAmt: 5248000 },
-    { id: '@axl', name: '@axl (PhonePe - Axis Bank)', count: 190000, success: 183160, failed: 6840, amount: 76000000, successAmt: 73264000, failedAmt: 2736000 },
-    { id: '@apl', name: '@apl (Amazon Pay UPI)', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
-    { id: '@barodampay', name: '@barodampay (Bank of Baroda)', count: 75000, success: 67500, failed: 7500, amount: 26000000, successAmt: 23400000, failedAmt: 2600000 },
-    { id: '@icici', name: '@icici (iMobile ICICI)', count: 85000, success: 81600, failed: 3400, amount: 42500000, successAmt: 40800000, failedAmt: 1700000 },
-    { id: '@fbl', name: '@fbl (Federal Bank)', count: 45000, success: 43200, failed: 1800, amount: 22500000, successAmt: 21600000, failedAmt: 900000 },
-    { id: '@idfcbank', name: '@idfcbank (IDFC First Bank)', count: 52000, success: 49920, failed: 2080, amount: 26000000, successAmt: 24960000, failedAmt: 1040000 },
-    { id: '@kotak', name: '@kotak (Kotak Mahindra)', count: 68000, success: 64600, failed: 3400, amount: 34000000, successAmt: 32300000, failedAmt: 1700000 },
-    { id: '@postbank', name: '@postbank (India Post IPPB)', count: 32000, success: 29440, failed: 2560, amount: 12800000, successAmt: 11776000, failedAmt: 1024000 },
-    { id: '@yesbank', name: '@yesbank (Yes Bank VPA)', count: 36000, success: 34560, failed: 1440, amount: 18000000, successAmt: 17280000, failedAmt: 720000 },
-    { id: '@aubank', name: '@aubank (AU Small Finance Bank)', count: 28000, success: 26600, failed: 1400, amount: 14000000, successAmt: 13300000, failedAmt: 700000 },
-    { id: '@indus', name: '@indus (IndusInd Bank)', count: 31000, success: 29760, failed: 1240, amount: 15500000, successAmt: 14880000, failedAmt: 620000 },
-    { id: '@pnb', name: '@pnb (Punjab National Bank)', count: 41000, success: 37310, failed: 3690, amount: 16400000, successAmt: 14924000, failedAmt: 1476000 },
-    { id: '@cnrb', name: '@cnrb (Canara Bank)', count: 27000, success: 24840, failed: 2160, amount: 10800000, successAmt: 9936000, failedAmt: 864000 },
-    { id: '@unionbank', name: '@unionbank (Union Bank of India)', count: 25000, success: 22750, failed: 2250, amount: 10000000, successAmt: 9100000, failedAmt: 900000 }
-  ];
+  // Dynamic Ingested State (starts in clean empty state)
+  const defaultDemoPsp = [];
+  const defaultDemoUpiApp = [];
+  const defaultDemoUpiHandle = [];
+  const defaultDemoMerchants = [];
 
   let pspList = [];
   let upiAppList = [];
   let upiHandleList = [];
-
-  // Default Demo Merchants
-  const defaultDemoMerchants = [
-    {
-      id: 'MERCH_AMAZON',
-      name: 'Amazon Marketplace',
-      category: 'E-Commerce & Retail',
-      avatar: 'AZ',
-      totalCount: 845200,
-      successCount: 812400,
-      failedCount: 32800,
-      totalAmount: 42260000,
-      successAmount: 40620000,
-      failedAmount: 1640000,
-      avgLatency: 38,
-      failureReasons: { timeout: 35, insufficient: 30, auth3ds: 18, expired: 10, fraud: 7 }
-    },
-    {
-      id: 'MERCH_SWIGGY',
-      name: 'Swiggy Food & Instamart',
-      category: 'Quick Commerce & Food',
-      avatar: 'SW',
-      totalCount: 620400,
-      successCount: 593722,
-      failedCount: 26678,
-      totalAmount: 12408000,
-      successAmount: 11874450,
-      failedAmount: 533550,
-      avgLatency: 29,
-      failureReasons: { timeout: 42, insufficient: 28, auth3ds: 15, expired: 9, fraud: 6 }
-    },
-    {
-      id: 'MERCH_UBER',
-      name: 'Uber Technologies',
-      category: 'Mobility & Rides',
-      avatar: 'UB',
-      totalCount: 485100,
-      successCount: 461815,
-      failedCount: 23285,
-      totalAmount: 9702000,
-      successAmount: 9236300,
-      failedAmount: 465700,
-      avgLatency: 32,
-      failureReasons: { timeout: 25, insufficient: 45, auth3ds: 12, expired: 12, fraud: 6 }
-    },
-    {
-      id: 'MERCH_FLIPKART',
-      name: 'Flipkart Online',
-      category: 'E-Commerce & Electronics',
-      avatar: 'FK',
-      totalCount: 390200,
-      successCount: 367958,
-      failedCount: 22242,
-      totalAmount: 23412000,
-      successAmount: 22077500,
-      failedAmount: 1334500,
-      avgLatency: 45,
-      failureReasons: { timeout: 38, insufficient: 22, auth3ds: 25, expired: 8, fraud: 7 }
-    },
-    {
-      id: 'MERCH_NETFLIX',
-      name: 'Netflix Subscriptions',
-      category: 'Digital Media & Streaming',
-      avatar: 'NF',
-      totalCount: 284000,
-      successCount: 276800,
-      failedCount: 7200,
-      totalAmount: 4260000,
-      successAmount: 4152000,
-      failedAmount: 108000,
-      avgLatency: 22,
-      failureReasons: { timeout: 15, insufficient: 55, auth3ds: 8, expired: 18, fraud: 4 }
-    },
-    {
-      id: 'MERCH_SHOPIFY',
-      name: 'Shopify Merchant Stores',
-      category: 'Direct-to-Consumer',
-      avatar: 'SP',
-      totalCount: 215000,
-      successCount: 204680,
-      failedCount: 10320,
-      totalAmount: 15050000,
-      successAmount: 14327500,
-      failedAmount: 722500,
-      avgLatency: 41,
-      failureReasons: { timeout: 32, insufficient: 28, auth3ds: 22, expired: 10, fraud: 8 }
-    },
-    {
-      id: 'MERCH_APPLE',
-      name: 'Apple App Store & Services',
-      category: 'Digital Goods & Hardware',
-      avatar: 'AP',
-      totalCount: 198000,
-      successCount: 193050,
-      failedCount: 4950,
-      totalAmount: 17820000,
-      successAmount: 17374500,
-      failedAmount: 445500,
-      avgLatency: 25,
-      failureReasons: { timeout: 20, insufficient: 48, auth3ds: 12, expired: 15, fraud: 5 }
-    },
-    {
-      id: 'MERCH_WALMART',
-      name: 'Walmart Global',
-      category: 'Retail & Superstore',
-      avatar: 'WM',
-      totalCount: 165000,
-      successCount: 156420,
-      failedCount: 8580,
-      totalAmount: 11550000,
-      successAmount: 10949400,
-      failedAmount: 600600,
-      avgLatency: 48,
-      failureReasons: { timeout: 40, insufficient: 24, auth3ds: 18, expired: 11, fraud: 7 }
-    },
-    {
-      id: 'MERCH_ZARA',
-      name: 'Zara Fashion Group',
-      category: 'Apparel & Fashion',
-      avatar: 'ZR',
-      totalCount: 122000,
-      successCount: 113460,
-      failedCount: 8540,
-      totalAmount: 9760000,
-      successAmount: 9076800,
-      failedAmount: 683200,
-      avgLatency: 52,
-      failureReasons: { timeout: 35, insufficient: 32, auth3ds: 20, expired: 7, fraud: 6 }
-    },
-    {
-      id: 'MERCH_SPOTIFY',
-      name: 'Spotify Premium',
-      category: 'Audio Streaming',
-      avatar: 'SF',
-      totalCount: 110000,
-      successCount: 106700,
-      failedCount: 3300,
-      totalAmount: 1100000,
-      successAmount: 1067000,
-      failedAmount: 33000,
-      avgLatency: 24,
-      failureReasons: { timeout: 18, insufficient: 58, auth3ds: 6, expired: 14, fraud: 4 }
-    },
-    {
-      id: 'MERCH_AIRBNB',
-      name: 'Airbnb Stays',
-      category: 'Travel & Hospitality',
-      avatar: 'AB',
-      totalCount: 95000,
-      successCount: 88160,
-      failedCount: 6840,
-      totalAmount: 23750000,
-      successAmount: 22040000,
-      failedAmount: 1710000,
-      avgLatency: 64,
-      failureReasons: { timeout: 44, insufficient: 18, auth3ds: 24, expired: 8, fraud: 6 }
-    },
-    {
-      id: 'MERCH_DOORDASH',
-      name: 'DoorDash Food',
-      category: 'Food Delivery',
-      avatar: 'DD',
-      totalCount: 88000,
-      successCount: 82016,
-      failedCount: 5984,
-      totalAmount: 3520000,
-      successAmount: 3280800,
-      failedAmount: 239200,
-      avgLatency: 33,
-      failureReasons: { timeout: 36, insufficient: 34, auth3ds: 14, expired: 10, fraud: 6 }
-    }
-  ];
-
   let merchants = [];
 
   const FAILURE_TYPES = {
@@ -2689,7 +2465,7 @@
     }
   }
 
-  function resetToDemo() {
+  async function resetToDemo() {
     if (apiPollTimer) {
       clearInterval(apiPollTimer);
       apiPollTimer = null;
@@ -2704,6 +2480,44 @@
     upiHandleList = [];
     paymentMethods = [];
     feedItems.length = 0;
+    uploadedFailureCounts = null;
+    uploadedFailureCodeCounts = null;
+
+    // 1. Clear IndexedDB
+    try {
+      const db = await openDB();
+      const tx = db.transaction('batches', 'readwrite');
+      const store = tx.objectStore('batches');
+      store.clear();
+    } catch (_) {}
+
+    // 2. Clear LocalStorage cache
+    try {
+      localStorage.removeItem(CLOUD_STORAGE_KEY);
+      localStorage.removeItem('tb_shared_transactions_latest');
+    } catch (_) {}
+
+    // 3. Clear Cloud storage if Admin
+    const user = (typeof authManager !== 'undefined' && authManager.getCurrentUser()) || { role: 'admin' };
+    if (user.role === 'admin' || (typeof permissionsManager !== 'undefined' && permissionsManager.canUpload())) {
+      try {
+        fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clear: true })
+        }).catch(() => {});
+        fetch(NTFY_TXS_TOPIC, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Title': 'Team Data Cleared' },
+          body: JSON.stringify({ action: 'batch_cleared', timestamp: Date.now() })
+        }).catch(() => {});
+      } catch (_) {}
+    }
+
+    if (typeof cloudSyncManager !== 'undefined') {
+      cloudSyncManager.activeCloudBatchId = null;
+      cloudSyncManager.updateSyncPill('synced', 'Team Cloud Ready');
+    }
 
     stopSimulation();
     updateStatusBanner();
@@ -2713,10 +2527,14 @@
     renderRecommendations();
     initCharts();
     renderFeed();
+    showToast('🗑️ All transaction data cleared. Dashboard in clean state.');
   }
 
   const resetBtnEl = document.getElementById('resetDataBtn');
   if (resetBtnEl) resetBtnEl.addEventListener('click', resetToDemo);
+
+  const resetBatchesModalBtn = document.getElementById('resetBatchesModalBtn');
+  if (resetBatchesModalBtn) resetBatchesModalBtn.addEventListener('click', resetToDemo);
 
   const DB_NAME = 'TransactBridgeStorage';
   const DB_VERSION = 1;
@@ -6583,8 +6401,12 @@ Incident Timestamp: ${timeStr}`;
                 to_email: targetEmail,
                 to_emails: targetEmail,
                 recipient: targetEmail,
+                recipient_email: targetEmail,
                 email: targetEmail,
+                to: targetEmail,
+                dest_email: targetEmail,
                 user_email: targetEmail,
+                reply_to: 'ops@transactbridge.com',
                 to_name: targetEmail.split('@')[0] || 'Operations Team',
                 from_name: 'Transact Bridge Incident Sentinel',
                 subject: emailSubject,
@@ -6597,8 +6419,8 @@ Incident Timestamp: ${timeStr}`;
                 failed_rate: `${agg.failureRate.toFixed(2)}%`,
                 failed_amount: formatCurrency(agg.failedAmount),
                 recoverable_amount: formatCurrency(recoverableAmt),
-                impacted_gateway: diag.topPsp || 'Razorpay Gateway',
-                dominant_cause: cleanError,
+                impacted_gateway: diag.topPsp || 'Awaiting Ingestion',
+                dominant_cause: cleanError || 'None',
                 technical_friction: `${techPct}%`,
                 user_friction: `${100 - techPct}%`,
                 email_body: emailBody,
@@ -7255,11 +7077,12 @@ Incident Timestamp: ${timeStr}`;
 
       try {
         const agg = getAggregates();
-        const sr = agg.totalCount > 0 ? agg.successRate : 84.6;
+        const hasData = agg.totalCount > 0;
+        const sr = hasData ? agg.successRate : 0.0;
         const { emailSubject, emailBody, emailBodyHtml } = buildIncidentMessages(sr, agg, 'SLA Watchdog System Verification');
         const diag = getTopFailureDiagnostics();
         const cleanError = formatCleanErrorReason(diag.topErrorCode);
-        const recoverableAmt = Math.round((agg.failedAmount || 8518847) * 0.78);
+        const recoverableAmt = Math.round((agg.failedAmount || 0) * 0.78);
         const critThreshold = alertSettings.thresholds.criticalSr || 90.0;
         const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
 
@@ -7273,22 +7096,26 @@ Incident Timestamp: ${timeStr}`;
               to_email: targetEmail,
               to_emails: targetEmail,
               recipient: targetEmail,
+              recipient_email: targetEmail,
               email: targetEmail,
+              to: targetEmail,
+              dest_email: targetEmail,
               user_email: targetEmail,
+              reply_to: 'ops@transactbridge.com',
               to_name: targetEmail.split('@')[0] || 'Operations Team',
               from_name: 'Transact Bridge Incident Sentinel',
               subject: emailSubject,
               message: emailBody,
               incident_title: 'SLA Watchdog System Verification',
-              success_rate: `${sr.toFixed(2)}%`,
+              success_rate: hasData ? `${sr.toFixed(2)}%` : '--',
               sla_target: `${critThreshold.toFixed(1)}%`,
-              total_transactions: formatNumber(agg.totalCount || 3617908),
-              failed_transactions: formatNumber(agg.failedCount || 160721),
-              failed_rate: `${(agg.failureRate || 15.4).toFixed(2)}%`,
-              failed_amount: formatCurrency(agg.failedAmount || 8518847),
-              recoverable_amount: formatCurrency(recoverableAmt || 6644700),
-              impacted_gateway: diag.topPsp || 'Razorpay Gateway',
-              dominant_cause: cleanError || 'Customer Checkout Abandonment (User Drop-off)',
+              total_transactions: formatNumber(agg.totalCount),
+              failed_transactions: formatNumber(agg.failedCount),
+              failed_rate: hasData ? `${agg.failureRate.toFixed(2)}%` : '0.00%',
+              failed_amount: formatCurrency(agg.failedAmount),
+              recoverable_amount: formatCurrency(recoverableAmt),
+              impacted_gateway: diag.topPsp || 'Awaiting Ingestion',
+              dominant_cause: cleanError || 'None',
               technical_friction: `${techPct}%`,
               user_friction: `${100 - techPct}%`,
               email_body: emailBody,
@@ -8942,12 +8769,15 @@ Recommended Immediate Actions:
                   try { data = JSON.parse(evt.message); } catch (_) {}
                 }
                 if (data) {
+                  // If shared data was cleared
+                  if (data.action === 'batch_cleared') {
+                    resetToDemo();
+                    showToast('🗑️ Shared team data was cleared by Administrator.');
+                    return;
+                  }
                   // If lightweight ping (< 300 bytes)
                   if (data.action === 'batch_updated' || data.type === 'batch_update') {
-                    if (data.batchId && data.batchId !== this.activeCloudBatchId) {
-                      this.fetchFromCloud(false);
-                      showToast(`☁️ Live Ingestion: Received new data from ${data.uploadedBy || 'Admin'} (${formatNumber(data.count || 0)} records)!`);
-                    }
+                    this.fetchFromCloud(false);
                     return;
                   }
                   const b = data.batch || data;
@@ -9007,6 +8837,33 @@ Recommended Immediate Actions:
       }
     },
 
+    handleSyncAction() {
+      const user = (typeof authManager !== 'undefined' && authManager.getCurrentUser()) || { role: 'admin' };
+      const isAdmin = user.role === 'admin' || (typeof permissionsManager !== 'undefined' && permissionsManager.canUpload());
+
+      // If user is Admin and has local uploaded transactions, PUSH to team cloud
+      if (isAdmin && currentTransactions && currentTransactions.length > 0) {
+        const batchToSync = (uploadedBatches && uploadedBatches.length > 0) ? uploadedBatches[0] : {
+          id: activeBatchId || 'batch_' + Date.now(),
+          name: 'Manual Upload Batch',
+          uploadedAt: new Date().toISOString(),
+          count: currentTransactions.length,
+          transactions: currentTransactions
+        };
+        this.publishToCloud(batchToSync);
+        if (typeof rolePermissionsManager !== 'undefined') {
+          rolePermissionsManager.loadPermissions();
+        }
+      } else {
+        // Viewer or Admin without local transactions: PULL latest from cloud
+        this.fetchFromCloud(false);
+        this.fetchAlertSettingsFromCloud();
+        if (typeof rolePermissionsManager !== 'undefined') {
+          rolePermissionsManager.loadPermissions();
+        }
+      }
+    },
+
     bindEvents() {
       const cloudRefreshBtn = document.getElementById('cloudRefreshBtn');
       const cloudSyncPill = document.getElementById('cloudSyncPill');
@@ -9017,19 +8874,14 @@ Recommended Immediate Actions:
       if (cloudSyncPill) {
         cloudSyncPill.style.cursor = 'pointer';
         cloudSyncPill.addEventListener('click', () => {
-          this.fetchFromCloud(false);
-          this.fetchAlertSettingsFromCloud();
-          if (typeof rolePermissionsManager !== 'undefined') {
-            rolePermissionsManager.loadPermissions();
-          }
+          this.handleSyncAction();
         });
       }
 
       if (cloudRefreshBtn) {
         cloudRefreshBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          this.fetchFromCloud(false);
-          this.fetchAlertSettingsFromCloud();
+          this.handleSyncAction();
         });
       }
 
@@ -9037,8 +8889,7 @@ Recommended Immediate Actions:
         dropdownRefreshCloudBtn.addEventListener('click', () => {
           const userDropdownCard = document.getElementById('userDropdownCard');
           if (userDropdownCard) userDropdownCard.style.display = 'none';
-          this.fetchFromCloud(false);
-          this.fetchAlertSettingsFromCloud();
+          this.handleSyncAction();
         });
       }
 
@@ -9203,10 +9054,8 @@ Recommended Immediate Actions:
       const user = authManager.getCurrentUser() || { name: 'Admin', role: 'admin' };
       const rawTxs = batchObj.transactions;
 
-      // Create compact transaction representations for the wire (< 40 KB):
-      // Store essential feed columns: [id, merchantId, status, amount, payMethod, pgProvider, upiApp, upiHandle, date, responseCode]
-      const feedLimit = 1500;
-      const compactTxs = rawTxs.slice(0, feedLimit).map(t => [
+      // Transmit all uploaded transactions (compact array format) - NO arbitrary capping!
+      const compactTxs = rawTxs.map(t => [
         t.id || '',
         t.merchantId || '',
         t.status || (t.isSuccess ? 'SUCCESS' : 'FAILED'),
@@ -9390,6 +9239,10 @@ Recommended Immediate Actions:
                   return;
                 }
               }
+            } else {
+              // Server explicitly has no shared data (empty or cleared)
+              try { localStorage.removeItem(CLOUD_STORAGE_KEY); } catch (_) {}
+              this.activeCloudBatchId = null;
             }
           }
         }
@@ -9430,16 +9283,18 @@ Recommended Immediate Actions:
         console.warn('Cloud relay fetch failed:', err.message);
       }
 
-      // 3. Fallback to localStorage cached batch if available
-      try {
-        const cached = localStorage.getItem(CLOUD_STORAGE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && (parsed.batch || parsed.transactions)) {
-            applyCloudBatch(parsed);
+      // 3. Fallback to localStorage cached batch only if offline / server failed
+      if (!applied && currentTransactions.length === 0) {
+        try {
+          const cached = localStorage.getItem(CLOUD_STORAGE_KEY);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && (parsed.batch || parsed.transactions)) {
+              applyCloudBatch(parsed);
+            }
           }
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
 
       this.updateSyncPill('synced', 'Team Cloud Synced');
       this.isSyncing = false;

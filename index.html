@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Transact Bridge - Enterprise Transaction Monitoring Dashboard</title>
-  <link rel="stylesheet" href="styles.css?v=2.6.0">
+  <link rel="stylesheet" href="styles.css?v=2.7.0">
   <!-- SheetJS & PapaParse for In-Browser Client-Side Excel and CSV Processing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -57,8 +57,7 @@
         <!-- Batch Selector -->
         <div class="control-group" id="batchSelectorGroup">
           <select id="batchSelect" class="select-custom" aria-label="Hourly Batch Selector">
-            <option value="all">Cumulative (All Uploaded)</option>
-            <option value="demo" selected>Live Demo Traffic</option>
+            <option value="" selected>Awaiting Ingestion...</option>
           </select>
         </div>
 
@@ -143,6 +142,7 @@
             <button type="button" class="dropdown-item" id="dropdownRefreshCloudBtn">☁️ Force Cloud Re-sync</button>
             <button type="button" class="dropdown-item" id="dropdownShareLinkBtn">🔗 Copy Team Link</button>
             <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item text-danger" id="resetDataBtn">🗑️ Clear All Data (Reset)</button>
             <button type="button" class="dropdown-item text-danger" id="logoutBtn">🚪 Sign Out</button>
           </div>
         </div>
@@ -727,6 +727,11 @@
                 <!-- Filled dynamically -->
               </tbody>
             </table>
+          </div>
+          <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
+            <button type="button" class="btn-action btn-sm" id="resetBatchesModalBtn" style="color: var(--failed-red); border-color: rgba(239, 68, 68, 0.35);">
+              🗑️ Clear All Stored Batches &amp; Reset
+            </button>
           </div>
         </div>
 
@@ -1929,6 +1934,6 @@
   <!-- Tooltip Element for Canvas Charts -->
   <div id="chart-tooltip"></div>
 
-  <script src="app.js?v=2.6.0"></script>
+  <script src="app.js?v=2.7.0"></script>
 </body>
 </html>
