@@ -1247,8 +1247,10 @@
                   <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 3px;">Public Key</label>
                   <input type="text" id="emailjsPublicKey" placeholder="e.g. user_or_pk_..." class="recipient-text-input" style="font-size: 0.75rem; padding: 6px 8px; width: 100%;" />
                 </div>
-              </div>
               <div id="emailJsSaveFeedback" style="display: none; font-size: 0.73rem; margin-top: 8px; padding: 4px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); color: var(--success-green);"></div>
+              <div style="margin-top: 8px; padding: 6px 10px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.22); border-radius: 6px; font-size: 0.72rem; color: var(--text-muted); line-height: 1.4;">
+                💡 <strong>Multi-Recipient Setup:</strong> In your EmailJS Dashboard &rarr; Template <code>Settings</code>, ensure the <strong>"To Email"</strong> field is set to <code>{{to_email}}</code> (not hardcoded). The dashboard will automatically dispatch an individual email alert to every recipient tag configured above!
+              </div>
               <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                 <span style="font-size: 0.7rem; color: var(--text-dim);">Keys auto-save instantly. If empty, falls back to default mail client.</span>
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
@@ -1421,8 +1423,11 @@
 
         <!-- Tab 2: Copy Code -->
         <div id="emailCodeTabContent" style="display: none;">
-          <div style="margin-bottom: 8px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.4;">
-            Paste this HTML directly into your <strong>EmailJS Template Content</strong> editor (or SendGrid/HTML SMTP template). It dynamically binds variables <code>{{incident_title}}</code>, <code>{{success_rate}}</code>, <code>{{failed_amount}}</code>, <code>{{failed_transactions}}</code>, <code>{{impacted_gateway}}</code>, and <code>{{dominant_cause}}</code>.
+          <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.28); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.76rem; line-height: 1.5;">
+            <div style="font-weight: 700; color: var(--accent-primary); margin-bottom: 4px;">📌 Required EmailJS Dashboard Template Settings:</div>
+            <div>1. In EmailJS Dashboard &rarr; <strong>Settings</strong> tab &rarr; <strong>"To Email"</strong> field: enter <code>{{to_email}}</code> <em style="color: var(--failed-red);">(Do NOT leave your own email address hardcoded there, or only you will receive emails!)</em></div>
+            <div>2. In <strong>"Subject"</strong> field: enter <code>{{subject}}</code></div>
+            <div>3. In <strong>"Content"</strong> editor: paste the HTML code below into the template content box.</div>
           </div>
           <textarea id="emailHtmlCodeTextarea" readonly style="width: 100%; height: 380px; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.45; background: var(--bg-canvas); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; resize: vertical;"></textarea>
         </div>

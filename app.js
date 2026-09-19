@@ -6504,35 +6504,46 @@ Incident Timestamp: ${timeStr}`;
         const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
 
         emailjs.init({ publicKey: ej.publicKey });
-        emailjs.send(ej.serviceId, ej.templateId, {
-          to_emails: emails.join(', '),
-          to_email: emails[0] || 'ops@transactbridge.io',
-          to_name: 'Operations Team',
-          from_name: 'Transact Bridge Incident Sentinel',
-          recipient: emails.join(', '),
-          subject: emailSubject,
-          message: emailBody,
-          incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
-          success_rate: `${sr.toFixed(2)}%`,
-          sla_target: `${critThreshold.toFixed(1)}%`,
-          total_transactions: formatNumber(agg.totalCount),
-          failed_transactions: formatNumber(agg.failedCount),
-          failed_rate: `${agg.failureRate.toFixed(2)}%`,
-          failed_amount: formatCurrency(agg.failedAmount),
-          recoverable_amount: formatCurrency(recoverableAmt),
-          impacted_gateway: diag.topPsp || 'Razorpay Gateway',
-          dominant_cause: cleanError,
-          technical_friction: `${techPct}%`,
-          user_friction: `${100 - techPct}%`,
-          email_body: emailBody,
-          email_body_html: emailBodyHtml,
-          timestamp: new Date().toLocaleString()
-        }).then(function(res) {
-          showToast(`✉️ Automated email dispatched via EmailJS to ${emails.length} recipient(s)!`);
-        }, function(err) {
-          console.warn('EmailJS error, falling back to mail client:', err);
-          showToast(`⚠️ EmailJS error (${err.text || 'Check keys'}). Opening mail client...`);
-          window.location.href = mailtoUrl;
+        const sendPromises = emails.map(targetEmail => {
+          return emailjs.send(ej.serviceId, ej.templateId, {
+            to_email: targetEmail,
+            to_emails: targetEmail,
+            recipient: targetEmail,
+            email: targetEmail,
+            user_email: targetEmail,
+            to_name: targetEmail.split('@')[0] || 'Operations Team',
+            from_name: 'Transact Bridge Incident Sentinel',
+            subject: emailSubject,
+            message: emailBody,
+            incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
+            success_rate: `${sr.toFixed(2)}%`,
+            sla_target: `${critThreshold.toFixed(1)}%`,
+            total_transactions: formatNumber(agg.totalCount),
+            failed_transactions: formatNumber(agg.failedCount),
+            failed_rate: `${agg.failureRate.toFixed(2)}%`,
+            failed_amount: formatCurrency(agg.failedAmount),
+            recoverable_amount: formatCurrency(recoverableAmt),
+            impacted_gateway: diag.topPsp || 'Razorpay Gateway',
+            dominant_cause: cleanError,
+            technical_friction: `${techPct}%`,
+            user_friction: `${100 - techPct}%`,
+            email_body: emailBody,
+            email_body_html: emailBodyHtml,
+            timestamp: new Date().toLocaleString()
+          });
+        });
+
+        Promise.allSettled(sendPromises).then(function(results) {
+          const successes = results.filter(r => r.status === 'fulfilled').length;
+          const failures = results.filter(r => r.status === 'rejected');
+          if (successes > 0) {
+            showToast(`✉️ Automated email dispatched via EmailJS to ${successes} recipient(s)!`);
+          } else {
+            const firstErr = failures[0]?.reason;
+            console.warn('EmailJS error, falling back to mail client:', firstErr);
+            showToast(`⚠️ EmailJS error (${firstErr?.text || firstErr?.message || 'Check keys'}). Opening mail client...`);
+            window.location.href = mailtoUrl;
+          }
         });
         return;
       } catch (e) {
@@ -7153,8 +7164,12 @@ Incident Timestamp: ${timeStr}`;
         return;
       }
       const testEmails = alertSettings.recipients.emails || [];
-      const recipientStr = testEmails.join(', ') || 'ops@transactbridge.io';
-      showToast('⏳ Sending test email via EmailJS...');
+      if (testEmails.length === 0) {
+        showToast('⚠️ Please configure at least one email address tag above first');
+        return;
+      }
+
+      showToast(`⏳ Sending test email to ${testEmails.length} recipient(s)...`);
       try {
         const agg = getAggregates();
         const sr = agg.totalCount > 0 ? agg.successRate : 84.6;
@@ -7166,43 +7181,55 @@ Incident Timestamp: ${timeStr}`;
         const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
 
         emailjs.init({ publicKey: pKey });
-        emailjs.send(sId, tId, {
-          to_emails: recipientStr,
-          to_email: testEmails[0] || 'ops@transactbridge.io',
-          to_name: 'Operations Team',
-          from_name: 'Transact Bridge Incident Sentinel',
-          recipient: recipientStr,
-          subject: emailSubject,
-          message: emailBody,
-          incident_title: 'SLA Watchdog System Verification',
-          success_rate: `${sr.toFixed(2)}%`,
-          sla_target: `${critThreshold.toFixed(1)}%`,
-          total_transactions: formatNumber(agg.totalCount || 3617908),
-          failed_transactions: formatNumber(agg.failedCount || 160721),
-          failed_rate: `${(agg.failureRate || 15.4).toFixed(2)}%`,
-          failed_amount: formatCurrency(agg.failedAmount || 8518847),
-          recoverable_amount: formatCurrency(recoverableAmt || 6644700),
-          impacted_gateway: diag.topPsp || 'Razorpay Gateway',
-          dominant_cause: cleanError || 'Customer Checkout Abandonment (User Drop-off)',
-          technical_friction: `${techPct}%`,
-          user_friction: `${100 - techPct}%`,
-          email_body: emailBody,
-          email_body_html: emailBodyHtml,
-          timestamp: new Date().toLocaleString()
-        }).then(function(res) {
-          showToast('✅ Test email sent successfully via EmailJS!');
-          const ejBadge = document.getElementById('emailjsStatusBadge');
-          if (ejBadge) {
-            ejBadge.textContent = 'VERIFIED';
-            ejBadge.className = 'status-chip healthy';
+        const sendPromises = testEmails.map(targetEmail => {
+          return emailjs.send(sId, tId, {
+            to_email: targetEmail,
+            to_emails: targetEmail,
+            recipient: targetEmail,
+            email: targetEmail,
+            user_email: targetEmail,
+            to_name: targetEmail.split('@')[0] || 'Operations Team',
+            from_name: 'Transact Bridge Incident Sentinel',
+            subject: emailSubject,
+            message: emailBody,
+            incident_title: 'SLA Watchdog System Verification',
+            success_rate: `${sr.toFixed(2)}%`,
+            sla_target: `${critThreshold.toFixed(1)}%`,
+            total_transactions: formatNumber(agg.totalCount || 3617908),
+            failed_transactions: formatNumber(agg.failedCount || 160721),
+            failed_rate: `${(agg.failureRate || 15.4).toFixed(2)}%`,
+            failed_amount: formatCurrency(agg.failedAmount || 8518847),
+            recoverable_amount: formatCurrency(recoverableAmt || 6644700),
+            impacted_gateway: diag.topPsp || 'Razorpay Gateway',
+            dominant_cause: cleanError || 'Customer Checkout Abandonment (User Drop-off)',
+            technical_friction: `${techPct}%`,
+            user_friction: `${100 - techPct}%`,
+            email_body: emailBody,
+            email_body_html: emailBodyHtml,
+            timestamp: new Date().toLocaleString()
+          });
+        });
+
+        Promise.allSettled(sendPromises).then(function(results) {
+          const successes = results.filter(r => r.status === 'fulfilled').length;
+          const failures = results.filter(r => r.status === 'rejected');
+
+          if (successes > 0) {
+            showToast(`✅ Test email delivered to ${successes} of ${testEmails.length} recipient(s)!`);
+            const ejBadge = document.getElementById('emailjsStatusBadge');
+            if (ejBadge) {
+              ejBadge.textContent = 'CONNECTED';
+              ejBadge.className = 'status-chip healthy';
+            }
+            const feedback = document.getElementById('emailJsSaveFeedback');
+            if (feedback) {
+              feedback.style.display = 'block';
+              feedback.innerHTML = `✅ Successfully sent to: <strong>${testEmails.join(', ')}</strong>${failures.length > 0 ? ` (${failures.length} delivery failed)` : ''}`;
+            }
+          } else {
+            const firstErr = failures[0]?.reason;
+            showToast(`❌ EmailJS failed: ${firstErr?.text || firstErr?.message || 'Check your template and keys'}`);
           }
-          const feedback = document.getElementById('emailJsSaveFeedback');
-          if (feedback) {
-            feedback.style.display = 'block';
-            feedback.innerHTML = '✅ Verified live connection! Test dispatch delivered to ' + recipientStr;
-          }
-        }, function(err) {
-          showToast(`❌ EmailJS failed: ${err.text || err.message || 'Check your keys'}`);
         });
       } catch (err) {
         showToast(`❌ EmailJS exception: ${err.message}`);
