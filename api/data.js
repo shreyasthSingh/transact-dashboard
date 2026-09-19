@@ -46,7 +46,23 @@ module.exports = async (req, res) => {
         return res.status(200).json({ success: true, source: 'memory', data: inMemoryStore });
       }
 
-      // 3. If nothing uploaded yet, return empty state
+      // 3. Try free public KV store fallback if inMemoryStore is not yet initialized
+      try {
+        const fallbackRes = await fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          if (fallbackData && fallbackData.transactions && fallbackData.transactions.length > 0) {
+            inMemoryStore = fallbackData;
+            return res.status(200).json({ success: true, source: 'cloud_fallback', data: fallbackData });
+          }
+        }
+      } catch (fbErr) {
+        // Quiet fallback
+      }
+
+      // 4. If nothing uploaded yet, return empty state
       return res.status(200).json({ success: true, source: 'none', data: null, message: 'No uploaded team data yet. Displaying demo baseline.' });
     } catch (err) {
       console.error('Error fetching shared data:', err);
@@ -102,6 +118,15 @@ module.exports = async (req, res) => {
           console.warn('Failed to persist to Vercel KV:', kvErr.message);
         }
       }
+
+      // Persist to fallback KV
+      try {
+        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch (_) {}
 
       return res.status(200).json({
         success: true,
