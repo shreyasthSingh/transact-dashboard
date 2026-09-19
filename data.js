@@ -7,15 +7,21 @@ let inMemoryAlertSettings = null;
 const NTFY_TXS_TOPIC = 'https://ntfy.sh/tb_shared_txs_transactbridge_v1';
 const NTFY_ALERTS_TOPIC = 'https://ntfy.sh/tb_shared_alerts_transactbridge_v1';
 
-// Helper for Upstash Redis / Vercel KV REST API commands
+// Universal helper for Upstash Redis / Vercel KV REST API commands
 async function upstashCommand(kvUrl, kvToken, commandArray, timeoutMs = 3500) {
   if (!kvUrl || !kvToken) return null;
+  let cleanUrl = kvUrl.trim();
+  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+    cleanUrl = 'https://' + cleanUrl;
+  }
+  cleanUrl = cleanUrl.replace(/\/+$/, '');
+
   // Format 1: Official Upstash body-style REST API (POST ["CMD", "arg1", ...])
   try {
-    const res = await fetch(kvUrl, {
+    const res = await fetch(cleanUrl, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${kvToken}`,
+        Authorization: `Bearer ${kvToken.trim()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(commandArray),
@@ -32,8 +38,8 @@ async function upstashCommand(kvUrl, kvToken, commandArray, timeoutMs = 3500) {
   // Format 2: Fallback GET /get/key
   if (commandArray[0] === 'GET') {
     try {
-      const res = await fetch(`${kvUrl}/get/${encodeURIComponent(commandArray[1])}`, {
-        headers: { Authorization: `Bearer ${kvToken}` },
+      const res = await fetch(`${cleanUrl}/get/${encodeURIComponent(commandArray[1])}`, {
+        headers: { Authorization: `Bearer ${kvToken.trim()}` },
         signal: AbortSignal.timeout(timeoutMs)
       });
       if (res.ok) {
@@ -41,6 +47,25 @@ async function upstashCommand(kvUrl, kvToken, commandArray, timeoutMs = 3500) {
       }
     } catch (_) {}
   }
+
+  // Format 3: Fallback POST /set/key
+  if (commandArray[0] === 'SET') {
+    try {
+      const res = await fetch(`${cleanUrl}/set/${encodeURIComponent(commandArray[1])}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${kvToken.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: typeof commandArray[2] === 'string' ? commandArray[2] : JSON.stringify(commandArray[2]),
+        signal: AbortSignal.timeout(timeoutMs)
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (_) {}
+  }
+
   return null;
 }
 
@@ -48,18 +73,68 @@ module.exports = async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
-  if (req.method === 'OPTIONS') {
+  if (req.method === 'OPTIONS' || req.method === 'HEAD') {
     return res.status(200).end();
   }
 
-  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.STORAGE_REST_API_URL || process.env.KV_URL || process.env.STORAGE_URL || process.env.UPSTASH_REDIS_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.STORAGE_REST_API_TOKEN || process.env.KV_TOKEN || process.env.STORAGE_TOKEN || process.env.UPSTASH_REDIS_TOKEN;
+  // Resolve all possible Upstash / Vercel KV environment variables
+  let kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.STORAGE_REST_API_URL;
+  if (!kvUrl) {
+    const rawUrl = process.env.KV_URL || process.env.STORAGE_URL || process.env.UPSTASH_REDIS_URL;
+    if (rawUrl && (rawUrl.startsWith('https://') || rawUrl.startsWith('http://'))) {
+      kvUrl = rawUrl;
+    }
+  }
+
+  const kvToken = process.env.KV_REST_API_TOKEN || 
+                  process.env.UPSTASH_REDIS_REST_TOKEN || 
+                  process.env.STORAGE_REST_API_TOKEN || 
+                  process.env.KV_TOKEN || 
+                  process.env.STORAGE_TOKEN || 
+                  process.env.UPSTASH_REDIS_TOKEN;
+
+  // Handle Diagnostic Query (?diag=1)
+  if (req.method === 'GET' && req.query && req.query.diag) {
+    const detectedEnvKeys = Object.keys(process.env).filter(k => 
+      k.includes('KV') || k.includes('UPSTASH') || k.includes('STORAGE') || k.includes('REDIS')
+    );
+    let kvPing = null;
+    let kvHost = null;
+    if (kvUrl) {
+      try {
+        const u = new URL(kvUrl.startsWith('http') ? kvUrl : `https://${kvUrl}`);
+        kvHost = u.hostname;
+      } catch (_) {}
+    }
+    if (kvUrl && kvToken) {
+      try {
+        const p = await upstashCommand(kvUrl, kvToken, ['PING'], 2500);
+        kvPing = p ? (p.result || 'OK') : 'NO_RESPONSE';
+      } catch (e) {
+        kvPing = 'ERR: ' + e.message;
+      }
+    }
+    return res.status(200).json({
+      success: true,
+      status: 'healthy',
+      hasKvUrl: Boolean(kvUrl),
+      kvHost,
+      hasKvToken: Boolean(kvToken),
+      kvPing,
+      detectedEnvKeys,
+      hasInMemoryBatch: Boolean(inMemoryStore),
+      activeBatchName: inMemoryStore ? (inMemoryStore.name || 'Shared Batch') : null,
+      activeBatchCount: inMemoryStore ? (inMemoryStore.count || inMemoryStore.transactions?.length || 0) : 0,
+      hasInMemoryAlerts: Boolean(inMemoryAlertSettings),
+      timestamp: new Date().toISOString()
+    });
+  }
 
   // Handle GET - Fetch latest shared transaction batch or alert configuration
   if (req.method === 'GET') {
@@ -79,32 +154,6 @@ module.exports = async (req, res) => {
             return res.status(200).json({ success: true, source: 'vercel_kv', alertSettings: parsed });
           }
         }
-        // Cloud Relay Fallback
-        try {
-          const ntfyRes = await fetch(`${NTFY_ALERTS_TOPIC}/json?poll=1`, {
-            signal: AbortSignal.timeout(3000)
-          });
-          if (ntfyRes.ok) {
-            const text = await ntfyRes.text();
-            const lines = text.trim().split('\n').filter(Boolean);
-            if (lines.length > 0) {
-              const last = JSON.parse(lines[lines.length - 1]);
-              let data = null;
-              if (last.attachment && last.attachment.url) {
-                const attRes = await fetch(last.attachment.url, { signal: AbortSignal.timeout(3000) });
-                if (attRes.ok) data = await attRes.json();
-              } else if (last.message) {
-                try { data = JSON.parse(last.message); } catch (_) {}
-              }
-              if (data && (data.thresholds || (data.alertSettings && data.alertSettings.thresholds))) {
-                const parsedSettings = data.alertSettings || data;
-                inMemoryAlertSettings = parsedSettings;
-                return res.status(200).json({ success: true, source: 'cloud_relay', alertSettings: parsedSettings });
-              }
-            }
-          }
-        } catch (_) {}
-
         return res.status(200).json({ success: true, source: 'none', alertSettings: null });
       }
 
@@ -112,41 +161,11 @@ module.exports = async (req, res) => {
       let batchData = inMemoryStore;
 
       if (!batchData && kvUrl && kvToken) {
-        const kvRes = await upstashCommand(kvUrl, kvToken, ['GET', 'tb_shared_transactions_latest'], 3000);
+        const kvRes = await upstashCommand(kvUrl, kvToken, ['GET', 'tb_shared_transactions_latest'], 3500);
         if (kvRes && kvRes.result) {
           batchData = typeof kvRes.result === 'string' ? JSON.parse(kvRes.result) : kvRes.result;
           inMemoryStore = batchData;
         }
-      }
-
-      if (!batchData) {
-        try {
-          const ntfyRes = await fetch(`${NTFY_TXS_TOPIC}/json?poll=1`, {
-            signal: AbortSignal.timeout(3500)
-          });
-          if (ntfyRes.ok) {
-            const text = await ntfyRes.text();
-            const lines = text.trim().split('\n').filter(Boolean);
-            if (lines.length > 0) {
-              const last = JSON.parse(lines[lines.length - 1]);
-              let data = null;
-              if (last.attachment && last.attachment.url) {
-                const attRes = await fetch(last.attachment.url, { signal: AbortSignal.timeout(4000) });
-                if (attRes.ok) data = await attRes.json();
-              } else if (last.message) {
-                try { data = JSON.parse(last.message); } catch (_) {}
-              }
-
-              if (data) {
-                const possibleBatch = data.batch || data;
-                if (possibleBatch && possibleBatch.transactions && possibleBatch.transactions.length > 0) {
-                  batchData = data;
-                  inMemoryStore = batchData;
-                }
-              }
-            }
-          }
-        } catch (_) {}
       }
 
       // Attempt to load alert settings if not already cached
@@ -162,7 +181,12 @@ module.exports = async (req, res) => {
         if (inMemoryAlertSettings) {
           payloadToSend.alertSettings = inMemoryAlertSettings;
         }
-        return res.status(200).json({ success: true, source: 'cloud', data: payloadToSend, alertSettings: inMemoryAlertSettings });
+        return res.status(200).json({ 
+          success: true, 
+          source: kvUrl && kvToken ? 'vercel_kv' : 'memory', 
+          data: payloadToSend, 
+          alertSettings: inMemoryAlertSettings 
+        });
       }
 
       return res.status(200).json({
@@ -211,20 +235,27 @@ module.exports = async (req, res) => {
         const persistPromises = [];
 
         // Persist to Upstash Redis / Vercel KV if available
+        let kvSaved = false;
         if (kvUrl && kvToken) {
           persistPromises.push(
             upstashCommand(kvUrl, kvToken, ['SET', 'tb_shared_alert_settings_latest', JSON.stringify(settings)], 3500)
+              .then(res => { if (res && res.result === 'OK') kvSaved = true; })
+              .catch(e => console.warn('KV alert save error:', e.message))
           );
         }
 
-        // Persist to Cloud Relay
+        // Broadcast lightweight alert update notification via SSE
         persistPromises.push(
           fetch(NTFY_ALERTS_TOPIC, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Title': 'TransactBridge Alert Config' },
-            body: JSON.stringify({ type: 'alert_settings', alertSettings: settings, updatedAt: new Date().toISOString() }),
+            headers: { 'Content-Type': 'application/json', 'Title': 'Alert Settings Updated' },
+            body: JSON.stringify({ 
+              action: 'alert_settings_updated', 
+              updatedAt: new Date().toISOString(),
+              thresholds: settings.thresholds || null 
+            }),
             signal: AbortSignal.timeout(3000)
-          }).catch(e => console.warn('Ntfy alert save error:', e.message))
+          }).catch(() => {})
         );
 
         await Promise.allSettled(persistPromises);
@@ -233,6 +264,7 @@ module.exports = async (req, res) => {
           success: true,
           message: 'Alert configuration saved and broadcast to team cloud!',
           alertSettings: settings,
+          kvSaved,
           updatedAt: new Date().toISOString()
         });
       }
@@ -262,22 +294,31 @@ module.exports = async (req, res) => {
       inMemoryStore = payload;
 
       const persistPromises = [];
+      let kvSaved = false;
 
       // Persist batch to Upstash Redis / Vercel KV if configured
       if (kvUrl && kvToken) {
         persistPromises.push(
           upstashCommand(kvUrl, kvToken, ['SET', 'tb_shared_transactions_latest', JSON.stringify(payload)], 4000)
+            .then(res => { if (res && res.result === 'OK') kvSaved = true; })
+            .catch(e => console.warn('Failed to persist to Upstash:', e.message))
         );
       }
 
-      // Persist to Cloud Relay
+      // Broadcast lightweight SSE invalidation signal (< 300 bytes) so ntfy never drops it
       persistPromises.push(
         fetch(NTFY_TXS_TOPIC, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Title': `Batch: ${payload.name} (${payload.count} records)` },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(5000)
-        }).catch(e => console.warn('Failed to persist to cloud relay:', e.message))
+          headers: { 'Content-Type': 'application/json', 'Title': 'Team Ingestion Synced' },
+          body: JSON.stringify({
+            action: 'batch_updated',
+            batchId: payload.id,
+            count: payload.count,
+            uploadedBy: payload.uploadedBy,
+            timestamp: payload.uploadedAt
+          }),
+          signal: AbortSignal.timeout(3000)
+        }).catch(() => {})
       );
 
       await Promise.allSettled(persistPromises);
@@ -287,6 +328,7 @@ module.exports = async (req, res) => {
         message: `Successfully published batch with ${payload.count} transactions to shared team cloud!`,
         batchId: payload.id,
         uploadedAt: payload.uploadedAt,
+        kvSaved,
         alertSettings: inMemoryAlertSettings
       });
     } catch (err) {

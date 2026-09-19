@@ -2869,6 +2869,76 @@
     });
   }
 
+  // Stakeholder Snapshot Management
+  function exportStakeholderSnapshot() {
+    const agg = getAggregates();
+    const snapshot = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      exportedBy: (typeof authManager !== 'undefined' && authManager.getCurrentUser()?.name) || 'Admin',
+      activeBatchId,
+      batches: uploadedBatches,
+      transactions: currentTransactions,
+      aggregates: agg,
+      alertSettings
+    };
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `TransactBridge_Snapshot_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('💾 Stakeholder Snapshot (.json) downloaded! Share or load offline anywhere.');
+  }
+
+  function importStakeholderSnapshot(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data || (!data.transactions && !data.batches)) {
+          showToast('⚠️ Invalid snapshot file format');
+          return;
+        }
+        if (data.batches && data.batches.length > 0) {
+          uploadedBatches = data.batches;
+          currentTransactions = data.transactions || data.batches.flatMap(b => b.transactions);
+        } else if (data.transactions) {
+          const norm = data.transactions.map(normalizeRow);
+          uploadedBatches = [{
+            id: 'snapshot_' + Date.now(),
+            name: `Imported Snapshot (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
+            uploadedAt: data.exportedAt || new Date().toISOString(),
+            count: norm.length,
+            transactions: norm
+          }];
+          currentTransactions = norm;
+        }
+        dataMode = 'uploaded';
+        activeBatchId = 'all';
+        saveBatchesToStorage();
+        recomputeDashboardFromTransactions(currentTransactions);
+        stopSimulation();
+        updateBatchSelector();
+        if (data.alertSettings) {
+          alertSettings = { ...alertSettings, ...data.alertSettings };
+          saveAlertSettings(false);
+        }
+        if (typeof cloudSyncManager !== 'undefined' && uploadedBatches[0]) {
+          cloudSyncManager.publishToCloud(uploadedBatches[0]);
+        }
+        showToast(`✅ Loaded snapshot with ${formatNumber(currentTransactions.length)} transactions!`);
+      } catch (err) {
+        showToast('❌ Error parsing snapshot: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
   // File Upload Handlers
   const openUploadBtn = document.getElementById('openUploadBtn');
   const uploadModal = document.getElementById('uploadModal');
@@ -6504,47 +6574,54 @@ Incident Timestamp: ${timeStr}`;
         const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
 
         emailjs.init({ publicKey: ej.publicKey });
-        const sendPromises = emails.map(targetEmail => {
-          return emailjs.send(ej.serviceId, ej.templateId, {
-            to_email: targetEmail,
-            to_emails: targetEmail,
-            recipient: targetEmail,
-            email: targetEmail,
-            user_email: targetEmail,
-            to_name: targetEmail.split('@')[0] || 'Operations Team',
-            from_name: 'Transact Bridge Incident Sentinel',
-            subject: emailSubject,
-            message: emailBody,
-            incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
-            success_rate: `${sr.toFixed(2)}%`,
-            sla_target: `${critThreshold.toFixed(1)}%`,
-            total_transactions: formatNumber(agg.totalCount),
-            failed_transactions: formatNumber(agg.failedCount),
-            failed_rate: `${agg.failureRate.toFixed(2)}%`,
-            failed_amount: formatCurrency(agg.failedAmount),
-            recoverable_amount: formatCurrency(recoverableAmt),
-            impacted_gateway: diag.topPsp || 'Razorpay Gateway',
-            dominant_cause: cleanError,
-            technical_friction: `${techPct}%`,
-            user_friction: `${100 - techPct}%`,
-            email_body: emailBody,
-            email_body_html: emailBodyHtml,
-            timestamp: new Date().toLocaleString()
-          });
-        });
+        
+        (async () => {
+          const results = [];
+          for (const targetEmail of emails) {
+            try {
+              const res = await emailjs.send(ej.serviceId, ej.templateId, {
+                to_email: targetEmail,
+                to_emails: targetEmail,
+                recipient: targetEmail,
+                email: targetEmail,
+                user_email: targetEmail,
+                to_name: targetEmail.split('@')[0] || 'Operations Team',
+                from_name: 'Transact Bridge Incident Sentinel',
+                subject: emailSubject,
+                message: emailBody,
+                incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
+                success_rate: `${sr.toFixed(2)}%`,
+                sla_target: `${critThreshold.toFixed(1)}%`,
+                total_transactions: formatNumber(agg.totalCount),
+                failed_transactions: formatNumber(agg.failedCount),
+                failed_rate: `${agg.failureRate.toFixed(2)}%`,
+                failed_amount: formatCurrency(agg.failedAmount),
+                recoverable_amount: formatCurrency(recoverableAmt),
+                impacted_gateway: diag.topPsp || 'Razorpay Gateway',
+                dominant_cause: cleanError,
+                technical_friction: `${techPct}%`,
+                user_friction: `${100 - techPct}%`,
+                email_body: emailBody,
+                email_body_html: emailBodyHtml,
+                timestamp: new Date().toLocaleString()
+              });
+              results.push({ email: targetEmail, ok: true, status: res.status || 200 });
+            } catch (err) {
+              results.push({ email: targetEmail, ok: false, error: err.text || err.message });
+            }
+            await new Promise(r => setTimeout(r, 200));
+          }
 
-        Promise.allSettled(sendPromises).then(function(results) {
-          const successes = results.filter(r => r.status === 'fulfilled').length;
-          const failures = results.filter(r => r.status === 'rejected');
+          const successes = results.filter(r => r.ok).length;
           if (successes > 0) {
             showToast(`✉️ Automated email dispatched via EmailJS to ${successes} recipient(s)!`);
           } else {
-            const firstErr = failures[0]?.reason;
+            const firstErr = results.find(r => !r.ok)?.error;
             console.warn('EmailJS error, falling back to mail client:', firstErr);
-            showToast(`⚠️ EmailJS error (${firstErr?.text || firstErr?.message || 'Check keys'}). Opening mail client...`);
+            showToast(`⚠️ EmailJS error (${firstErr || 'Check template & keys'}). Opening mail client...`);
             window.location.href = mailtoUrl;
           }
-        });
+        })();
         return;
       } catch (e) {
         console.warn('EmailJS exception:', e);
@@ -7146,7 +7223,7 @@ Incident Timestamp: ${timeStr}`;
   // EmailJS Test Dispatch Button
   const testEmailJsBtn = document.getElementById('testEmailJsBtn');
   if (testEmailJsBtn) {
-    testEmailJsBtn.addEventListener('click', () => {
+    testEmailJsBtn.addEventListener('click', async () => {
       const sId = document.getElementById('emailjsServiceId')?.value.trim();
       const tId = document.getElementById('emailjsTemplateId')?.value.trim();
       const pKey = document.getElementById('emailjsPublicKey')?.value.trim();
@@ -7170,6 +7247,12 @@ Incident Timestamp: ${timeStr}`;
       }
 
       showToast(`⏳ Sending test email to ${testEmails.length} recipient(s)...`);
+      const statusReport = document.getElementById('emailJsStatusReport');
+      if (statusReport) {
+        statusReport.style.display = 'block';
+        statusReport.innerHTML = `<div style="font-size: 0.72rem; color: var(--text-dim); padding: 8px; background: rgba(59, 130, 246, 0.05); border-radius: 6px;">⏳ Dispatching test emails sequentially to ${testEmails.length} address(es)...</div>`;
+      }
+
       try {
         const agg = getAggregates();
         const sr = agg.totalCount > 0 ? agg.successRate : 84.6;
@@ -7181,58 +7264,113 @@ Incident Timestamp: ${timeStr}`;
         const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
 
         emailjs.init({ publicKey: pKey });
-        const sendPromises = testEmails.map(targetEmail => {
-          return emailjs.send(sId, tId, {
-            to_email: targetEmail,
-            to_emails: targetEmail,
-            recipient: targetEmail,
-            email: targetEmail,
-            user_email: targetEmail,
-            to_name: targetEmail.split('@')[0] || 'Operations Team',
-            from_name: 'Transact Bridge Incident Sentinel',
-            subject: emailSubject,
-            message: emailBody,
-            incident_title: 'SLA Watchdog System Verification',
-            success_rate: `${sr.toFixed(2)}%`,
-            sla_target: `${critThreshold.toFixed(1)}%`,
-            total_transactions: formatNumber(agg.totalCount || 3617908),
-            failed_transactions: formatNumber(agg.failedCount || 160721),
-            failed_rate: `${(agg.failureRate || 15.4).toFixed(2)}%`,
-            failed_amount: formatCurrency(agg.failedAmount || 8518847),
-            recoverable_amount: formatCurrency(recoverableAmt || 6644700),
-            impacted_gateway: diag.topPsp || 'Razorpay Gateway',
-            dominant_cause: cleanError || 'Customer Checkout Abandonment (User Drop-off)',
-            technical_friction: `${techPct}%`,
-            user_friction: `${100 - techPct}%`,
-            email_body: emailBody,
-            email_body_html: emailBodyHtml,
-            timestamp: new Date().toLocaleString()
-          });
-        });
 
-        Promise.allSettled(sendPromises).then(function(results) {
-          const successes = results.filter(r => r.status === 'fulfilled').length;
-          const failures = results.filter(r => r.status === 'rejected');
-
-          if (successes > 0) {
-            showToast(`✅ Test email delivered to ${successes} of ${testEmails.length} recipient(s)!`);
-            const ejBadge = document.getElementById('emailjsStatusBadge');
-            if (ejBadge) {
-              ejBadge.textContent = 'CONNECTED';
-              ejBadge.className = 'status-chip healthy';
-            }
-            const feedback = document.getElementById('emailJsSaveFeedback');
-            if (feedback) {
-              feedback.style.display = 'block';
-              feedback.innerHTML = `✅ Successfully sent to: <strong>${testEmails.join(', ')}</strong>${failures.length > 0 ? ` (${failures.length} delivery failed)` : ''}`;
-            }
-          } else {
-            const firstErr = failures[0]?.reason;
-            showToast(`❌ EmailJS failed: ${firstErr?.text || firstErr?.message || 'Check your template and keys'}`);
+        const results = [];
+        for (const targetEmail of testEmails) {
+          const isGmail = targetEmail.toLowerCase().includes('@gmail.com');
+          try {
+            const res = await emailjs.send(sId, tId, {
+              to_email: targetEmail,
+              to_emails: targetEmail,
+              recipient: targetEmail,
+              email: targetEmail,
+              user_email: targetEmail,
+              to_name: targetEmail.split('@')[0] || 'Operations Team',
+              from_name: 'Transact Bridge Incident Sentinel',
+              subject: emailSubject,
+              message: emailBody,
+              incident_title: 'SLA Watchdog System Verification',
+              success_rate: `${sr.toFixed(2)}%`,
+              sla_target: `${critThreshold.toFixed(1)}%`,
+              total_transactions: formatNumber(agg.totalCount || 3617908),
+              failed_transactions: formatNumber(agg.failedCount || 160721),
+              failed_rate: `${(agg.failureRate || 15.4).toFixed(2)}%`,
+              failed_amount: formatCurrency(agg.failedAmount || 8518847),
+              recoverable_amount: formatCurrency(recoverableAmt || 6644700),
+              impacted_gateway: diag.topPsp || 'Razorpay Gateway',
+              dominant_cause: cleanError || 'Customer Checkout Abandonment (User Drop-off)',
+              technical_friction: `${techPct}%`,
+              user_friction: `${100 - techPct}%`,
+              email_body: emailBody,
+              email_body_html: emailBodyHtml,
+              timestamp: new Date().toLocaleString()
+            });
+            results.push({ email: targetEmail, ok: true, isGmail, statusText: '200 OK (Dispatched)' });
+          } catch (err) {
+            results.push({ email: targetEmail, ok: false, isGmail, statusText: err?.text || err?.message || 'Delivery Rejected' });
           }
-        });
+          await new Promise(r => setTimeout(r, 250));
+        }
+
+        const successes = results.filter(r => r.ok).length;
+        if (statusReport) {
+          statusReport.style.display = 'block';
+          statusReport.innerHTML = `
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-top: 10px;">
+              <div style="font-weight: 700; font-size: 0.76rem; margin-bottom: 6px; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
+                <span>📬 Multi-Recipient Dispatch Status (${successes}/${testEmails.length} Sent):</span>
+                <span class="status-chip ${successes === testEmails.length ? 'healthy' : 'warning'}">${successes === testEmails.length ? 'ALL DISPATCHED' : 'PARTIAL'}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem;">
+                ${results.map(r => `
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; border-radius: 4px; background: ${r.ok ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)'};">
+                    <span>${r.ok ? '✅' : '❌'} <strong>${r.email}</strong></span>
+                    <span style="font-size: 0.68rem; color: ${r.ok ? 'var(--success-green)' : 'var(--failed-red)'}; font-weight: 600;">${r.statusText}</span>
+                  </div>
+                  ${r.isGmail && r.ok ? `<div style="font-size: 0.68rem; color: var(--warning-amber); padding-left: 18px;">⚠️ Note: Messages sent to <code>${r.email}</code> often land in <strong>Spam / Junk</strong> or <strong>Promotions</strong>.</div>` : ''}
+                `).join('')}
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color); font-size: 0.7rem; color: var(--text-muted); line-height: 1.4;">
+                💡 <strong>Only receiving on your primary email?</strong> In your <a href="https://dashboard.emailjs.com/admin/templates" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary); text-decoration: underline;">EmailJS Dashboard</a> &rarr; Template &rarr; <strong>Settings</strong>, ensure the <strong>"To Email"</strong> field is set to <code>{{to_email}}</code> (not your own email).
+              </div>
+            </div>
+          `;
+        }
+
+        if (successes > 0) {
+          showToast(`✅ Test email delivered to ${successes} of ${testEmails.length} recipient(s)!`);
+          const ejBadge = document.getElementById('emailjsStatusBadge');
+          if (ejBadge) {
+            ejBadge.textContent = 'CONNECTED';
+            ejBadge.className = 'status-chip healthy';
+          }
+        } else {
+          const firstErr = results.find(r => !r.ok)?.statusText;
+          showToast(`❌ EmailJS failed: ${firstErr || 'Check your template and keys'}`);
+        }
       } catch (err) {
         showToast(`❌ EmailJS exception: ${err.message}`);
+      }
+    });
+  }
+
+  // Copy {{to_email}} Variable Button
+  const copyToEmailVarBtn = document.getElementById('copyToEmailVarBtn');
+  if (copyToEmailVarBtn) {
+    copyToEmailVarBtn.addEventListener('click', () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText('{{to_email}}').then(() => {
+          showToast('📋 Copied {{to_email}} to clipboard! Paste it into EmailJS Template Settings.');
+        });
+      } else {
+        prompt('Copy {{to_email}} for EmailJS Template Settings:', '{{to_email}}');
+      }
+    });
+  }
+
+  // Stakeholder Snapshot Export / Import Handlers
+  const exportSnapshotBtn = document.getElementById('exportSnapshotBtn');
+  if (exportSnapshotBtn) {
+    exportSnapshotBtn.addEventListener('click', () => exportStakeholderSnapshot());
+  }
+
+  const importSnapshotFile = document.getElementById('importSnapshotFile');
+  if (importSnapshotFile) {
+    importSnapshotFile.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        importStakeholderSnapshot(file);
+        closeUploadModal();
       }
     });
   }
@@ -8804,10 +8942,18 @@ Recommended Immediate Actions:
                   try { data = JSON.parse(evt.message); } catch (_) {}
                 }
                 if (data) {
+                  // If lightweight ping (< 300 bytes)
+                  if (data.action === 'batch_updated' || data.type === 'batch_update') {
+                    if (data.batchId && data.batchId !== this.activeCloudBatchId) {
+                      this.fetchFromCloud(false);
+                      showToast(`☁️ Live Ingestion: Received new data from ${data.uploadedBy || 'Admin'} (${formatNumber(data.count || 0)} records)!`);
+                    }
+                    return;
+                  }
                   const b = data.batch || data;
                   if (b && b.transactions && b.transactions.length > 0 && b.id !== this.activeCloudBatchId) {
                     this.applyCloudBatch(data, false);
-                    showToast(`☁️ Live Ingestion: Received ${formatNumber(b.transactions.length)} records from ${data.uploadedBy || 'Admin'}!`);
+                    showToast(`☁️ Live Ingestion: Received ${formatNumber(b.count || b.transactions.length)} records from ${data.uploadedBy || 'Admin'}!`);
                   }
                 }
               }
@@ -9055,13 +9201,31 @@ Recommended Immediate Actions:
       this.updateSyncPill('syncing');
 
       const user = authManager.getCurrentUser() || { name: 'Admin', role: 'admin' };
+      const rawTxs = batchObj.transactions;
+
+      // Create compact transaction representations for the wire (< 40 KB):
+      // Store essential feed columns: [id, merchantId, status, amount, payMethod, pgProvider, upiApp, upiHandle, date, responseCode]
+      const feedLimit = 1500;
+      const compactTxs = rawTxs.slice(0, feedLimit).map(t => [
+        t.id || '',
+        t.merchantId || '',
+        t.status || (t.isSuccess ? 'SUCCESS' : 'FAILED'),
+        t.amount || 0,
+        t.payMethod || 'UPI',
+        t.pgProvider || '',
+        t.upiApp || '',
+        t.upiHandle || '',
+        t.createdDate || t.dateTime || new Date().toISOString(),
+        t.responseCode || t.failureReason || ''
+      ]);
+
       const payload = {
         batch: {
           id: batchObj.id,
           name: batchObj.name,
           uploadedAt: batchObj.uploadedAt,
-          count: batchObj.transactions.length,
-          transactions: batchObj.transactions
+          count: rawTxs.length,
+          transactions: compactTxs
         },
         uploadedBy: user.name,
         aggregates: getAggregates(),
@@ -9072,7 +9236,7 @@ Recommended Immediate Actions:
         localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(payload));
       } catch (_) {}
 
-      // Concurrently push to /api/data AND cloud relay
+      // Concurrently push to /api/data AND cloud relay ping (< 300 bytes)
       const promises = [
         fetch('/api/data', {
           method: 'POST',
@@ -9083,15 +9247,23 @@ Recommended Immediate Actions:
           return null;
         }),
 
+        // Lightweight SSE ping: NO heavy body, so ntfy NEVER rejects with 413!
         fetch(NTFY_TXS_TOPIC, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Title': `Shared Batch: ${batchObj.name} (${formatNumber(batchObj.transactions.length)} records)`
+            'Title': `Shared Batch: ${batchObj.name}`
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            action: 'batch_updated',
+            batchId: batchObj.id,
+            name: batchObj.name,
+            count: rawTxs.length,
+            uploadedBy: user.name,
+            timestamp: Date.now()
+          })
         }).then(r => r.ok ? r.json() : null).catch(err => {
-          console.warn('POST ntfy cloud relay failed:', err.message);
+          console.warn('POST ntfy ping failed:', err.message);
           return null;
         })
       ];
@@ -9101,7 +9273,7 @@ Recommended Immediate Actions:
       this.activeCloudBatchId = batchObj.id;
       this.lastSyncTimestamp = Date.now();
       this.updateSyncPill('synced', 'Team Cloud Synced');
-      showToast(`☁️ Synchronized ${formatNumber(batchObj.transactions.length)} transactions to team cloud!`);
+      showToast(`☁️ Synchronized ${formatNumber(rawTxs.length)} transactions to team cloud!`);
     },
 
     async fetchFromCloud(silent = false) {
@@ -9124,12 +9296,51 @@ Recommended Immediate Actions:
         this.activeCloudBatchId = b.id;
         this.lastSyncTimestamp = Date.now();
 
-        const normalized = txs.map(normalizeRow);
+        // Unpack compact array rows if present, else normalize standard rows
+        const normalized = txs.map(t => {
+          if (Array.isArray(t)) {
+            const [id, merchantId, status, amount, payMethod, pgProvider, upiApp, upiHandle, date, responseCode] = t;
+            const isSuccess = (status === 'SUCCESS');
+            const isFailed = (status === 'FAILED' || status === 'DECLINED' || status === 'DROPPED' || status === 'REJECTED');
+            return {
+              id: id || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase()),
+              merchantId: merchantId || 'MERCH_DEFAULT',
+              merchantName: merchantId || 'MERCH_DEFAULT',
+              customerId: '',
+              status: status || 'SUCCESS',
+              isSuccess,
+              isFailed,
+              isCountedInTotal: true,
+              isRevenueAtRisk: isFailed,
+              amount: Number(amount) || 0,
+              totalAmount: Number(amount) || 0,
+              currency: 'INR',
+              payMethod: payMethod || 'UPI',
+              sourceDevice: 'Mobile',
+              sourceOS: 'Android',
+              bankName: '',
+              pgProvider: pgProvider || 'UNKNOWN_PSP',
+              upiApp: upiApp || 'UPI',
+              upiHandle: upiHandle || '',
+              failCategory: 'timeout',
+              responseCode: responseCode || '',
+              failureReason: responseCode || '',
+              failedState: responseCode || '',
+              rawFailState: responseCode || '',
+              successDate: isSuccess ? date : '',
+              failedDate: isFailed ? date : '',
+              createdDate: date || new Date().toISOString(),
+              dateTime: date || new Date().toISOString()
+            };
+          }
+          return normalizeRow(t);
+        });
+
         uploadedBatches = [{
           id: b.id,
           name: b.name || 'Shared Team Batch',
           uploadedAt: b.uploadedAt || cloudBatch.uploadedAt,
-          count: normalized.length,
+          count: b.count || normalized.length,
           transactions: normalized
         }];
 
@@ -9149,12 +9360,12 @@ Recommended Immediate Actions:
           tag.className = 'data-status-tag tag-uploaded';
           tag.textContent = 'Team Shared Ingestion';
           const timeStr = (b.uploadedAt || cloudBatch.uploadedAt) ? new Date(b.uploadedAt || cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
-          msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
+          msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(b.count || normalized.length)} records). Live for all users on this link.`;
         }
 
         this.updateSyncPill('synced', 'Team Cloud Synced');
         if (!silent) {
-          showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
+          showToast(`☁️ Loaded ${formatNumber(b.count || normalized.length)} shared team transactions!`);
         }
         applied = true;
         return true;
