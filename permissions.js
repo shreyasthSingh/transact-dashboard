@@ -12,6 +12,35 @@ let inMemoryPermissions = {
 
 const NTFY_PERMS_TOPIC = 'https://ntfy.sh/tb_shared_permissions_transactbridge_v1';
 
+async function upstashCommand(kvUrl, kvToken, commandArray, timeoutMs = 3000) {
+  if (!kvUrl || !kvToken) return null;
+  try {
+    const res = await fetch(kvUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${kvToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(commandArray),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (res.ok) return await res.json();
+  } catch (err) {
+    console.warn('Upstash perms command failed:', err.message);
+  }
+
+  if (commandArray[0] === 'GET') {
+    try {
+      const res = await fetch(`${kvUrl}/get/${encodeURIComponent(commandArray[1])}`, {
+        headers: { Authorization: `Bearer ${kvToken}` },
+        signal: AbortSignal.timeout(timeoutMs)
+      });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+  }
+  return null;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -32,20 +61,10 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     try {
       if (kvUrl && kvToken) {
-        try {
-          const kvRes = await fetch(`${kvUrl}/get/tb_role_permissions_latest`, {
-            headers: { Authorization: `Bearer ${kvToken}` },
-            signal: AbortSignal.timeout(3000)
-          });
-          if (kvRes.ok) {
-            const kvData = await kvRes.json();
-            if (kvData && kvData.result) {
-              const parsed = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
-              return res.status(200).json({ success: true, source: 'vercel_kv', data: parsed });
-            }
-          }
-        } catch (kvErr) {
-          console.warn('Vercel KV fetch failed for permissions:', kvErr.message);
+        const kvRes = await upstashCommand(kvUrl, kvToken, ['GET', 'tb_role_permissions_latest'], 3000);
+        if (kvRes && kvRes.result) {
+          const parsed = typeof kvRes.result === 'string' ? JSON.parse(kvRes.result) : kvRes.result;
+          return res.status(200).json({ success: true, source: 'vercel_kv', data: parsed });
         }
       }
 
@@ -113,18 +132,10 @@ module.exports = async (req, res) => {
 
       const persistPromises = [];
 
-      // Vercel KV / Redis
+      // Upstash Redis / Vercel KV
       if (kvUrl && kvToken) {
         persistPromises.push(
-          fetch(`${kvUrl}/set/tb_role_permissions_latest`, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${kvToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(3000)
-          }).catch(e => console.warn('Failed to persist permissions to KV:', e.message))
+          upstashCommand(kvUrl, kvToken, ['SET', 'tb_role_permissions_latest', JSON.stringify(payload)], 3000)
         );
       }
 

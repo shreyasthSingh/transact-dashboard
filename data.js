@@ -7,6 +7,43 @@ let inMemoryAlertSettings = null;
 const NTFY_TXS_TOPIC = 'https://ntfy.sh/tb_shared_txs_transactbridge_v1';
 const NTFY_ALERTS_TOPIC = 'https://ntfy.sh/tb_shared_alerts_transactbridge_v1';
 
+// Helper for Upstash Redis / Vercel KV REST API commands
+async function upstashCommand(kvUrl, kvToken, commandArray, timeoutMs = 3500) {
+  if (!kvUrl || !kvToken) return null;
+  // Format 1: Official Upstash body-style REST API (POST ["CMD", "arg1", ...])
+  try {
+    const res = await fetch(kvUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${kvToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(commandArray),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch (err) {
+    console.warn('Upstash body command failed:', err.message);
+  }
+
+  // Format 2: Fallback GET /get/key
+  if (commandArray[0] === 'GET') {
+    try {
+      const res = await fetch(`${kvUrl}/get/${encodeURIComponent(commandArray[1])}`, {
+        headers: { Authorization: `Bearer ${kvToken}` },
+        signal: AbortSignal.timeout(timeoutMs)
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
 module.exports = async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -35,20 +72,12 @@ module.exports = async (req, res) => {
           return res.status(200).json({ success: true, source: 'memory', alertSettings: inMemoryAlertSettings });
         }
         if (kvUrl && kvToken) {
-          try {
-            const kvRes = await fetch(`${kvUrl}/get/tb_shared_alert_settings_latest`, {
-              headers: { Authorization: `Bearer ${kvToken}` },
-              signal: AbortSignal.timeout(3000)
-            });
-            if (kvRes.ok) {
-              const kvData = await kvRes.json();
-              if (kvData && kvData.result) {
-                const parsed = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
-                inMemoryAlertSettings = parsed;
-                return res.status(200).json({ success: true, source: 'vercel_kv', alertSettings: parsed });
-              }
-            }
-          } catch (_) {}
+          const kvRes = await upstashCommand(kvUrl, kvToken, ['GET', 'tb_shared_alert_settings_latest'], 3000);
+          if (kvRes && kvRes.result) {
+            const parsed = typeof kvRes.result === 'string' ? JSON.parse(kvRes.result) : kvRes.result;
+            inMemoryAlertSettings = parsed;
+            return res.status(200).json({ success: true, source: 'vercel_kv', alertSettings: parsed });
+          }
         }
         // Cloud Relay Fallback
         try {
@@ -83,27 +112,17 @@ module.exports = async (req, res) => {
       let batchData = inMemoryStore;
 
       if (!batchData && kvUrl && kvToken) {
-        try {
-          const kvRes = await fetch(`${kvUrl}/get/tb_shared_transactions_latest`, {
-            headers: { Authorization: `Bearer ${kvToken}` },
-            signal: AbortSignal.timeout(3000)
-          });
-          if (kvRes.ok) {
-            const kvData = await kvRes.json();
-            if (kvData && kvData.result) {
-              batchData = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
-              inMemoryStore = batchData;
-            }
-          }
-        } catch (kvErr) {
-          console.warn('Vercel KV fetch failed:', kvErr.message);
+        const kvRes = await upstashCommand(kvUrl, kvToken, ['GET', 'tb_shared_transactions_latest'], 3000);
+        if (kvRes && kvRes.result) {
+          batchData = typeof kvRes.result === 'string' ? JSON.parse(kvRes.result) : kvRes.result;
+          inMemoryStore = batchData;
         }
       }
 
       if (!batchData) {
         try {
           const ntfyRes = await fetch(`${NTFY_TXS_TOPIC}/json?poll=1`, {
-            signal: AbortSignal.timeout(4000)
+            signal: AbortSignal.timeout(3500)
           });
           if (ntfyRes.ok) {
             const text = await ntfyRes.text();
@@ -112,7 +131,7 @@ module.exports = async (req, res) => {
               const last = JSON.parse(lines[lines.length - 1]);
               let data = null;
               if (last.attachment && last.attachment.url) {
-                const attRes = await fetch(last.attachment.url, { signal: AbortSignal.timeout(5000) });
+                const attRes = await fetch(last.attachment.url, { signal: AbortSignal.timeout(4000) });
                 if (attRes.ok) data = await attRes.json();
               } else if (last.message) {
                 try { data = JSON.parse(last.message); } catch (_) {}
@@ -132,18 +151,10 @@ module.exports = async (req, res) => {
 
       // Attempt to load alert settings if not already cached
       if (!inMemoryAlertSettings && kvUrl && kvToken) {
-        try {
-          const kvAlertRes = await fetch(`${kvUrl}/get/tb_shared_alert_settings_latest`, {
-            headers: { Authorization: `Bearer ${kvToken}` },
-            signal: AbortSignal.timeout(2000)
-          });
-          if (kvAlertRes.ok) {
-            const parsed = await kvAlertRes.json();
-            if (parsed && parsed.result) {
-              inMemoryAlertSettings = typeof parsed.result === 'string' ? JSON.parse(parsed.result) : parsed.result;
-            }
-          }
-        } catch (_) {}
+        const kvAlertRes = await upstashCommand(kvUrl, kvToken, ['GET', 'tb_shared_alert_settings_latest'], 2000);
+        if (kvAlertRes && kvAlertRes.result) {
+          inMemoryAlertSettings = typeof kvAlertRes.result === 'string' ? JSON.parse(kvAlertRes.result) : kvAlertRes.result;
+        }
       }
 
       if (batchData) {
@@ -199,15 +210,10 @@ module.exports = async (req, res) => {
 
         const persistPromises = [];
 
-        // Persist to Vercel KV if available
+        // Persist to Upstash Redis / Vercel KV if available
         if (kvUrl && kvToken) {
           persistPromises.push(
-            fetch(`${kvUrl}/set/tb_shared_alert_settings_latest`, {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify(settings),
-              signal: AbortSignal.timeout(3000)
-            }).catch(e => console.warn('KV alert save error:', e.message))
+            upstashCommand(kvUrl, kvToken, ['SET', 'tb_shared_alert_settings_latest', JSON.stringify(settings)], 3500)
           );
         }
 
@@ -257,18 +263,10 @@ module.exports = async (req, res) => {
 
       const persistPromises = [];
 
-      // Persist batch to Vercel KV if configured
+      // Persist batch to Upstash Redis / Vercel KV if configured
       if (kvUrl && kvToken) {
         persistPromises.push(
-          fetch(`${kvUrl}/set/tb_shared_transactions_latest`, {
-            method: 'POST',
-            headers: { 
-              Authorization: `Bearer ${kvToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(4000)
-          }).catch(kvErr => console.warn('Failed to persist to Vercel KV:', kvErr.message))
+          upstashCommand(kvUrl, kvToken, ['SET', 'tb_shared_transactions_latest', JSON.stringify(payload)], 4000)
         );
       }
 
