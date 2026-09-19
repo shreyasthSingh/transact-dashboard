@@ -84,6 +84,21 @@
       console.warn('Failed to load alert settings', e);
     }
 
+    // Resilient EmailJS backup retrieval
+    try {
+      const ejBackup = localStorage.getItem('tb_emailjs_config');
+      if (ejBackup) {
+        const parsedEj = JSON.parse(ejBackup);
+        if (parsedEj && typeof parsedEj === 'object') {
+          alertSettings.emailjs = {
+            serviceId: alertSettings.emailjs?.serviceId || parsedEj.serviceId || '',
+            templateId: alertSettings.emailjs?.templateId || parsedEj.templateId || '',
+            publicKey: alertSettings.emailjs?.publicKey || parsedEj.publicKey || ''
+          };
+        }
+      }
+    } catch (_) {}
+
     try {
       const savedLog = localStorage.getItem(ALERT_LOG_STORAGE_KEY);
       if (savedLog) {
@@ -97,6 +112,9 @@
   function saveAlertSettings(broadcast = true) {
     try {
       localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+      if (alertSettings.emailjs) {
+        localStorage.setItem('tb_emailjs_config', JSON.stringify(alertSettings.emailjs));
+      }
     } catch (e) {
       console.warn('Failed to persist alert settings', e);
     }
@@ -6378,7 +6396,16 @@ Incident Timestamp: ${timeStr}`;
     logAlertIncident(reason || 'Email Escalation', sr, agg.totalCount, agg.failedCount, ['Email']);
 
     // Check if EmailJS is configured
-    const ej = alertSettings.emailjs;
+    const ejServiceInput = document.getElementById('emailjsServiceId')?.value.trim();
+    const ejTemplateInput = document.getElementById('emailjsTemplateId')?.value.trim();
+    const ejPublicKeyInput = document.getElementById('emailjsPublicKey')?.value.trim();
+
+    const ej = {
+      serviceId: alertSettings.emailjs?.serviceId || ejServiceInput || '',
+      templateId: alertSettings.emailjs?.templateId || ejTemplateInput || '',
+      publicKey: alertSettings.emailjs?.publicKey || ejPublicKeyInput || ''
+    };
+
     if (window.emailjs && ej && ej.serviceId && ej.templateId && ej.publicKey) {
       try {
         const diag = getTopFailureDiagnostics();
@@ -6390,7 +6417,12 @@ Incident Timestamp: ${timeStr}`;
         emailjs.init({ publicKey: ej.publicKey });
         emailjs.send(ej.serviceId, ej.templateId, {
           to_emails: emails.join(', '),
+          to_email: emails[0] || 'ops@transactbridge.io',
+          to_name: 'Operations Team',
+          from_name: 'Transact Bridge Incident Sentinel',
+          recipient: emails.join(', '),
           subject: emailSubject,
+          message: emailBody,
           incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
           success_rate: `${sr.toFixed(2)}%`,
           sla_target: `${critThreshold.toFixed(1)}%`,
@@ -6636,19 +6668,45 @@ Incident Timestamp: ${timeStr}`;
     const webhookInput = document.getElementById('alertWebhookUrlInput');
     if (webhookInput) webhookInput.value = alertSettings.webhookUrl || '';
 
-    // EmailJS credentials sync
+    // EmailJS credentials sync (protected against focus clobbering)
     const ejService = document.getElementById('emailjsServiceId');
-    if (ejService) ejService.value = (alertSettings.emailjs && alertSettings.emailjs.serviceId) || '';
     const ejTemplate = document.getElementById('emailjsTemplateId');
-    if (ejTemplate) ejTemplate.value = (alertSettings.emailjs && alertSettings.emailjs.templateId) || '';
     const ejKey = document.getElementById('emailjsPublicKey');
-    if (ejKey) ejKey.value = (alertSettings.emailjs && alertSettings.emailjs.publicKey) || '';
+
+    const sVal = (alertSettings.emailjs && alertSettings.emailjs.serviceId) || '';
+    const tVal = (alertSettings.emailjs && alertSettings.emailjs.templateId) || '';
+    const kVal = (alertSettings.emailjs && alertSettings.emailjs.publicKey) || '';
+
+    if (ejService && document.activeElement !== ejService) ejService.value = sVal;
+    if (ejTemplate && document.activeElement !== ejTemplate) ejTemplate.value = tVal;
+    if (ejKey && document.activeElement !== ejKey) ejKey.value = kVal;
 
     const ejBadge = document.getElementById('emailjsStatusBadge');
+    const feedback = document.getElementById('emailJsSaveFeedback');
     if (ejBadge) {
-      const isEjActive = alertSettings.emailjs && alertSettings.emailjs.serviceId && alertSettings.emailjs.publicKey;
-      ejBadge.textContent = isEjActive ? 'CONNECTED' : 'READY / OPTIONAL';
-      ejBadge.className = `status-chip ${isEjActive ? 'healthy' : 'warning'}`;
+      const activeS = ejService ? ejService.value.trim() : sVal;
+      const activeT = ejTemplate ? ejTemplate.value.trim() : tVal;
+      const activeK = ejKey ? ejKey.value.trim() : kVal;
+
+      if (activeS && activeT && activeK) {
+        ejBadge.textContent = 'CONNECTED';
+        ejBadge.className = 'status-chip healthy';
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.innerHTML = '✅ EmailJS credentials active &amp; ready for automated dispatch.';
+        }
+      } else if (activeS || activeT || activeK) {
+        ejBadge.textContent = 'CONFIGURING';
+        ejBadge.className = 'status-chip warning';
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.innerHTML = '⚠️ Incomplete keys. Please provide Service ID, Template ID, and Public Key.';
+        }
+      } else {
+        ejBadge.textContent = 'READY / OPTIONAL';
+        ejBadge.className = 'status-chip';
+        if (feedback) feedback.style.display = 'none';
+      }
     }
 
     const statusChip = document.getElementById('alertStatusChip');
@@ -6915,6 +6973,76 @@ Incident Timestamp: ${timeStr}`;
     });
   }
 
+  // ==========================================================================
+  // ⚡ EmailJS Automated Client-Side Dispatch Engine & Auto-Save
+  // ==========================================================================
+  function updateEmailJsFromInputs(showNotification = false) {
+    const sId = document.getElementById('emailjsServiceId')?.value.trim() || '';
+    const tId = document.getElementById('emailjsTemplateId')?.value.trim() || '';
+    const pKey = document.getElementById('emailjsPublicKey')?.value.trim() || '';
+
+    alertSettings.emailjs = {
+      serviceId: sId,
+      templateId: tId,
+      publicKey: pKey
+    };
+
+    try {
+      localStorage.setItem('tb_emailjs_config', JSON.stringify(alertSettings.emailjs));
+      localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+    } catch (_) {}
+
+    const ejBadge = document.getElementById('emailjsStatusBadge');
+    const feedback = document.getElementById('emailJsSaveFeedback');
+    if (ejBadge) {
+      if (sId && tId && pKey) {
+        ejBadge.textContent = 'CONNECTED';
+        ejBadge.className = 'status-chip healthy';
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.innerHTML = '✅ EmailJS API credentials active &amp; ready for automated dispatch.';
+        }
+      } else if (sId || tId || pKey) {
+        ejBadge.textContent = 'CONFIGURING';
+        ejBadge.className = 'status-chip warning';
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.innerHTML = '⚠️ Incomplete keys. Please provide Service ID, Template ID, and Public Key.';
+        }
+      } else {
+        ejBadge.textContent = 'READY / OPTIONAL';
+        ejBadge.className = 'status-chip';
+        if (feedback) feedback.style.display = 'none';
+      }
+    }
+
+    if (showNotification) {
+      if (sId && tId && pKey) {
+        saveAlertSettings(true);
+        showToast('💾 EmailJS API credentials saved and synchronized to cloud!');
+      } else {
+        saveAlertSettings(false);
+        showToast('💾 EmailJS input saved locally.');
+      }
+    }
+  }
+
+  // Hook live keystroke and blur auto-save on all 3 EmailJS inputs
+  ['emailjsServiceId', 'emailjsTemplateId', 'emailjsPublicKey'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => updateEmailJsFromInputs(false));
+      el.addEventListener('change', () => updateEmailJsFromInputs(false));
+      el.addEventListener('blur', () => updateEmailJsFromInputs(false));
+    }
+  });
+
+  // Dedicated Save EmailJS API Keys Button
+  const saveEmailJsBtn = document.getElementById('saveEmailJsBtn');
+  if (saveEmailJsBtn) {
+    saveEmailJsBtn.addEventListener('click', () => updateEmailJsFromInputs(true));
+  }
+
   // EmailJS Test Dispatch Button
   const testEmailJsBtn = document.getElementById('testEmailJsBtn');
   if (testEmailJsBtn) {
@@ -6926,6 +7054,11 @@ Incident Timestamp: ${timeStr}`;
         showToast('⚠️ Please enter Service ID, Template ID, and Public Key first');
         return;
       }
+
+      // Auto-save credentials immediately
+      alertSettings.emailjs = { serviceId: sId, templateId: tId, publicKey: pKey };
+      saveAlertSettings(true);
+
       if (!window.emailjs) {
         showToast('⚠️ EmailJS SDK is loading or blocked by an ad-blocker');
         return;
@@ -6946,7 +7079,12 @@ Incident Timestamp: ${timeStr}`;
         emailjs.init({ publicKey: pKey });
         emailjs.send(sId, tId, {
           to_emails: recipientStr,
+          to_email: testEmails[0] || 'ops@transactbridge.io',
+          to_name: 'Operations Team',
+          from_name: 'Transact Bridge Incident Sentinel',
+          recipient: recipientStr,
           subject: emailSubject,
+          message: emailBody,
           incident_title: 'SLA Watchdog System Verification',
           success_rate: `${sr.toFixed(2)}%`,
           sla_target: `${critThreshold.toFixed(1)}%`,
@@ -6968,6 +7106,11 @@ Incident Timestamp: ${timeStr}`;
           if (ejBadge) {
             ejBadge.textContent = 'VERIFIED';
             ejBadge.className = 'status-chip healthy';
+          }
+          const feedback = document.getElementById('emailJsSaveFeedback');
+          if (feedback) {
+            feedback.style.display = 'block';
+            feedback.innerHTML = '✅ Verified live connection! Test dispatch delivered to ' + recipientStr;
           }
         }, function(err) {
           showToast(`❌ EmailJS failed: ${err.text || err.message || 'Check your keys'}`);
@@ -7087,13 +7230,17 @@ Incident Timestamp: ${timeStr}`;
   const resetAlertDefaultsBtn = document.getElementById('resetAlertDefaultsBtn');
   if (resetAlertDefaultsBtn) {
     resetAlertDefaultsBtn.addEventListener('click', () => {
+      const preservedEj = { ...(alertSettings.emailjs || {}) };
       alertSettings = JSON.parse(JSON.stringify(defaultAlertSettings));
+      if (preservedEj.serviceId || preservedEj.publicKey) {
+        alertSettings.emailjs = preservedEj;
+      }
       saveAlertSettings();
       syncAlertModalInputs();
       renderAlertEmailChips();
       renderAlertPhoneChips();
       evaluateSlaAlerts();
-      showToast('↺ Restored alert rules to default settings');
+      showToast('↺ Restored alert rules to default settings (EmailJS keys preserved)');
     });
   }
 
@@ -8591,6 +8738,20 @@ Recommended Immediate Actions:
     applyCloudAlertSettings(cloudSettings) {
       if (!cloudSettings || typeof cloudSettings !== 'object') return false;
       try {
+        const existingEj = alertSettings.emailjs || {};
+        let backupEj = {};
+        try {
+          const b = localStorage.getItem('tb_emailjs_config');
+          if (b) backupEj = JSON.parse(b);
+        } catch (_) {}
+
+        const cloudEj = cloudSettings.emailjs || {};
+        const mergedEmailJs = {
+          serviceId: cloudEj.serviceId || existingEj.serviceId || backupEj.serviceId || '',
+          templateId: cloudEj.templateId || existingEj.templateId || backupEj.templateId || '',
+          publicKey: cloudEj.publicKey || existingEj.publicKey || backupEj.publicKey || ''
+        };
+
         alertSettings = {
           ...defaultAlertSettings,
           ...cloudSettings,
@@ -8600,10 +8761,13 @@ Recommended Immediate Actions:
             emails: Array.isArray(cloudSettings.recipients?.emails) ? cloudSettings.recipients.emails : defaultAlertSettings.recipients.emails,
             phones: Array.isArray(cloudSettings.recipients?.phones) ? cloudSettings.recipients.phones : defaultAlertSettings.recipients.phones
           },
-          emailjs: { ...defaultAlertSettings.emailjs, ...(cloudSettings.emailjs || {}) }
+          emailjs: mergedEmailJs
         };
         localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
         localStorage.setItem(CLOUD_ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+        if (mergedEmailJs.serviceId || mergedEmailJs.publicKey) {
+          localStorage.setItem('tb_emailjs_config', JSON.stringify(mergedEmailJs));
+        }
 
         if (typeof syncAlertModalInputs === 'function') syncAlertModalInputs();
         if (typeof renderAlertEmailChips === 'function') renderAlertEmailChips();

@@ -1248,11 +1248,15 @@
                   <input type="text" id="emailjsPublicKey" placeholder="e.g. user_or_pk_..." class="recipient-text-input" style="font-size: 0.75rem; padding: 6px 8px; width: 100%;" />
                 </div>
               </div>
+              <div id="emailJsSaveFeedback" style="display: none; font-size: 0.73rem; margin-top: 8px; padding: 4px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); color: var(--success-green);"></div>
               <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                <span style="font-size: 0.7rem; color: var(--text-dim);">If empty, falls back gracefully to default mail client.</span>
+                <span style="font-size: 0.7rem; color: var(--text-dim);">Keys auto-save instantly. If empty, falls back to default mail client.</span>
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                   <button type="button" id="previewEmailTemplateBtn" class="btn-action btn-sm btn-outline" style="font-size: 0.75rem; padding: 4px 10px;" title="Preview and copy executive stakeholder email template">
                     📋 Preview &amp; Copy Email Template
+                  </button>
+                  <button type="button" id="saveEmailJsBtn" class="btn-action btn-sm btn-primary" style="font-size: 0.75rem; padding: 4px 12px;" title="Save and verify EmailJS credentials">
+                    💾 Save EmailJS API Keys
                   </button>
                   <button type="button" id="testEmailJsBtn" class="btn-action btn-sm btn-ghost" style="font-size: 0.75rem; padding: 4px 10px;" title="Send a test alert email to verified recipients">
                     🧪 Send Test Email

@@ -148,6 +148,15 @@ module.exports = async (req, res) => {
       // 1. Dedicated Alert Configuration Save
       if (body.type === 'alert_settings' || (body.alertSettings && !body.batch)) {
         const settings = body.alertSettings;
+        if (inMemoryAlertSettings && inMemoryAlertSettings.emailjs) {
+          const oldEj = inMemoryAlertSettings.emailjs;
+          const newEj = settings.emailjs || {};
+          settings.emailjs = {
+            serviceId: newEj.serviceId || oldEj.serviceId || '',
+            templateId: newEj.templateId || oldEj.templateId || '',
+            publicKey: newEj.publicKey || oldEj.publicKey || ''
+          };
+        }
         inMemoryAlertSettings = settings;
 
         if (inMemoryStore) {
