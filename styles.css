@@ -2118,19 +2118,20 @@ body.modal-open {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 8px 12px;
-  background: rgba(0, 22, 38, 0.45);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
   margin-bottom: 0.85rem;
 }
 
 .timeline-btn-group {
   display: inline-flex;
-  background: var(--bg-primary);
+  background: var(--card-bg);
   border-radius: 20px;
   padding: 3px;
   border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   gap: 2px;
 }
 
@@ -2139,7 +2140,7 @@ body.modal-open {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 5px 11px;
+  padding: 5px 12px;
   border-radius: 16px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -2152,18 +2153,18 @@ body.modal-open {
 .timeline-filter-btn:hover,
 .timeline-bucket-btn:hover {
   color: var(--text-main);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover);
 }
 
 .timeline-filter-btn.active,
 .timeline-bucket-btn.active {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 102, 255, 0.3);
 }
 
 .timeline-psp-select {
-  background: var(--bg-primary);
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   padding: 5px 12px;
@@ -4896,14 +4897,20 @@ body.hide-financials [data-metric="recoverableRevenue"] {
   gap: 10px;
 }
 
-/* FinTech Top Row Grid */
+/* FinTech Top Row Grid - 5 Distinct Executive Cards */
 .fintech-top-row {
   display: grid;
-  grid-template-columns: 1.25fr 1fr 1fr 1.25fr;
-  gap: 18px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
+  .fintech-top-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
   .fintech-top-row {
     grid-template-columns: 1fr 1fr;
   }
@@ -4913,6 +4920,17 @@ body.hide-financials [data-metric="recoverableRevenue"] {
   .fintech-top-row {
     grid-template-columns: 1fr;
   }
+}
+
+.btn-recover-cta {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-recover-cta:hover {
+  background: var(--accent-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25);
+  transform: translateY(-1px);
 }
 
 .fintech-card {
@@ -5182,6 +5200,268 @@ body.hide-financials [data-metric="recoverableRevenue"] {
 
 .feed-amount-badge.success { color: var(--success-green); }
 .feed-amount-badge.failed { color: var(--failed-red); }
+
+/* Top 5 Performing Merchants Card */
+.top-merchants-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-merchants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.top-merch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 12px;
+}
+
+.top-merch-row:hover {
+  background: var(--bg-hover);
+  border-color: rgba(0, 102, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateX(2px);
+}
+
+.top-merch-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.top-merch-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.top-merch-rank.rank-1 {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.top-merch-rank.rank-2 {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.top-merch-rank.rank-3 {
+  background: rgba(180, 83, 9, 0.14);
+  color: #b45309;
+  border: 1px solid rgba(180, 83, 9, 0.3);
+}
+
+.top-merch-rank.rank-other {
+  background: var(--card-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.top-merch-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.top-merch-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.top-merch-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-merch-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.top-merch-amt {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--success-green);
+  letter-spacing: -0.2px;
+}
+
+.top-merch-sr-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.top-merch-sr-badge.good {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success-green);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.top-merch-sr-badge.medium {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning-amber);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.top-merch-sr-badge.poor {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--error-red);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* Degraded UPI Apps Card (<20% SR) */
+.degraded-upi-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.degraded-upi-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.degraded-upi-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.04);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-radius: 12px;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.degraded-upi-item:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.degraded-upi-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.degraded-upi-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--error-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.degraded-upi-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.degraded-upi-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.degraded-upi-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.degraded-upi-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.degraded-upi-sr {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--error-red);
+}
+
+.degraded-upi-fail-vol {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.degraded-upi-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  text-align: center;
+  background: rgba(16, 185, 129, 0.04);
+  border: 1px dashed rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  gap: 6px;
+}
+
+.degraded-upi-empty-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--success-green);
+}
+
+.degraded-upi-empty-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  max-width: 320px;
+  line-height: 1.4;
+}
 
 /* Geo Traffic Map Section */
 .geo-traffic-card {

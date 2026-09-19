@@ -440,6 +440,14 @@
       if (failedAmtShare) failedAmtShare.textContent = 'No transaction data';
       const recVolElem = document.getElementById('kpiRecoverableVolume');
       if (recVolElem) recVolElem.textContent = formatCurrency(0);
+      const failedRateEl = document.getElementById('kpiFailedRate');
+      if (failedRateEl) failedRateEl.textContent = '0.00%';
+      const ribSucc = document.getElementById('ribbonSuccessAmount');
+      if (ribSucc) ribSucc.textContent = formatCurrency(0);
+      const ribRec = document.getElementById('ribbonRecoverableVolume');
+      if (ribRec) ribRec.textContent = formatCurrency(0);
+      renderTopMerchants();
+      renderDegradedUpiApps();
       updateKpiSparklines();
       return;
     }
@@ -543,6 +551,23 @@
 
     const recShareElem = document.getElementById('kpiRecoverableShare');
     if (recShareElem) recShareElem.textContent = 'Est. ' + formatCurrency(recVol) + ' via smart failover';
+
+    // Update KPI Failed Rate & Ribbon indicators
+    const failedRateEl = document.getElementById('kpiFailedRate');
+    if (failedRateEl) {
+      const failRateVal = agg.failureRate !== undefined ? agg.failureRate : (agg.totalCount > 0 ? ((agg.failedCount / agg.totalCount) * 100) : 0);
+      failedRateEl.textContent = failRateVal.toFixed(2) + '%';
+    }
+
+    const ribSucc = document.getElementById('ribbonSuccessAmount');
+    if (ribSucc) ribSucc.textContent = formatCurrency(agg.successAmount);
+    const ribSuccShare = document.getElementById('ribbonSuccessAmtShare');
+    if (ribSuccShare) ribSuccShare.textContent = (agg.totalAmount > 0 ? ((agg.successAmount / agg.totalAmount) * 100).toFixed(1) : '0.0') + '%';
+    const ribRec = document.getElementById('ribbonRecoverableVolume');
+    if (ribRec) ribRec.textContent = formatCurrency(recVol);
+
+    renderTopMerchants();
+    renderDegradedUpiApps();
 
     // Keyholder Strategic Strip values
     const healthStatusElem = document.getElementById('execHealthStatus');
@@ -3541,10 +3566,15 @@
     const sidebarQuickUploadBtn = document.getElementById('sidebarQuickUploadBtn');
     const sidebarOpenUploadBtn = document.getElementById('sidebarOpenUploadBtn');
     const openUploadBtn = document.getElementById('openUploadBtn');
-    const uploadModal = document.getElementById('uploadModal');
 
-    const handleOpenUpload = () => {
-      if (uploadModal) uploadModal.classList.add('visible');
+    const handleOpenUpload = (e) => {
+      if (e) e.preventDefault();
+      if (openUploadBtn) {
+        openUploadBtn.click();
+      } else {
+        const uploadModal = document.getElementById('uploadModal');
+        if (uploadModal) uploadModal.classList.add('active');
+      }
     };
 
     if (quickUploadBtn) quickUploadBtn.addEventListener('click', handleOpenUpload);
@@ -3554,8 +3584,13 @@
     const quickSyncBtn = document.getElementById('quickSyncBtn');
     const sidebarSyncBtn = document.getElementById('sidebarSyncBtn');
     const cloudSyncPill = document.getElementById('cloudSyncPill');
-    const handleSync = () => {
-      if (cloudSyncPill) cloudSyncPill.click();
+    const handleSync = (e) => {
+      if (e) e.preventDefault();
+      if (cloudSyncPill) {
+        cloudSyncPill.click();
+      } else if (typeof cloudSyncManager !== 'undefined' && cloudSyncManager.syncNow) {
+        cloudSyncManager.syncNow();
+      }
     };
     if (quickSyncBtn) quickSyncBtn.addEventListener('click', handleSync);
     if (sidebarSyncBtn) sidebarSyncBtn.addEventListener('click', handleSync);
@@ -3575,11 +3610,45 @@
     const topAlertsBtn = document.getElementById('topAlertsBtn');
     const sidebarOpenAlertsBtn = document.getElementById('sidebarOpenAlertsBtn');
     const openAlertsModalBtn = document.getElementById('openAlertsModalBtn');
-    if (topAlertsBtn && openAlertsModalBtn) {
-      topAlertsBtn.addEventListener('click', () => openAlertsModalBtn.click());
+    const handleAlerts = (e) => {
+      if (e) e.preventDefault();
+      if (openAlertsModalBtn) {
+        openAlertsModalBtn.click();
+      } else {
+        const modal = document.getElementById('alertSettingsModal');
+        if (modal) modal.classList.add('active');
+      }
+    };
+    if (topAlertsBtn) topAlertsBtn.addEventListener('click', handleAlerts);
+    if (sidebarOpenAlertsBtn) sidebarOpenAlertsBtn.addEventListener('click', handleAlerts);
+
+    // Sidebar navigation smooth scrolling and active state tracking
+    document.querySelectorAll('.sidebar-nav-item[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const targetId = this.getAttribute('href');
+        if (targetId && targetId !== '#') {
+          e.preventDefault();
+          const targetEl = document.querySelector(targetId);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('active'));
+            this.classList.add('active');
+          }
+        }
+      });
+    });
+
+    // Wire Ribbon Recoverable Volume clicks
+    const ribbonOpenRecBtn = document.getElementById('ribbonOpenRecoverableBtn');
+    if (ribbonOpenRecBtn) {
+      ribbonOpenRecBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openRecoverableModal();
+      });
     }
-    if (sidebarOpenAlertsBtn && openAlertsModalBtn) {
-      sidebarOpenAlertsBtn.addEventListener('click', () => openAlertsModalBtn.click());
+    const ribbonRecCard = document.getElementById('ribbonRecoverableCard');
+    if (ribbonRecCard) {
+      ribbonRecCard.addEventListener('click', openRecoverableModal);
     }
 
     // Global Search Shortcut ⌘K / Ctrl+K
@@ -3619,6 +3688,8 @@
     renderRouteArcChart();
     renderGeoMetrics();
     renderAnalysisSection();
+    renderTopMerchants();
+    renderDegradedUpiApps();
   }
 
   function renderTimelineChart() {
@@ -4440,6 +4511,174 @@
       `;
       listEl.appendChild(div);
     });
+  }
+
+  // Top 5 Performing Merchants (Bank.LY Human-Crafted Fintech Widget)
+  function renderTopMerchants() {
+    const listEl = document.getElementById('topMerchantsList');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    if (!merchants || merchants.length === 0) {
+      listEl.innerHTML = `
+        <div style="padding: 24px 14px; text-align: center; color: var(--text-muted); font-size: 0.78rem; background: var(--bg-secondary); border-radius: 12px; border: 1px dashed var(--border-subtle);">
+          ⏳ No merchant data ingested yet. Upload an hourly batch to analyze merchant volume.
+        </div>`;
+      return;
+    }
+
+    // Filter merchants with transactions and sort strictly by successAmount descending (success only)
+    const sorted = [...merchants]
+      .filter(m => (m.totalCount || 0) > 0)
+      .sort((a, b) => (b.successAmount || 0) - (a.successAmount || 0))
+      .slice(0, 5);
+
+    if (sorted.length === 0) {
+      listEl.innerHTML = `
+        <div style="padding: 24px 14px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">
+          No active merchant transactions in current filter window.
+        </div>`;
+      return;
+    }
+
+    sorted.forEach((m, idx) => {
+      const rank = idx + 1;
+      const rankClass = rank === 1 ? 'rank-1' : (rank === 2 ? 'rank-2' : (rank === 3 ? 'rank-3' : 'rank-other'));
+      const sr = m.totalCount > 0 ? (m.successCount / m.totalCount) * 100 : 0;
+      const srBadgeClass = sr >= 90 ? 'good' : (sr >= 70 ? 'medium' : 'poor');
+
+      let displayName = m.name || m.id || 'Unknown Merchant';
+      if (displayName.startsWith('MERCH_')) {
+        const clean = displayName.replace('MERCH_', '');
+        if (clean.toLowerCase() === 'swiggy') displayName = 'Swiggy';
+        else if (clean.toLowerCase() === 'zomato') displayName = 'Zomato';
+        else if (clean.toLowerCase() === 'amazon') displayName = 'Amazon';
+        else if (clean.toLowerCase() === 'flipkart') displayName = 'Flipkart';
+        else if (clean.toLowerCase() === 'netflix') displayName = 'Netflix';
+        else if (clean.toLowerCase() === 'uber') displayName = 'Uber';
+        else displayName = clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+      }
+
+      const row = document.createElement('div');
+      row.className = 'top-merch-row';
+      row.innerHTML = `
+        <div class="top-merch-left">
+          <span class="top-merch-rank ${rankClass}">#${rank}</span>
+          <div class="top-merch-details">
+            <span class="top-merch-name" title="${m.id}">${displayName}</span>
+            <span class="top-merch-sub">${formatNumber(m.successCount || 0)} settled txns</span>
+          </div>
+        </div>
+        <div class="top-merch-right">
+          <span class="top-merch-amt">${formatCurrency(m.successAmount || 0)}</span>
+          <span class="top-merch-sr-badge ${srBadgeClass}">✓ ${sr.toFixed(1)}% SR</span>
+        </div>
+      `;
+      listEl.appendChild(row);
+    });
+  }
+
+  // Top UPI Apps with <20% Success Rate (Route Failover Monitor)
+  function renderDegradedUpiApps() {
+    const listEl = document.getElementById('degradedUpiList');
+    const badge = document.getElementById('degradedUpiCountBadge');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    if (!upiAppList || upiAppList.length === 0) {
+      if (badge) {
+        badge.textContent = 'Awaiting Ingestion';
+        badge.style.background = 'rgba(100, 116, 139, 0.12)';
+        badge.style.color = 'var(--text-muted)';
+        badge.style.borderColor = 'var(--border-subtle)';
+      }
+      listEl.innerHTML = `
+        <div class="degraded-upi-empty">
+          <span style="font-size: 1.4rem;">📱</span>
+          <div class="degraded-upi-empty-title" style="color: var(--text-muted);">No UPI Data Available</div>
+          <div class="degraded-upi-empty-desc">Upload transaction batch to analyze UPI application success rates.</div>
+        </div>`;
+      return;
+    }
+
+    const appsWithRate = upiAppList
+      .filter(a => (a.count || 0) > 0)
+      .map(a => {
+        const tot = a.count || 0;
+        const succ = a.success || 0;
+        const sr = tot > 0 ? (succ / tot) * 100 : 0;
+        return {
+          ...a,
+          totalCount: tot,
+          successRate: sr,
+          failedCount: a.failed || 0,
+          failedAmount: a.failedAmt || 0
+        };
+      });
+
+    const criticalApps = appsWithRate.filter(a => a.successRate < 20.0);
+
+    if (criticalApps.length > 0) {
+      criticalApps.sort((a, b) => b.failedCount - a.failedCount);
+      if (badge) {
+        badge.textContent = `${criticalApps.length} Route${criticalApps.length > 1 ? 's' : ''} <20%`;
+        badge.style.background = 'rgba(239, 68, 68, 0.12)';
+        badge.style.color = 'var(--error-red)';
+        badge.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+      }
+      criticalApps.forEach(app => {
+        const item = document.createElement('div');
+        item.className = 'degraded-upi-item';
+        item.innerHTML = `
+          <div class="degraded-upi-left">
+            <div class="degraded-upi-icon">⚠️</div>
+            <div class="degraded-upi-info">
+              <div class="degraded-upi-name">${app.name || app.id}</div>
+              <div class="degraded-upi-meta">
+                <span>${formatNumber(app.failedCount)} failures</span>
+                <span>•</span>
+                <span style="color: var(--accent-primary); font-weight: 600;">Action: Trigger Gateway Reroute</span>
+              </div>
+            </div>
+          </div>
+          <div class="degraded-upi-right">
+            <span class="degraded-upi-sr">${app.successRate.toFixed(1)}% SR</span>
+            <span class="degraded-upi-fail-vol">${formatCurrency(app.failedAmount)} at risk</span>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    } else {
+      if (badge) {
+        badge.textContent = 'All SLAs Healthy';
+        badge.style.background = 'rgba(16, 185, 129, 0.12)';
+        badge.style.color = 'var(--success-green)';
+        badge.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+      }
+      const lowestThree = [...appsWithRate].sort((a, b) => a.successRate - b.successRate).slice(0, 3);
+      listEl.innerHTML = `
+        <div class="degraded-upi-empty" style="margin-bottom: 8px;">
+          <span style="font-size: 1.3rem;">✅</span>
+          <div class="degraded-upi-empty-title">All UPI Apps Operating Above 20% SLA</div>
+          <div class="degraded-upi-empty-desc">No apps currently breach critical threshold. Lowest conversion channels:</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${lowestThree.map(app => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 0.78rem;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.85rem;">📱</span>
+                <span style="font-weight: 600; color: var(--text-main);">${app.name || app.id}</span>
+                <span style="color: var(--text-dim); font-size: 0.72rem;">(${formatNumber(app.totalCount)} txns)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 700; color: ${app.successRate >= 90 ? 'var(--success-green)' : (app.successRate >= 70 ? 'var(--warning-amber)' : 'var(--error-red)')};">${app.successRate.toFixed(1)}% SR</span>
+                <span class="fintech-pill-badge" style="font-size: 0.68rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.08); color: var(--success-green); border: 1px solid rgba(16, 185, 129, 0.2);">&gt;20% Safe</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
   }
 
   const toggleSimBtn = document.getElementById('toggleSimBtn');
