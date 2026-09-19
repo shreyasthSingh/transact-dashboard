@@ -13,7 +13,7 @@
 
   let currentCurrency = 'INR';
   let currentTimeRange = '24h';
-  let simActive = true;
+  let simActive = false;
   let simInterval = null;
   let sortField = 'successRate';
   let sortDirection = 'desc';
@@ -21,8 +21,8 @@
   let searchQuery = '';
 
   // Data Mode
-  let dataMode = 'demo';
-  let activeBatchId = 'demo';
+  let dataMode = 'uploaded';
+  let activeBatchId = null;
   let uploadedBatches = [];
   let currentTransactions = [];
   let customDodComparison = null;
@@ -202,9 +202,9 @@
     { id: '@unionbank', name: '@unionbank (Union Bank of India)', count: 25000, success: 22750, failed: 2250, amount: 10000000, successAmt: 9100000, failedAmt: 900000 }
   ];
 
-  let pspList = JSON.parse(JSON.stringify(defaultDemoPsp));
-  let upiAppList = JSON.parse(JSON.stringify(defaultDemoUpiApp));
-  let upiHandleList = JSON.parse(JSON.stringify(defaultDemoUpiHandle));
+  let pspList = [];
+  let upiAppList = [];
+  let upiHandleList = [];
 
   // Default Demo Merchants
   const defaultDemoMerchants = [
@@ -378,7 +378,7 @@
     }
   ];
 
-  let merchants = JSON.parse(JSON.stringify(defaultDemoMerchants));
+  let merchants = [];
 
   const FAILURE_TYPES = {
     timeout: { label: 'Bank Gateway Timeout', color: '#f43f5e' },
@@ -388,11 +388,7 @@
     fraud: { label: 'Risk Engine Block', color: '#ec4899' }
   };
 
-  let paymentMethods = [
-    { name: 'UPI', successRate: 63.4, totalCount: 14200, totalAmount: 18450000 },
-    { name: 'CC', successRate: 75.0, totalCount: 3800, totalAmount: 8200000 },
-    { name: 'DC', successRate: 33.3, totalCount: 1950, totalAmount: 3350000 }
-  ];
+  let paymentMethods = [];
 
   const TIME_MULTIPLIERS = {
     '15m': 0.04,
@@ -519,25 +515,38 @@
     }
 
     if (!yesterdayAgg) {
-      const yTotCount = Math.round(currentAgg.totalCount * 0.94);
-      const ySR = Math.max(78, Math.min(99, currentAgg.successRate - 0.79));
-      const yFR = 100 - ySR;
-      const ySuccCount = Math.round(yTotCount * (ySR / 100));
-      const yFailCount = yTotCount - ySuccCount;
-      const yTotAmt = currentAgg.totalAmount * 0.952;
-      const ySuccAmt = yTotAmt * (ySR / 100);
-      const yFailAmt = yTotAmt - ySuccAmt;
+      if (currentAgg.totalCount === 0) {
+        yesterdayAgg = {
+          totalCount: 0,
+          successCount: 0,
+          failedCount: 0,
+          successRate: 0,
+          failureRate: 0,
+          totalAmount: 0,
+          successAmount: 0,
+          failedAmount: 0
+        };
+      } else {
+        const yTotCount = Math.round(currentAgg.totalCount * 0.94);
+        const ySR = Math.max(78, Math.min(99, currentAgg.successRate - 0.79));
+        const yFR = 100 - ySR;
+        const ySuccCount = Math.round(yTotCount * (ySR / 100));
+        const yFailCount = yTotCount - ySuccCount;
+        const yTotAmt = currentAgg.totalAmount * 0.952;
+        const ySuccAmt = yTotAmt * (ySR / 100);
+        const yFailAmt = yTotAmt - ySuccAmt;
 
-      yesterdayAgg = {
-        totalCount: yTotCount,
-        successCount: ySuccCount,
-        failedCount: yFailCount,
-        successRate: ySR,
-        failureRate: yFR,
-        totalAmount: yTotAmt,
-        successAmount: ySuccAmt,
-        failedAmount: yFailAmt
-      };
+        yesterdayAgg = {
+          totalCount: yTotCount,
+          successCount: ySuccCount,
+          failedCount: yFailCount,
+          successRate: ySR,
+          failureRate: yFR,
+          totalAmount: yTotAmt,
+          successAmount: ySuccAmt,
+          failedAmount: yFailAmt
+        };
+      }
     }
 
     const countDiff = currentAgg.totalCount - yesterdayAgg.totalCount;
@@ -620,6 +629,43 @@
     const dodIndicator = document.getElementById('dodKpiIndicator');
     if (dodIndicator) {
       dodIndicator.style.display = isDodMode ? 'inline-flex' : 'none';
+    }
+
+    if (agg.totalCount === 0) {
+      document.getElementById('kpiTotalCount').textContent = '0';
+      document.getElementById('kpiSuccessCount').textContent = '0';
+      document.getElementById('kpiFailedCount').textContent = '0';
+      document.getElementById('kpiSuccessRate').textContent = '--';
+      document.getElementById('kpiTotalAmount').textContent = formatCurrency(0);
+      document.getElementById('kpiSuccessAmount').textContent = formatCurrency(0);
+      document.getElementById('kpiFailedAmount').textContent = formatCurrency(0);
+      const rateBar = document.getElementById('kpiRateBar');
+      if (rateBar) {
+        rateBar.style.width = '0%';
+        rateBar.style.background = 'var(--text-secondary)';
+      }
+      const slaBadge = document.getElementById('kpiSlaBadge');
+      if (slaBadge) {
+        slaBadge.textContent = 'Awaiting Ingestion';
+        slaBadge.className = 'kpi-badge neutral';
+      }
+      const totalBadge = document.getElementById('kpiTotalBadge');
+      if (totalBadge) {
+        totalBadge.className = 'kpi-badge neutral';
+        totalBadge.textContent = '0 Records';
+      }
+      const successShare = document.getElementById('kpiSuccessShare');
+      if (successShare) successShare.textContent = 'No transaction data';
+      const failedShare = document.getElementById('kpiFailedShare');
+      if (failedShare) failedShare.textContent = 'No transaction data';
+      const successAmtShare = document.getElementById('kpiSuccessAmtShare');
+      if (successAmtShare) successAmtShare.textContent = 'No transaction data';
+      const failedAmtShare = document.getElementById('kpiFailedAmtShare');
+      if (failedAmtShare) failedAmtShare.textContent = 'No transaction data';
+      const recVolElem = document.getElementById('kpiRecoverableVolume');
+      if (recVolElem) recVolElem.textContent = formatCurrency(0);
+      updateKpiSparklines();
+      return;
     }
 
     document.getElementById('kpiTotalCount').textContent = formatNumber(agg.totalCount);
@@ -812,7 +858,13 @@
     try {
       if (typeof getTimelineDataset !== 'function') return;
       const timeline = getTimelineDataset();
-      if (!timeline || !timeline.volumeData || timeline.volumeData.length === 0) return;
+      if (!timeline || !timeline.volumeData || timeline.volumeData.length === 0 || timeline.volumeData.every(v => v === 0)) {
+        ['sparkline-total', 'sparkline-success', 'sparkline-failed', 'sparkline-rate', 'sparkline-amount', 'sparkline-succ-amount', 'sparkline-fail-amount'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerHTML = '';
+        });
+        return;
+      }
       
       const volData = timeline.volumeData;
       const failedData = timeline.failedData || volData.map(() => 0);
@@ -1689,6 +1741,20 @@
   let activeRecFilter = 'all';
 
   function getRecommendationsList() {
+    if (getAggregates().totalCount === 0) {
+      return [{
+        priority: 3,
+        category: 'routing',
+        tag: 'INGESTION PENDING',
+        statusClass: 'status-watch',
+        statusLabel: 'Awaiting Telemetry',
+        title: 'Upload Data or Sync Cloud for Automated Intelligence',
+        desc: 'Once transactions are ingested from hourly CSV/Excel files or synced via Team Cloud, the AI diagnosis engine will automatically analyze route health, issuer timeouts, and provide targeted recovery recommendations.',
+        impact: '📊 Telemetry Ready',
+        owner: 'Owner: Payment Ops'
+      }];
+    }
+
     const list = [];
 
     // 0. Error Code Diagnostics (failedInfo.responseCode)
@@ -2586,35 +2652,39 @@
     } else if (dataMode === 'uploaded') {
       if (tag) {
         tag.className = 'data-status-tag tag-uploaded';
-        tag.textContent = 'Live Uploaded Data';
+        tag.textContent = currentTransactions.length > 0 ? 'Live Uploaded Data' : 'Awaiting Ingestion';
       }
       const activeName = (uploadedBatches && uploadedBatches[uploadedBatches.length - 1]?.name) || 'Current Dataset';
       if (msg) {
-        msg.innerHTML = `✅ Viewing <strong>${currentTransactions.length} ingested transactions</strong> (${activeName}). All KPIs, Routing Reports &amp; Recommendations are displaying this uploaded data.`;
+        if (currentTransactions.length > 0) {
+          msg.innerHTML = `✅ Viewing <strong>${currentTransactions.length} ingested transactions</strong> (${activeName}). All KPIs, Routing Reports &amp; Recommendations are displaying this uploaded data.`;
+        } else {
+          msg.innerHTML = `No active transaction data. Click <strong>Upload Hourly Data</strong> or <strong>Team Cloud Sync</strong> to ingest Excel/CSV reports.`;
+        }
       }
-      if (resetBtn) resetBtn.style.display = 'inline-block';
+      if (resetBtn) resetBtn.style.display = currentTransactions.length > 0 ? 'inline-block' : 'none';
       if (liveBadge) {
         liveBadge.className = 'badge-pill badge-upload-mode';
-        liveBadge.innerHTML = '<span>📁</span> File Active';
+        liveBadge.innerHTML = currentTransactions.length > 0 ? '<span>📁</span> File Active' : '<span>⏳</span> Ready';
       }
       if (feedModeLabel) {
-        feedModeLabel.textContent = 'Displaying transactions from uploaded file';
+        feedModeLabel.textContent = currentTransactions.length > 0 ? 'Displaying transactions from uploaded file' : 'Awaiting transaction stream';
       }
     } else {
       if (tag) {
-        tag.className = 'data-status-tag tag-simulated';
-        tag.textContent = 'Demo Mode';
+        tag.className = 'data-status-tag tag-uploaded';
+        tag.textContent = 'Awaiting Ingestion';
       }
       if (msg) {
-        msg.innerHTML = `Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest Excel/CSV, or <strong>Live API Integration</strong> to stream live data.`;
+        msg.innerHTML = `No active transaction data. Click <strong>Upload Hourly Data</strong> or <strong>Team Cloud Sync</strong> to ingest Excel/CSV reports.`;
       }
       if (resetBtn) resetBtn.style.display = 'none';
       if (liveBadge) {
-        liveBadge.className = 'badge-pill badge-live';
-        liveBadge.innerHTML = '<span class="pulse-dot"></span> Live Gateway';
+        liveBadge.className = 'badge-pill badge-upload-mode';
+        liveBadge.innerHTML = '<span>⏳</span> Ready';
       }
       if (feedModeLabel) {
-        feedModeLabel.textContent = 'Displaying simulated real-time gateway pipeline';
+        feedModeLabel.textContent = 'Awaiting transaction stream';
       }
     }
   }
@@ -2624,24 +2694,25 @@
       clearInterval(apiPollTimer);
       apiPollTimer = null;
     }
-    dataMode = 'demo';
-    activeBatchId = 'demo';
-    merchants = JSON.parse(JSON.stringify(defaultDemoMerchants));
-    pspList = JSON.parse(JSON.stringify(defaultDemoPsp));
-    upiAppList = JSON.parse(JSON.stringify(defaultDemoUpiApp));
-    upiHandleList = JSON.parse(JSON.stringify(defaultDemoUpiHandle));
-
+    dataMode = 'uploaded';
+    activeBatchId = null;
+    uploadedBatches = [];
+    currentTransactions = [];
+    merchants = [];
+    pspList = [];
+    upiAppList = [];
+    upiHandleList = [];
+    paymentMethods = [];
     feedItems.length = 0;
-    for (let i = 0; i < 5; i++) {
-      generateMockTransaction();
-    }
+
+    stopSimulation();
     updateStatusBanner();
     updateBatchSelector();
-    startSimulation();
     renderKPIs();
     renderAnalysisSection();
     renderRecommendations();
     initCharts();
+    renderFeed();
   }
 
   const resetBtnEl = document.getElementById('resetDataBtn');
@@ -2702,26 +2773,27 @@
 
   function updateBatchSelector() {
     const sel = document.getElementById('batchSelect');
+    if (!sel) return;
     sel.innerHTML = '';
 
-    const optDemo = document.createElement('option');
-    optDemo.value = 'demo';
-    optDemo.textContent = 'Live Demo Traffic';
-    if (dataMode === 'demo') optDemo.selected = true;
-    sel.appendChild(optDemo);
-
-    if (uploadedBatches.length > 0) {
+    if (uploadedBatches.length === 0) {
+      const optEmpty = document.createElement('option');
+      optEmpty.value = '';
+      optEmpty.textContent = 'Awaiting Ingestion...';
+      optEmpty.selected = true;
+      sel.appendChild(optEmpty);
+    } else {
       const optAll = document.createElement('option');
       optAll.value = 'all';
       optAll.textContent = `All Uploaded Batches (${currentTransactions.length} txns)`;
-      if (dataMode === 'uploaded' && activeBatchId === 'all') optAll.selected = true;
+      if (activeBatchId === 'all' || !activeBatchId) optAll.selected = true;
       sel.appendChild(optAll);
 
       uploadedBatches.forEach((b) => {
         const opt = document.createElement('option');
         opt.value = b.id;
         opt.textContent = `${b.name} (${b.count} txns)`;
-        if (dataMode === 'uploaded' && activeBatchId === b.id) opt.selected = true;
+        if (activeBatchId === b.id) opt.selected = true;
         sel.appendChild(opt);
       });
     }
@@ -2729,14 +2801,15 @@
     renderBatchListTable();
   }
 
-  document.getElementById('batchSelect').addEventListener('change', (e) => {
-    const val = e.target.value;
-    activeBatchId = val;
-    if (val === 'demo') {
-      resetToDemo();
-    } else if (val === 'all') {
-      dataMode = 'uploaded';
-      currentTransactions = uploadedBatches.flatMap(b => b.transactions);
+  const batchSelectEl = document.getElementById('batchSelect');
+  if (batchSelectEl) {
+    batchSelectEl.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      activeBatchId = val;
+      if (val === 'all') {
+        dataMode = 'uploaded';
+        currentTransactions = uploadedBatches.flatMap(b => b.transactions);
       recomputeDashboardFromTransactions(currentTransactions);
       updateStatusBanner();
       stopSimulation();
@@ -2751,6 +2824,7 @@
       }
     }
   });
+}
 
   function renderBatchListTable() {
     const tbody = document.getElementById('batchListTbody');
@@ -2984,9 +3058,7 @@
     if (currentTransactions && currentTransactions.length > 0) {
       currentTransactions.forEach(t => { if (t.pgProvider) pspSet.add(t.pgProvider); });
     }
-    if (pspSet.size === 0) {
-      ['RAZORPAY', 'CASHFREE', 'PAYU', 'PHONEPE', 'PAYTM'].forEach(p => pspSet.add(p));
-    }
+
 
     Array.from(pspSet).sort().forEach(p => {
       const opt = document.createElement('option');
@@ -3067,34 +3139,14 @@
       return { labels, volumeData, rateData, failedData, isReal: matchedCount > 0 };
     }
 
-    // Demo simulation mode
-    const labels = [];
-    const volumeData = [];
-    const rateData = [];
-    const failedData = [];
-
-    const totalPoints = orderedLabels.length;
-    const baseAgg = getAggregates().totalCount;
-    const windowRatio = (endHour - startHour) / 24;
-    const baseVol = Math.max(15, (baseAgg * windowRatio) / totalPoints);
-
-    orderedLabels.forEach((label, idx) => {
-      labels.push(label);
-      const [hhStr] = label.split(':');
-      const hh = parseInt(hhStr, 10);
-      const timeCurve = Math.sin(((hh - 6) / 24) * Math.PI * 2);
-      const curveMult = 0.65 + Math.max(0, 0.45 * (1 + timeCurve));
-      const randomNoise = 0.92 + Math.random() * 0.16;
-      const vol = Math.round(baseVol * curveMult * randomNoise);
-      const rate = Math.min(99.2, Math.max(89.5, 94.6 + Math.sin(idx * 0.4) * 2.2 + (Math.random() * 0.6 - 0.3)));
-      const fails = Math.round(vol * (1 - rate / 100));
-
-      volumeData.push(vol);
-      rateData.push(parseFloat(rate.toFixed(1)));
-      failedData.push(fails);
-    });
-
-    return { labels, volumeData, rateData, failedData, isReal: false };
+    // Empty dataset fallback (no mock sine curves)
+    return {
+      labels: orderedLabels,
+      volumeData: orderedLabels.map(() => 0),
+      rateData: orderedLabels.map(() => 0),
+      failedData: orderedLabels.map(() => 0),
+      isReal: false
+    };
   }
 
   // Canvas Charts
@@ -3134,8 +3186,16 @@
     const numPoints = labels.length;
     if (numPoints === 0) return;
 
-    const maxVol = Math.max(5, Math.max(...volumeData) * 1.25);
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    if (volumeData.every(v => v === 0)) {
+      ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting transaction data to plot timeline...', w / 2, h / 2);
+      return;
+    }
+
+    const maxVol = Math.max(5, Math.max(...volumeData) * 1.25);
 
     // Store metadata for accurate mouse hit-testing & tooltips
     const step = chartW / numPoints;
@@ -3375,18 +3435,20 @@
     const outerRadius = Math.min(centerX, centerY) * 0.78;
     const innerRadius = outerRadius * 0.56;
 
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+    if (getAggregates().totalCount === 0) {
+      ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting transaction data...', w / 2, h / 2);
+      return;
+    }
+
     // Collect response code counts
     const codeMap = {};
     if (dataMode === 'uploaded' && uploadedFailureCodeCounts && Object.keys(uploadedFailureCodeCounts).length > 0) {
       Object.assign(codeMap, uploadedFailureCodeCounts);
-    } else {
-      // Demo simulated response codes
-      const demoFails = getAggregates().failedCount || 1240;
-      codeMap['USER_DROP_PAYMENT_REQUEST'] = Math.round(demoFails * 0.42);
-      codeMap['ISSUER_TIMEOUT'] = Math.round(demoFails * 0.28);
-      codeMap['INSUFFICIENT_FUNDS'] = Math.round(demoFails * 0.16);
-      codeMap['AUTHENTICATION_FAILED'] = Math.round(demoFails * 0.09);
-      codeMap['PAYMENT_EXPIRED'] = Math.max(1, demoFails - Object.values(codeMap).reduce((a,b)=>a+b, 0));
     }
 
     const sortedEntries = Object.entries(codeMap).sort((a, b) => b[1] - a[1]);
@@ -3436,8 +3498,6 @@
       ctx.fill();
       currentAngle += sliceAngle;
     });
-
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
 
     // Donut Center Text
     ctx.textAlign = 'center';
@@ -3646,9 +3706,14 @@
     const h = rect.height;
     ctx.clearRect(0, 0, w, h);
 
-    if (!paymentMethods || paymentMethods.length === 0) return;
-
     const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    if (!paymentMethods || paymentMethods.length === 0 || paymentMethods.every(pm => pm.totalCount === 0)) {
+      ctx.fillStyle = isLight ? '#64748b' : '#9ca3af';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting transaction data...', w / 2, h / 2);
+      return;
+    }
     const padding = { top: 22, right: 30, bottom: 20, left: 68 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
@@ -3741,7 +3806,13 @@
 
     const list = [...pspList].filter(p => p.count > 0).slice(0, 5);
     benchmarkRowCoordinates = [];
-    if (list.length === 0) return;
+    if (list.length === 0) {
+      ctx.fillStyle = isLight ? '#64748b' : '#9ca3af';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting transaction data...', w / 2, h / 2);
+      return;
+    }
 
     const rowH = chartH / list.length;
     const barH = rowH * 0.55;
@@ -3864,6 +3935,12 @@
     const listEl = document.getElementById('feedList');
     if (!listEl) return;
     listEl.innerHTML = '';
+
+    if (feedItems.length === 0) {
+      listEl.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">⏳ No live feed transactions yet. Ingest hourly CSV/Excel or sync from Team Cloud to view live transactions.</div>';
+      return;
+    }
+
     feedItems.forEach(item => {
       const div = document.createElement('div');
       div.className = 'feed-item';
@@ -3891,34 +3968,46 @@
     });
   }
 
-  for (let i = 0; i < 5; i++) {
-    generateMockTransaction();
-  }
-
   const toggleSimBtn = document.getElementById('toggleSimBtn');
   const simStatusText = document.getElementById('simStatusText');
 
   function startSimulation() {
-    if (simInterval) clearInterval(simInterval);
-    simInterval = setInterval(generateMockTransaction, 2400);
-    simActive = true;
-    toggleSimBtn.className = 'btn-action btn-sim-active';
-    simStatusText.textContent = 'Streaming Active';
+    if (simInterval) {
+      clearInterval(simInterval);
+      simInterval = null;
+    }
+    simActive = false;
+    if (toggleSimBtn) {
+      toggleSimBtn.className = 'btn-action';
+      toggleSimBtn.style.display = 'none';
+    }
+    if (simStatusText) {
+      simStatusText.textContent = 'Streaming Inactive';
+    }
   }
 
   function stopSimulation() {
-    if (simInterval) clearInterval(simInterval);
+    if (simInterval) {
+      clearInterval(simInterval);
+      simInterval = null;
+    }
     simActive = false;
-    toggleSimBtn.className = 'btn-action';
-    simStatusText.textContent = 'Streaming Paused';
+    if (toggleSimBtn) {
+      toggleSimBtn.className = 'btn-action';
+      toggleSimBtn.style.display = 'none';
+    }
+    if (simStatusText) {
+      simStatusText.textContent = 'Streaming Inactive';
+    }
   }
 
-  toggleSimBtn.addEventListener('click', () => {
-    if (simActive) stopSimulation();
-    else startSimulation();
-  });
+  if (toggleSimBtn) {
+    toggleSimBtn.addEventListener('click', () => {
+      stopSimulation();
+    });
+  }
 
-  startSimulation();
+  stopSimulation();
 
   document.getElementById('timeRangeSelect').addEventListener('change', (e) => {
     currentTimeRange = e.target.value;
@@ -8747,9 +8836,21 @@ Recommended Immediate Actions:
 
     bindEvents() {
       const cloudRefreshBtn = document.getElementById('cloudRefreshBtn');
+      const cloudSyncPill = document.getElementById('cloudSyncPill');
       const dropdownRefreshCloudBtn = document.getElementById('dropdownRefreshCloudBtn');
       const shareTeamLinkBtn = document.getElementById('shareTeamLinkBtn');
       const dropdownShareLinkBtn = document.getElementById('dropdownShareLinkBtn');
+
+      if (cloudSyncPill) {
+        cloudSyncPill.style.cursor = 'pointer';
+        cloudSyncPill.addEventListener('click', () => {
+          this.fetchFromCloud(false);
+          this.fetchAlertSettingsFromCloud();
+          if (typeof rolePermissionsManager !== 'undefined') {
+            rolePermissionsManager.loadPermissions();
+          }
+        });
+      }
 
       if (cloudRefreshBtn) {
         cloudRefreshBtn.addEventListener('click', (e) => {
@@ -8981,11 +9082,16 @@ Recommended Immediate Actions:
       this.isSyncing = true;
       if (!silent) this.updateSyncPill('syncing');
 
+      let applied = false;
+      let foundCloudData = false;
+
       const applyCloudBatch = (cloudBatch) => {
         if (!cloudBatch) return false;
         const b = cloudBatch.batch || cloudBatch;
         const txs = b.transactions || cloudBatch.transactions;
         if (!txs || txs.length === 0) return false;
+        foundCloudData = true;
+
         if (b.id === this.activeCloudBatchId && dataMode === 'uploaded') return false;
 
         this.activeCloudBatchId = b.id;
@@ -9023,6 +9129,7 @@ Recommended Immediate Actions:
         if (!silent) {
           showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
         }
+        applied = true;
         return true;
       };
 
@@ -9098,6 +9205,16 @@ Recommended Immediate Actions:
 
       this.updateSyncPill('synced', 'Team Cloud Synced');
       this.isSyncing = false;
+
+      if (!silent) {
+        if (applied) {
+          // Toast already shown
+        } else if (foundCloudData || currentTransactions.length > 0) {
+          showToast(`☁️ Cloud is already up to date (${formatNumber(currentTransactions.length)} records active).`);
+        } else {
+          showToast('☁️ Cloud connected & ready. Awaiting first dataset upload.');
+        }
+      }
     },
 
     copyShareLink() {

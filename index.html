@@ -23,9 +23,9 @@
         <div class="brand-titles">
           <div class="brand-title-row">
             <h1 class="app-heading">Transaction Monitoring</h1>
-            <span class="badge-pill badge-live" id="gatewayLiveBadge">
-              <span class="pulse-dot"></span>
-              Live Gateway
+            <span class="badge-pill badge-upload-mode" id="gatewayLiveBadge">
+              <span>⏳</span>
+              Ready
             </span>
           </div>
           <span class="app-subheading">Real-Time Payment Health, Volume &amp; Hourly Merchant Ingestion</span>
@@ -84,9 +84,9 @@
           </select>
         </div>
 
-        <!-- Live Traffic Simulator Toggle -->
-        <button id="toggleSimBtn" class="btn-action btn-sim-active" title="Toggle Real-Time Stream Simulation">
-          <span>●</span> <span id="simStatusText">Streaming Active</span>
+        <!-- Live Traffic Simulator Toggle (Hidden for Stakeholder Review) -->
+        <button id="toggleSimBtn" class="btn-action" title="Toggle Real-Time Stream Simulation" style="display: none;">
+          <span>●</span> <span id="simStatusText">Streaming Inactive</span>
         </button>
 
         <!-- Trigger Custom Analysis Button -->
@@ -105,7 +105,7 @@
         </button>
 
         <!-- Global Cloud Sync Status Pill -->
-        <div class="cloud-sync-pill" id="cloudSyncPill" title="Team Cloud Sync Status">
+        <div class="cloud-sync-pill" id="cloudSyncPill" title="Team Cloud Sync Status — Click to synchronize latest team data" role="button" tabindex="0">
           <span class="cloud-sync-dot"></span>
           <span id="cloudSyncText">Team Cloud Ready</span>
           <button type="button" id="cloudRefreshBtn" class="btn-cloud-refresh" title="Pull latest dataset uploaded by team">🔄</button>
@@ -152,8 +152,8 @@
     <!-- Data Source Status Banner -->
     <div class="data-status-banner" id="dataStatusBanner">
       <div class="data-status-info">
-        <span class="data-status-tag tag-simulated" id="dataModeTag">Demo Mode</span>
-        <span id="dataStatusMessage">Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest your Excel (.xlsx) or CSV reports.</span>
+        <span class="data-status-tag tag-uploaded" id="dataModeTag">Awaiting Ingestion</span>
+        <span id="dataStatusMessage">No active transaction data. Click <strong>Upload Hourly Data</strong> or <strong>Team Cloud Sync</strong> to ingest Excel/CSV reports.</span>
       </div>
     </div>
 
