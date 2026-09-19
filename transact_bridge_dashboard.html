@@ -6484,10 +6484,7 @@ body.hide-financials [data-metric="recoverableRevenue"] {
 
   const CURRENCIES = {
     INR: { symbol: '₹', rate: 1.0 },
-    USD: { symbol: '
-</body>
-</html>
-, rate: 0.0115 },
+    USD: { symbol: '$', rate: 0.0115 },
     EUR: { symbol: '€', rate: 0.0108 },
     GBP: { symbol: '£', rate: 0.0092 }
   };
@@ -15061,9 +15058,9 @@ Recommended Immediate Actions:
       } catch (_) {}
 
       try {
-        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1', {
+        fetch('https://ntfy.sh/tb_shared_permissions_transactbridge_v1', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Title': 'TransactBridge Role Permissions' },
           body: JSON.stringify(payload)
         }).catch(() => {});
       } catch (_) {}
@@ -15082,11 +15079,22 @@ Recommended Immediate Actions:
       } catch (_) {}
 
       try {
-        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1?t=${Date.now()}`);
+        const fbRes = await fetch('https://ntfy.sh/tb_shared_permissions_transactbridge_v1/json?poll=1');
         if (fbRes.ok) {
-          const fbJson = await fbRes.json();
-          if (fbJson && fbJson.permissions) {
-            this.savePermissions(fbJson.permissions, false);
+          const text = await fbRes.text();
+          const lines = text.trim().split('\n').filter(Boolean);
+          if (lines.length > 0) {
+            const last = JSON.parse(lines[lines.length - 1]);
+            let data = null;
+            if (last.attachment && last.attachment.url) {
+              const attRes = await fetch(last.attachment.url);
+              if (attRes.ok) data = await attRes.json();
+            } else if (last.message) {
+              try { data = JSON.parse(last.message); } catch (_) {}
+            }
+            if (data && data.permissions) {
+              this.savePermissions(data.permissions, false);
+            }
           }
         }
       } catch (_) {}
@@ -15095,16 +15103,22 @@ Recommended Immediate Actions:
 
   // =========================================================================
   // Transact Bridge Global Cloud Synchronization Module
-  // Allows any uploaded dataset to be viewed live by anyone with the link
+  // Real-time synchronization across Admin and Viewer sessions
   // =========================================================================
   const CLOUD_STORAGE_KEY = 'tb_cloud_latest_batch';
   const CLOUD_ALERT_STORAGE_KEY = 'tb_cloud_alert_settings';
+  const NTFY_TXS_TOPIC = 'https://ntfy.sh/tb_shared_txs_transactbridge_v1';
+  const NTFY_ALERTS_TOPIC = 'https://ntfy.sh/tb_shared_alerts_transactbridge_v1';
+  const NTFY_PERMS_TOPIC = 'https://ntfy.sh/tb_shared_permissions_transactbridge_v1';
 
   const cloudSyncManager = {
     activeCloudBatchId: null,
     lastSyncTimestamp: null,
     isSyncing: false,
     syncInterval: null,
+    sseTxs: null,
+    sseAlerts: null,
+    ssePerms: null,
 
     init() {
       this.bindEvents();
@@ -15112,11 +15126,14 @@ Recommended Immediate Actions:
       this.fetchFromCloud(true);
       this.fetchAlertSettingsFromCloud();
 
-      // Periodic cloud polling (every 35s)
+      // Real-Time Server-Sent Events (SSE) stream for instant sub-second sync across all users!
+      this.initRealtimeStream();
+
+      // Periodic cloud polling backup (every 15s)
       this.syncInterval = setInterval(() => {
         this.fetchFromCloud(true);
         this.fetchAlertSettingsFromCloud();
-      }, 35000);
+      }, 15000);
 
       // Auto-sync when window gains focus or tab becomes visible
       window.addEventListener('focus', () => {
@@ -15129,6 +15146,81 @@ Recommended Immediate Actions:
           this.fetchAlertSettingsFromCloud();
         }
       });
+    },
+
+    initRealtimeStream() {
+      try {
+        if (typeof EventSource !== 'undefined') {
+          // 1. Live transactions stream
+          this.sseTxs = new EventSource(`${NTFY_TXS_TOPIC}/sse`);
+          this.sseTxs.onmessage = async (e) => {
+            try {
+              if (!e.data) return;
+              const evt = JSON.parse(e.data);
+              if (evt.event === 'message') {
+                let data = null;
+                if (evt.attachment && evt.attachment.url) {
+                  const r = await fetch(evt.attachment.url);
+                  if (r.ok) data = await r.json();
+                } else if (evt.message) {
+                  try { data = JSON.parse(evt.message); } catch (_) {}
+                }
+                if (data) {
+                  const b = data.batch || data;
+                  if (b && b.transactions && b.transactions.length > 0 && b.id !== this.activeCloudBatchId) {
+                    this.applyCloudBatch(data, false);
+                    showToast(`☁️ Live Ingestion: Received ${formatNumber(b.transactions.length)} records from ${data.uploadedBy || 'Admin'}!`);
+                  }
+                }
+              }
+            } catch (_) {}
+          };
+
+          // 2. Live alert config stream
+          this.sseAlerts = new EventSource(`${NTFY_ALERTS_TOPIC}/sse`);
+          this.sseAlerts.onmessage = async (e) => {
+            try {
+              if (!e.data) return;
+              const evt = JSON.parse(e.data);
+              if (evt.event === 'message') {
+                let data = null;
+                if (evt.attachment && evt.attachment.url) {
+                  const r = await fetch(evt.attachment.url);
+                  if (r.ok) data = await r.json();
+                } else if (evt.message) {
+                  try { data = JSON.parse(evt.message); } catch (_) {}
+                }
+                if (data && (data.alertSettings || data.thresholds)) {
+                  this.applyCloudAlertSettings(data.alertSettings || data);
+                }
+              }
+            } catch (_) {}
+          };
+
+          // 3. Live permissions stream
+          this.ssePerms = new EventSource(`${NTFY_PERMS_TOPIC}/sse`);
+          this.ssePerms.onmessage = async (e) => {
+            try {
+              if (!e.data) return;
+              const evt = JSON.parse(e.data);
+              if (evt.event === 'message') {
+                let data = null;
+                if (evt.attachment && evt.attachment.url) {
+                  const r = await fetch(evt.attachment.url);
+                  if (r.ok) data = await r.json();
+                } else if (evt.message) {
+                  try { data = JSON.parse(evt.message); } catch (_) {}
+                }
+                if (data && data.permissions && typeof rolePermissionsManager !== 'undefined') {
+                  rolePermissionsManager.savePermissions(data.permissions, false);
+                }
+              }
+            } catch (_) {}
+          };
+        }
+      } catch (err) {
+        console.warn('Realtime SSE stream setup failed:', err.message);
+      }
     },
 
     bindEvents() {
@@ -15197,23 +15289,22 @@ Recommended Immediate Actions:
         localStorage.setItem(CLOUD_ALERT_STORAGE_KEY, JSON.stringify(settings));
       } catch (_) {}
 
-      try {
-        await fetch('/api/data', {
+      // Concurrently publish to /api/data AND cloud relay
+      const promises = [
+        fetch('/api/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-      } catch (err) {
-        console.warn('POST /api/data alert settings failed:', err.message);
-      }
+        }).catch(err => console.warn('POST /api/data alert settings failed:', err.message)),
 
-      try {
-        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1', {
+        fetch(NTFY_ALERTS_TOPIC, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(settings)
-        }).catch(() => {});
-      } catch (_) {}
+          headers: { 'Content-Type': 'application/json', 'Title': 'TransactBridge Alert Config' },
+          body: JSON.stringify(payload)
+        }).catch(() => {})
+      ];
+
+      await Promise.allSettled(promises);
     },
 
     applyCloudAlertSettings(cloudSettings) {
@@ -15277,14 +15368,25 @@ Recommended Immediate Actions:
         console.warn('GET /api/data alertSettings failed:', err.message);
       }
 
-      // 2. Try durable public fallback KV
+      // 2. Try durable cloud relay
       try {
-        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1?t=${Date.now()}`);
+        const fbRes = await fetch(`${NTFY_ALERTS_TOPIC}/json?poll=1`);
         if (fbRes.ok) {
-          const fbSettings = await fbRes.json();
-          if (fbSettings && fbSettings.thresholds) {
-            this.applyCloudAlertSettings(fbSettings);
-            return;
+          const text = await fbRes.text();
+          const lines = text.trim().split('\n').filter(Boolean);
+          if (lines.length > 0) {
+            const last = JSON.parse(lines[lines.length - 1]);
+            let data = null;
+            if (last.attachment && last.attachment.url) {
+              const attRes = await fetch(last.attachment.url);
+              if (attRes.ok) data = await attRes.json();
+            } else if (last.message) {
+              try { data = JSON.parse(last.message); } catch (_) {}
+            }
+            if (data && (data.alertSettings || data.thresholds)) {
+              this.applyCloudAlertSettings(data.alertSettings || data);
+              return;
+            }
           }
         }
       } catch (_) {}
@@ -15317,38 +15419,39 @@ Recommended Immediate Actions:
       };
 
       try {
-        // 1. Post to Vercel Serverless API (/api/data)
-        const res = await fetch('/api/data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          const resData = await res.json();
-          this.activeCloudBatchId = batchObj.id;
-          this.lastSyncTimestamp = Date.now();
-          this.updateSyncPill('synced', 'Team Cloud Synced');
-          showToast(`☁️ Synchronized ${formatNumber(batchObj.transactions.length)} transactions to team cloud!`);
-          return;
-        }
-      } catch (err) {
-        console.warn('POST /api/data failed (local dev or no api host):', err.message);
-      }
-
-      // Also cache in local cloud mirror and durable cloud relay
-      try {
         localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(payload));
-        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
+      } catch (_) {}
+
+      // Concurrently push to /api/data AND cloud relay
+      const promises = [
+        fetch('/api/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        }).catch(() => {});
-      } catch (e) {}
+        }).then(r => r.ok ? r.json() : null).catch(err => {
+          console.warn('POST /api/data failed:', err.message);
+          return null;
+        }),
+
+        fetch(NTFY_TXS_TOPIC, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Title': `Shared Batch: ${batchObj.name} (${formatNumber(batchObj.transactions.length)} records)`
+          },
+          body: JSON.stringify(payload)
+        }).then(r => r.ok ? r.json() : null).catch(err => {
+          console.warn('POST ntfy cloud relay failed:', err.message);
+          return null;
+        })
+      ];
+
+      await Promise.allSettled(promises);
 
       this.activeCloudBatchId = batchObj.id;
       this.lastSyncTimestamp = Date.now();
       this.updateSyncPill('synced', 'Team Cloud Synced');
+      showToast(`☁️ Synchronized ${formatNumber(batchObj.transactions.length)} transactions to team cloud!`);
     },
 
     async fetchFromCloud(silent = false) {
@@ -15357,17 +15460,20 @@ Recommended Immediate Actions:
       if (!silent) this.updateSyncPill('syncing');
 
       const applyCloudBatch = (cloudBatch) => {
-        if (!cloudBatch || !cloudBatch.transactions || cloudBatch.transactions.length === 0) return false;
-        if (cloudBatch.id === this.activeCloudBatchId && dataMode === 'uploaded') return false;
+        if (!cloudBatch) return false;
+        const b = cloudBatch.batch || cloudBatch;
+        const txs = b.transactions || cloudBatch.transactions;
+        if (!txs || txs.length === 0) return false;
+        if (b.id === this.activeCloudBatchId && dataMode === 'uploaded') return false;
 
-        this.activeCloudBatchId = cloudBatch.id;
+        this.activeCloudBatchId = b.id;
         this.lastSyncTimestamp = Date.now();
 
-        const normalized = cloudBatch.transactions.map(normalizeRow);
+        const normalized = txs.map(normalizeRow);
         uploadedBatches = [{
-          id: cloudBatch.id,
-          name: cloudBatch.name || 'Shared Team Batch',
-          uploadedAt: cloudBatch.uploadedAt,
+          id: b.id,
+          name: b.name || 'Shared Team Batch',
+          uploadedAt: b.uploadedAt || cloudBatch.uploadedAt,
           count: normalized.length,
           transactions: normalized
         }];
@@ -15387,7 +15493,7 @@ Recommended Immediate Actions:
         if (banner && tag && msg) {
           tag.className = 'data-status-tag tag-uploaded';
           tag.textContent = 'Team Shared Ingestion';
-          const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+          const timeStr = (b.uploadedAt || cloudBatch.uploadedAt) ? new Date(b.uploadedAt || cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
           msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
         }
 
@@ -15398,20 +15504,24 @@ Recommended Immediate Actions:
         return true;
       };
 
+      this.applyCloudBatch = applyCloudBatch;
+
       try {
         // 1. Fetch from Vercel Serverless API (/api/data)
         const res = await fetch(`/api/data?t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json && json.success) {
-            // Apply synced alert settings if included
             if (json.alertSettings || (json.data && json.data.alertSettings)) {
               this.applyCloudAlertSettings(json.alertSettings || json.data.alertSettings);
             }
-            if (json.data && json.data.transactions && json.data.transactions.length > 0) {
-              if (applyCloudBatch(json.data)) {
-                this.isSyncing = false;
-                return;
+            if (json.data) {
+              const b = json.data.batch || json.data;
+              if (b.transactions && b.transactions.length > 0) {
+                if (applyCloudBatch(json.data)) {
+                  this.isSyncing = false;
+                  return;
+                }
               }
             }
           }
@@ -15420,21 +15530,46 @@ Recommended Immediate Actions:
         console.warn('GET /api/data unavailable:', err.message);
       }
 
-      // 2. Fetch from durable public cloud relay fallback
+      // 2. Fetch from durable public cloud relay
       try {
-        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1?t=${Date.now()}`);
+        const fbRes = await fetch(`${NTFY_TXS_TOPIC}/json?poll=1`);
         if (fbRes.ok) {
-          const fbBatch = await fbRes.json();
-          if (fbBatch) {
-            if (fbBatch.alertSettings) {
-              this.applyCloudAlertSettings(fbBatch.alertSettings);
+          const text = await fbRes.text();
+          const lines = text.trim().split('\n').filter(Boolean);
+          if (lines.length > 0) {
+            const last = JSON.parse(lines[lines.length - 1]);
+            let data = null;
+            if (last.attachment && last.attachment.url) {
+              const attRes = await fetch(last.attachment.url);
+              if (attRes.ok) data = await attRes.json();
+            } else if (last.message) {
+              try { data = JSON.parse(last.message); } catch (_) {}
             }
-            if (fbBatch.transactions && fbBatch.transactions.length > 0) {
-              if (applyCloudBatch(fbBatch)) {
-                this.isSyncing = false;
-                return;
+            if (data) {
+              if (data.alertSettings) {
+                this.applyCloudAlertSettings(data.alertSettings);
+              }
+              const b = data.batch || data;
+              if (b.transactions && b.transactions.length > 0) {
+                if (applyCloudBatch(data)) {
+                  this.isSyncing = false;
+                  return;
+                }
               }
             }
+          }
+        }
+      } catch (err) {
+        console.warn('Cloud relay fetch failed:', err.message);
+      }
+
+      // 3. Fallback to localStorage cached batch if available
+      try {
+        const cached = localStorage.getItem(CLOUD_STORAGE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && (parsed.batch || parsed.transactions)) {
+            applyCloudBatch(parsed);
           }
         }
       } catch (_) {}
@@ -15457,7 +15592,7 @@ Recommended Immediate Actions:
     }
   };
 
-  loadAlertSettings();
+    loadAlertSettings();
   loadBatchesFromStorage();
 
   renderKPIs();

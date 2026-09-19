@@ -4,6 +4,9 @@
 let inMemoryStore = null;
 let inMemoryAlertSettings = null;
 
+const NTFY_TXS_TOPIC = 'https://ntfy.sh/tb_shared_txs_transactbridge_v1';
+const NTFY_ALERTS_TOPIC = 'https://ntfy.sh/tb_shared_alerts_transactbridge_v1';
+
 module.exports = async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -34,7 +37,8 @@ module.exports = async (req, res) => {
         if (kvUrl && kvToken) {
           try {
             const kvRes = await fetch(`${kvUrl}/get/tb_shared_alert_settings_latest`, {
-              headers: { Authorization: `Bearer ${kvToken}` }
+              headers: { Authorization: `Bearer ${kvToken}` },
+              signal: AbortSignal.timeout(3000)
             });
             if (kvRes.ok) {
               const kvData = await kvRes.json();
@@ -46,15 +50,28 @@ module.exports = async (req, res) => {
             }
           } catch (_) {}
         }
+        // Cloud Relay Fallback
         try {
-          const fbRes = await fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1', {
-            headers: { 'Accept': 'application/json' }
+          const ntfyRes = await fetch(`${NTFY_ALERTS_TOPIC}/json?poll=1`, {
+            signal: AbortSignal.timeout(3000)
           });
-          if (fbRes.ok) {
-            const fbData = await fbRes.json();
-            if (fbData && fbData.thresholds) {
-              inMemoryAlertSettings = fbData;
-              return res.status(200).json({ success: true, source: 'cloud_fallback', alertSettings: fbData });
+          if (ntfyRes.ok) {
+            const text = await ntfyRes.text();
+            const lines = text.trim().split('\n').filter(Boolean);
+            if (lines.length > 0) {
+              const last = JSON.parse(lines[lines.length - 1]);
+              let data = null;
+              if (last.attachment && last.attachment.url) {
+                const attRes = await fetch(last.attachment.url, { signal: AbortSignal.timeout(3000) });
+                if (attRes.ok) data = await attRes.json();
+              } else if (last.message) {
+                try { data = JSON.parse(last.message); } catch (_) {}
+              }
+              if (data && (data.thresholds || (data.alertSettings && data.alertSettings.thresholds))) {
+                const parsedSettings = data.alertSettings || data;
+                inMemoryAlertSettings = parsedSettings;
+                return res.status(200).json({ success: true, source: 'cloud_relay', alertSettings: parsedSettings });
+              }
             }
           }
         } catch (_) {}
@@ -68,7 +85,8 @@ module.exports = async (req, res) => {
       if (!batchData && kvUrl && kvToken) {
         try {
           const kvRes = await fetch(`${kvUrl}/get/tb_shared_transactions_latest`, {
-            headers: { Authorization: `Bearer ${kvToken}` }
+            headers: { Authorization: `Bearer ${kvToken}` },
+            signal: AbortSignal.timeout(3000)
           });
           if (kvRes.ok) {
             const kvData = await kvRes.json();
@@ -84,14 +102,29 @@ module.exports = async (req, res) => {
 
       if (!batchData) {
         try {
-          const fallbackRes = await fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
-            headers: { 'Accept': 'application/json' }
+          const ntfyRes = await fetch(`${NTFY_TXS_TOPIC}/json?poll=1`, {
+            signal: AbortSignal.timeout(4000)
           });
-          if (fallbackRes.ok) {
-            const fallbackData = await fallbackRes.json();
-            if (fallbackData && fallbackData.transactions && fallbackData.transactions.length > 0) {
-              batchData = fallbackData;
-              inMemoryStore = batchData;
+          if (ntfyRes.ok) {
+            const text = await ntfyRes.text();
+            const lines = text.trim().split('\n').filter(Boolean);
+            if (lines.length > 0) {
+              const last = JSON.parse(lines[lines.length - 1]);
+              let data = null;
+              if (last.attachment && last.attachment.url) {
+                const attRes = await fetch(last.attachment.url, { signal: AbortSignal.timeout(5000) });
+                if (attRes.ok) data = await attRes.json();
+              } else if (last.message) {
+                try { data = JSON.parse(last.message); } catch (_) {}
+              }
+
+              if (data) {
+                const possibleBatch = data.batch || data;
+                if (possibleBatch && possibleBatch.transactions && possibleBatch.transactions.length > 0) {
+                  batchData = data;
+                  inMemoryStore = batchData;
+                }
+              }
             }
           }
         } catch (_) {}
@@ -101,7 +134,8 @@ module.exports = async (req, res) => {
       if (!inMemoryAlertSettings && kvUrl && kvToken) {
         try {
           const kvAlertRes = await fetch(`${kvUrl}/get/tb_shared_alert_settings_latest`, {
-            headers: { Authorization: `Bearer ${kvToken}` }
+            headers: { Authorization: `Bearer ${kvToken}` },
+            signal: AbortSignal.timeout(2000)
           });
           if (kvAlertRes.ok) {
             const parsed = await kvAlertRes.json();
@@ -163,25 +197,31 @@ module.exports = async (req, res) => {
           inMemoryStore.alertSettings = settings;
         }
 
+        const persistPromises = [];
+
         // Persist to Vercel KV if available
         if (kvUrl && kvToken) {
-          try {
-            await fetch(`${kvUrl}/set/tb_shared_alert_settings_latest`, {
+          persistPromises.push(
+            fetch(`${kvUrl}/set/tb_shared_alert_settings_latest`, {
               method: 'POST',
               headers: { Authorization: `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify(settings)
-            });
-          } catch (_) {}
+              body: JSON.stringify(settings),
+              signal: AbortSignal.timeout(3000)
+            }).catch(e => console.warn('KV alert save error:', e.message))
+          );
         }
 
-        // Persist to Fallback KV
-        try {
-          fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1', {
+        // Persist to Cloud Relay
+        persistPromises.push(
+          fetch(NTFY_ALERTS_TOPIC, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(settings)
-          }).catch(() => {});
-        } catch (_) {}
+            headers: { 'Content-Type': 'application/json', 'Title': 'TransactBridge Alert Config' },
+            body: JSON.stringify({ type: 'alert_settings', alertSettings: settings, updatedAt: new Date().toISOString() }),
+            signal: AbortSignal.timeout(3000)
+          }).catch(e => console.warn('Ntfy alert save error:', e.message))
+        );
+
+        await Promise.allSettled(persistPromises);
 
         return res.status(200).json({
           success: true,
@@ -215,38 +255,39 @@ module.exports = async (req, res) => {
       // Always update in-memory cache
       inMemoryStore = payload;
 
+      const persistPromises = [];
+
       // Persist batch to Vercel KV if configured
-      let persistedKV = false;
       if (kvUrl && kvToken) {
-        try {
-          const setRes = await fetch(`${kvUrl}/set/tb_shared_transactions_latest`, {
+        persistPromises.push(
+          fetch(`${kvUrl}/set/tb_shared_transactions_latest`, {
             method: 'POST',
             headers: { 
               Authorization: `Bearer ${kvToken}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
-          });
-          if (setRes.ok) persistedKV = true;
-        } catch (kvErr) {
-          console.warn('Failed to persist to Vercel KV:', kvErr.message);
-        }
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(4000)
+          }).catch(kvErr => console.warn('Failed to persist to Vercel KV:', kvErr.message))
+        );
       }
 
-      // Persist to fallback KV
-      try {
-        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
+      // Persist to Cloud Relay
+      persistPromises.push(
+        fetch(NTFY_TXS_TOPIC, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).catch(() => {});
-      } catch (_) {}
+          headers: { 'Content-Type': 'application/json', 'Title': `Batch: ${payload.name} (${payload.count} records)` },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(5000)
+        }).catch(e => console.warn('Failed to persist to cloud relay:', e.message))
+      );
+
+      await Promise.allSettled(persistPromises);
 
       return res.status(200).json({
         success: true,
         message: `Successfully published batch with ${payload.count} transactions to shared team cloud!`,
         batchId: payload.id,
-        persistedKV,
         uploadedAt: payload.uploadedAt,
         alertSettings: inMemoryAlertSettings
       });

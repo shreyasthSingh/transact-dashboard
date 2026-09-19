@@ -10,6 +10,8 @@ let inMemoryPermissions = {
   canViewFinancials: true
 };
 
+const NTFY_PERMS_TOPIC = 'https://ntfy.sh/tb_shared_permissions_transactbridge_v1';
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,16 +25,17 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
+  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
   // GET: Return current permissions policy
   if (req.method === 'GET') {
     try {
-      const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-      const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-
       if (kvUrl && kvToken) {
         try {
           const kvRes = await fetch(`${kvUrl}/get/tb_role_permissions_latest`, {
-            headers: { Authorization: `Bearer ${kvToken}` }
+            headers: { Authorization: `Bearer ${kvToken}` },
+            signal: AbortSignal.timeout(3000)
           });
           if (kvRes.ok) {
             const kvData = await kvRes.json();
@@ -46,16 +49,27 @@ module.exports = async (req, res) => {
         }
       }
 
-      // Cloud KV fallback
+      // Cloud Relay fallback
       try {
-        const fbRes = await fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1', {
-          headers: { 'Accept': 'application/json' }
+        const ntfyRes = await fetch(`${NTFY_PERMS_TOPIC}/json?poll=1`, {
+          signal: AbortSignal.timeout(3000)
         });
-        if (fbRes.ok) {
-          const fbData = await fbRes.json();
-          if (fbData && fbData.permissions) {
-            inMemoryPermissions = fbData.permissions;
-            return res.status(200).json({ success: true, source: 'cloud_fallback', data: fbData });
+        if (ntfyRes.ok) {
+          const text = await ntfyRes.text();
+          const lines = text.trim().split('\n').filter(Boolean);
+          if (lines.length > 0) {
+            const last = JSON.parse(lines[lines.length - 1]);
+            let data = null;
+            if (last.attachment && last.attachment.url) {
+              const attRes = await fetch(last.attachment.url, { signal: AbortSignal.timeout(3000) });
+              if (attRes.ok) data = await attRes.json();
+            } else if (last.message) {
+              try { data = JSON.parse(last.message); } catch (_) {}
+            }
+            if (data && data.permissions) {
+              inMemoryPermissions = data.permissions;
+              return res.status(200).json({ success: true, source: 'cloud_relay', data });
+            }
           }
         }
       } catch (_) {}
@@ -97,33 +111,34 @@ module.exports = async (req, res) => {
         updatedAt: new Date().toISOString()
       };
 
-      // Vercel KV / Redis
-      const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-      const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+      const persistPromises = [];
 
+      // Vercel KV / Redis
       if (kvUrl && kvToken) {
-        try {
-          await fetch(`${kvUrl}/set/tb_role_permissions_latest`, {
+        persistPromises.push(
+          fetch(`${kvUrl}/set/tb_role_permissions_latest`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${kvToken}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
-          });
-        } catch (e) {
-          console.warn('Failed to persist permissions to KV:', e.message);
-        }
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(3000)
+          }).catch(e => console.warn('Failed to persist permissions to KV:', e.message))
+        );
       }
 
-      // KVDB Cloud Fallback
-      try {
-        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1', {
+      // Cloud Relay
+      persistPromises.push(
+        fetch(NTFY_PERMS_TOPIC, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).catch(() => {});
-      } catch (_) {}
+          headers: { 'Content-Type': 'application/json', 'Title': 'TransactBridge Role Permissions' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(3000)
+        }).catch(e => console.warn('Failed to persist permissions to relay:', e.message))
+      );
+
+      await Promise.allSettled(persistPromises);
 
       return res.status(200).json({
         success: true,
