@@ -13,7 +13,7 @@
 
   let currentCurrency = 'INR';
   let currentTimeRange = '24h';
-  let simActive = true;
+  let simActive = false;
   let simInterval = null;
   let sortField = 'successRate';
   let sortDirection = 'desc';
@@ -21,8 +21,8 @@
   let searchQuery = '';
 
   // Data Mode
-  let dataMode = 'demo';
-  let activeBatchId = 'demo';
+  let dataMode = 'uploaded';
+  let activeBatchId = null;
   let uploadedBatches = [];
   let currentTransactions = [];
   let customDodComparison = null;
@@ -145,240 +145,16 @@
   // Day-over-Day (DoD) Comparison State
   let isDodMode = false;
 
-  // Demo PSP Data (paymentDetails.pgProvider)
-  const defaultDemoPsp = [
-    { id: 'RAZORPAY', name: 'Razorpay Gateway', count: 1380000, success: 1324800, failed: 55200, amount: 690000000, successAmt: 662400000, failedAmt: 27600000 },
-    { id: 'CASHFREE', name: 'Cashfree Payments', count: 840000, success: 798000, failed: 42000, amount: 420000000, successAmt: 399000000, failedAmt: 21000000 },
-    { id: 'PAYU', name: 'PayU Payments', count: 520000, success: 478400, failed: 41600, amount: 260000000, successAmt: 239200000, failedAmt: 20800000 },
-    { id: 'BILLDESK', name: 'BillDesk India', count: 340000, success: 312800, failed: 27200, amount: 238000000, successAmt: 218960000, failedAmt: 19040000 },
-    { id: 'STRIPE', name: 'Stripe India', count: 180000, success: 174600, failed: 5400, amount: 144000000, successAmt: 139680000, failedAmt: 4320000 },
-    { id: 'PHONEPE_PG', name: 'PhonePe PG', count: 160000, success: 153600, failed: 6400, amount: 96000000, successAmt: 92160000, failedAmt: 3840000 },
-    { id: 'PAYTM_PG', name: 'Paytm Payment Gateway', count: 95000, success: 84550, failed: 10450, amount: 57000000, successAmt: 50730000, failedAmt: 6270000 }
-  ];
+  // Dynamic Ingested State (starts in clean empty state)
+  const defaultDemoPsp = [];
+  const defaultDemoUpiApp = [];
+  const defaultDemoUpiHandle = [];
+  const defaultDemoMerchants = [];
 
-  // Demo UPI App Data (paymentDetails.upiAppName) - Comprehensive Ecosystem
-  const defaultDemoUpiApp = [
-    { id: 'PhonePe', name: 'PhonePe', sourceDevice: 'Mobile', sourceOS: 'Android', count: 1220000, success: 1179740, failed: 40260, amount: 488000000, successAmt: 471896000, failedAmt: 16104000 },
-    { id: 'Google Pay', name: 'Google Pay (Android)', sourceDevice: 'Mobile', sourceOS: 'Android', count: 980000, success: 942760, failed: 37240, amount: 392000000, successAmt: 377104000, failedAmt: 14896000 },
-    { id: 'Google Pay iOS', name: 'Google Pay (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 320000, success: 310400, failed: 9600, amount: 160000000, successAmt: 155200000, failedAmt: 4800000 },
-    { id: 'Paytm', name: 'Paytm UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
-    { id: 'Paytm Web', name: 'Paytm Web / Desktop', sourceDevice: 'Desktop', sourceOS: 'Windows', count: 85000, success: 80750, failed: 4250, amount: 42500000, successAmt: 40375000, failedAmt: 2125000 },
-    { id: 'CRED', name: 'CRED UPI', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 290000, success: 283040, failed: 6960, amount: 232000000, successAmt: 226432000, failedAmt: 5568000 },
-    { id: 'BHIM', name: 'BHIM UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 140000, success: 131600, failed: 8400, amount: 42000000, successAmt: 39480000, failedAmt: 2520000 },
-    { id: 'Amazon Pay', name: 'Amazon Pay UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
-    { id: 'Amazon Web', name: 'Amazon Pay (Windows Web)', sourceDevice: 'Desktop', sourceOS: 'Windows', count: 62000, success: 58900, failed: 3100, amount: 31000000, successAmt: 29450000, failedAmt: 1550000 },
-    { id: 'WhatsApp', name: 'WhatsApp Pay', sourceDevice: 'Mobile', sourceOS: 'Android', count: 65000, success: 60450, failed: 4550, amount: 19500000, successAmt: 18135000, failedAmt: 1365000 },
-    { id: 'PayZapp', name: 'PayZapp (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 45000, success: 38250, failed: 6750, amount: 22500000, successAmt: 19125000, failedAmt: 3375000 },
-    { id: 'Airtel Pay', name: 'Airtel Payments Bank', sourceDevice: 'Mobile', sourceOS: 'Android', count: 42000, success: 39480, failed: 2520, amount: 16800000, successAmt: 15792000, failedAmt: 1008000 },
-    { id: 'Mobikwik', name: 'Mobikwik UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 38000, success: 35340, failed: 2660, amount: 15200000, successAmt: 14136000, failedAmt: 1064000 },
-    { id: 'Jupiter', name: 'Jupiter UPI (iOS)', sourceDevice: 'Mobile', sourceOS: 'iOS', count: 28000, success: 26880, failed: 1120, amount: 14000000, successAmt: 13440000, failedAmt: 560000 },
-    { id: 'Fi Money', name: 'Fi Money UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 24000, success: 23280, failed: 720, amount: 12000000, successAmt: 11640000, failedAmt: 360000 },
-    { id: 'Navi', name: 'Navi UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 20000, success: 19100, failed: 900, amount: 10000000, successAmt: 9550000, failedAmt: 450000 },
-    { id: 'Tata Neu', name: 'Tata Neu UPI', sourceDevice: 'Mobile', sourceOS: 'Android', count: 18000, success: 17280, failed: 720, amount: 9000000, successAmt: 8640000, failedAmt: 360000 },
-    { id: 'Desktop Checkout', name: 'Web UPI Checkout (macOS)', sourceDevice: 'Desktop', sourceOS: 'macOS', count: 16000, success: 15360, failed: 640, amount: 12800000, successAmt: 12288000, failedAmt: 512000 }
-  ];
-
-  // Demo UPI Handle Data (paymentDetails.payMethodIdentifier after @) - Complete Banking Network
-  const defaultDemoUpiHandle = [
-    { id: '@okaxis', name: '@okaxis (Google Pay - Axis Bank)', count: 490000, success: 472850, failed: 17150, amount: 196000000, successAmt: 189140000, failedAmt: 6860000 },
-    { id: '@ybl', name: '@ybl (PhonePe - Yes Bank)', count: 620000, success: 600160, failed: 19840, amount: 248000000, successAmt: 240064000, failedAmt: 7936000 },
-    { id: '@oksbi', name: '@oksbi (Google Pay - SBI)', count: 340000, success: 312800, failed: 27200, amount: 136000000, successAmt: 125120000, failedAmt: 10880000 },
-    { id: '@paytm', name: '@paytm (Paytm VPA)', count: 460000, success: 426880, failed: 33120, amount: 184000000, successAmt: 170752000, failedAmt: 13248000 },
-    { id: '@okhdfcbank', name: '@okhdfcbank (Google Pay - HDFC)', count: 280000, success: 271600, failed: 8400, amount: 140000000, successAmt: 135800000, failedAmt: 4200000 },
-    { id: '@ibl', name: '@ibl (PhonePe - ICICI Bank)', count: 410000, success: 396880, failed: 13120, amount: 164000000, successAmt: 158752000, failedAmt: 5248000 },
-    { id: '@axl', name: '@axl (PhonePe - Axis Bank)', count: 190000, success: 183160, failed: 6840, amount: 76000000, successAmt: 73264000, failedAmt: 2736000 },
-    { id: '@apl', name: '@apl (Amazon Pay UPI)', count: 110000, success: 105600, failed: 4400, amount: 55000000, successAmt: 52800000, failedAmt: 2200000 },
-    { id: '@barodampay', name: '@barodampay (Bank of Baroda)', count: 75000, success: 67500, failed: 7500, amount: 26000000, successAmt: 23400000, failedAmt: 2600000 },
-    { id: '@icici', name: '@icici (iMobile ICICI)', count: 85000, success: 81600, failed: 3400, amount: 42500000, successAmt: 40800000, failedAmt: 1700000 },
-    { id: '@fbl', name: '@fbl (Federal Bank)', count: 45000, success: 43200, failed: 1800, amount: 22500000, successAmt: 21600000, failedAmt: 900000 },
-    { id: '@idfcbank', name: '@idfcbank (IDFC First Bank)', count: 52000, success: 49920, failed: 2080, amount: 26000000, successAmt: 24960000, failedAmt: 1040000 },
-    { id: '@kotak', name: '@kotak (Kotak Mahindra)', count: 68000, success: 64600, failed: 3400, amount: 34000000, successAmt: 32300000, failedAmt: 1700000 },
-    { id: '@postbank', name: '@postbank (India Post IPPB)', count: 32000, success: 29440, failed: 2560, amount: 12800000, successAmt: 11776000, failedAmt: 1024000 },
-    { id: '@yesbank', name: '@yesbank (Yes Bank VPA)', count: 36000, success: 34560, failed: 1440, amount: 18000000, successAmt: 17280000, failedAmt: 720000 },
-    { id: '@aubank', name: '@aubank (AU Small Finance Bank)', count: 28000, success: 26600, failed: 1400, amount: 14000000, successAmt: 13300000, failedAmt: 700000 },
-    { id: '@indus', name: '@indus (IndusInd Bank)', count: 31000, success: 29760, failed: 1240, amount: 15500000, successAmt: 14880000, failedAmt: 620000 },
-    { id: '@pnb', name: '@pnb (Punjab National Bank)', count: 41000, success: 37310, failed: 3690, amount: 16400000, successAmt: 14924000, failedAmt: 1476000 },
-    { id: '@cnrb', name: '@cnrb (Canara Bank)', count: 27000, success: 24840, failed: 2160, amount: 10800000, successAmt: 9936000, failedAmt: 864000 },
-    { id: '@unionbank', name: '@unionbank (Union Bank of India)', count: 25000, success: 22750, failed: 2250, amount: 10000000, successAmt: 9100000, failedAmt: 900000 }
-  ];
-
-  let pspList = JSON.parse(JSON.stringify(defaultDemoPsp));
-  let upiAppList = JSON.parse(JSON.stringify(defaultDemoUpiApp));
-  let upiHandleList = JSON.parse(JSON.stringify(defaultDemoUpiHandle));
-
-  // Default Demo Merchants
-  const defaultDemoMerchants = [
-    {
-      id: 'MERCH_AMAZON',
-      name: 'Amazon Marketplace',
-      category: 'E-Commerce & Retail',
-      avatar: 'AZ',
-      totalCount: 845200,
-      successCount: 812400,
-      failedCount: 32800,
-      totalAmount: 42260000,
-      successAmount: 40620000,
-      failedAmount: 1640000,
-      avgLatency: 38,
-      failureReasons: { timeout: 35, insufficient: 30, auth3ds: 18, expired: 10, fraud: 7 }
-    },
-    {
-      id: 'MERCH_SWIGGY',
-      name: 'Swiggy Food & Instamart',
-      category: 'Quick Commerce & Food',
-      avatar: 'SW',
-      totalCount: 620400,
-      successCount: 593722,
-      failedCount: 26678,
-      totalAmount: 12408000,
-      successAmount: 11874450,
-      failedAmount: 533550,
-      avgLatency: 29,
-      failureReasons: { timeout: 42, insufficient: 28, auth3ds: 15, expired: 9, fraud: 6 }
-    },
-    {
-      id: 'MERCH_UBER',
-      name: 'Uber Technologies',
-      category: 'Mobility & Rides',
-      avatar: 'UB',
-      totalCount: 485100,
-      successCount: 461815,
-      failedCount: 23285,
-      totalAmount: 9702000,
-      successAmount: 9236300,
-      failedAmount: 465700,
-      avgLatency: 32,
-      failureReasons: { timeout: 25, insufficient: 45, auth3ds: 12, expired: 12, fraud: 6 }
-    },
-    {
-      id: 'MERCH_FLIPKART',
-      name: 'Flipkart Online',
-      category: 'E-Commerce & Electronics',
-      avatar: 'FK',
-      totalCount: 390200,
-      successCount: 367958,
-      failedCount: 22242,
-      totalAmount: 23412000,
-      successAmount: 22077500,
-      failedAmount: 1334500,
-      avgLatency: 45,
-      failureReasons: { timeout: 38, insufficient: 22, auth3ds: 25, expired: 8, fraud: 7 }
-    },
-    {
-      id: 'MERCH_NETFLIX',
-      name: 'Netflix Subscriptions',
-      category: 'Digital Media & Streaming',
-      avatar: 'NF',
-      totalCount: 284000,
-      successCount: 276800,
-      failedCount: 7200,
-      totalAmount: 4260000,
-      successAmount: 4152000,
-      failedAmount: 108000,
-      avgLatency: 22,
-      failureReasons: { timeout: 15, insufficient: 55, auth3ds: 8, expired: 18, fraud: 4 }
-    },
-    {
-      id: 'MERCH_SHOPIFY',
-      name: 'Shopify Merchant Stores',
-      category: 'Direct-to-Consumer',
-      avatar: 'SP',
-      totalCount: 215000,
-      successCount: 204680,
-      failedCount: 10320,
-      totalAmount: 15050000,
-      successAmount: 14327500,
-      failedAmount: 722500,
-      avgLatency: 41,
-      failureReasons: { timeout: 32, insufficient: 28, auth3ds: 22, expired: 10, fraud: 8 }
-    },
-    {
-      id: 'MERCH_APPLE',
-      name: 'Apple App Store & Services',
-      category: 'Digital Goods & Hardware',
-      avatar: 'AP',
-      totalCount: 198000,
-      successCount: 193050,
-      failedCount: 4950,
-      totalAmount: 17820000,
-      successAmount: 17374500,
-      failedAmount: 445500,
-      avgLatency: 25,
-      failureReasons: { timeout: 20, insufficient: 48, auth3ds: 12, expired: 15, fraud: 5 }
-    },
-    {
-      id: 'MERCH_WALMART',
-      name: 'Walmart Global',
-      category: 'Retail & Superstore',
-      avatar: 'WM',
-      totalCount: 165000,
-      successCount: 156420,
-      failedCount: 8580,
-      totalAmount: 11550000,
-      successAmount: 10949400,
-      failedAmount: 600600,
-      avgLatency: 48,
-      failureReasons: { timeout: 40, insufficient: 24, auth3ds: 18, expired: 11, fraud: 7 }
-    },
-    {
-      id: 'MERCH_ZARA',
-      name: 'Zara Fashion Group',
-      category: 'Apparel & Fashion',
-      avatar: 'ZR',
-      totalCount: 122000,
-      successCount: 113460,
-      failedCount: 8540,
-      totalAmount: 9760000,
-      successAmount: 9076800,
-      failedAmount: 683200,
-      avgLatency: 52,
-      failureReasons: { timeout: 35, insufficient: 32, auth3ds: 20, expired: 7, fraud: 6 }
-    },
-    {
-      id: 'MERCH_SPOTIFY',
-      name: 'Spotify Premium',
-      category: 'Audio Streaming',
-      avatar: 'SF',
-      totalCount: 110000,
-      successCount: 106700,
-      failedCount: 3300,
-      totalAmount: 1100000,
-      successAmount: 1067000,
-      failedAmount: 33000,
-      avgLatency: 24,
-      failureReasons: { timeout: 18, insufficient: 58, auth3ds: 6, expired: 14, fraud: 4 }
-    },
-    {
-      id: 'MERCH_AIRBNB',
-      name: 'Airbnb Stays',
-      category: 'Travel & Hospitality',
-      avatar: 'AB',
-      totalCount: 95000,
-      successCount: 88160,
-      failedCount: 6840,
-      totalAmount: 23750000,
-      successAmount: 22040000,
-      failedAmount: 1710000,
-      avgLatency: 64,
-      failureReasons: { timeout: 44, insufficient: 18, auth3ds: 24, expired: 8, fraud: 6 }
-    },
-    {
-      id: 'MERCH_DOORDASH',
-      name: 'DoorDash Food',
-      category: 'Food Delivery',
-      avatar: 'DD',
-      totalCount: 88000,
-      successCount: 82016,
-      failedCount: 5984,
-      totalAmount: 3520000,
-      successAmount: 3280800,
-      failedAmount: 239200,
-      avgLatency: 33,
-      failureReasons: { timeout: 36, insufficient: 34, auth3ds: 14, expired: 10, fraud: 6 }
-    }
-  ];
-
-  let merchants = JSON.parse(JSON.stringify(defaultDemoMerchants));
+  let pspList = [];
+  let upiAppList = [];
+  let upiHandleList = [];
+  let merchants = [];
 
   const FAILURE_TYPES = {
     timeout: { label: 'Bank Gateway Timeout', color: '#f43f5e' },
@@ -388,11 +164,7 @@
     fraud: { label: 'Risk Engine Block', color: '#ec4899' }
   };
 
-  let paymentMethods = [
-    { name: 'UPI', successRate: 63.4, totalCount: 14200, totalAmount: 18450000 },
-    { name: 'CC', successRate: 75.0, totalCount: 3800, totalAmount: 8200000 },
-    { name: 'DC', successRate: 33.3, totalCount: 1950, totalAmount: 3350000 }
-  ];
+  let paymentMethods = [];
 
   const TIME_MULTIPLIERS = {
     '15m': 0.04,
@@ -519,25 +291,38 @@
     }
 
     if (!yesterdayAgg) {
-      const yTotCount = Math.round(currentAgg.totalCount * 0.94);
-      const ySR = Math.max(78, Math.min(99, currentAgg.successRate - 0.79));
-      const yFR = 100 - ySR;
-      const ySuccCount = Math.round(yTotCount * (ySR / 100));
-      const yFailCount = yTotCount - ySuccCount;
-      const yTotAmt = currentAgg.totalAmount * 0.952;
-      const ySuccAmt = yTotAmt * (ySR / 100);
-      const yFailAmt = yTotAmt - ySuccAmt;
+      if (currentAgg.totalCount === 0) {
+        yesterdayAgg = {
+          totalCount: 0,
+          successCount: 0,
+          failedCount: 0,
+          successRate: 0,
+          failureRate: 0,
+          totalAmount: 0,
+          successAmount: 0,
+          failedAmount: 0
+        };
+      } else {
+        const yTotCount = Math.round(currentAgg.totalCount * 0.94);
+        const ySR = Math.max(78, Math.min(99, currentAgg.successRate - 0.79));
+        const yFR = 100 - ySR;
+        const ySuccCount = Math.round(yTotCount * (ySR / 100));
+        const yFailCount = yTotCount - ySuccCount;
+        const yTotAmt = currentAgg.totalAmount * 0.952;
+        const ySuccAmt = yTotAmt * (ySR / 100);
+        const yFailAmt = yTotAmt - ySuccAmt;
 
-      yesterdayAgg = {
-        totalCount: yTotCount,
-        successCount: ySuccCount,
-        failedCount: yFailCount,
-        successRate: ySR,
-        failureRate: yFR,
-        totalAmount: yTotAmt,
-        successAmount: ySuccAmt,
-        failedAmount: yFailAmt
-      };
+        yesterdayAgg = {
+          totalCount: yTotCount,
+          successCount: ySuccCount,
+          failedCount: yFailCount,
+          successRate: ySR,
+          failureRate: yFR,
+          totalAmount: yTotAmt,
+          successAmount: ySuccAmt,
+          failedAmount: yFailAmt
+        };
+      }
     }
 
     const countDiff = currentAgg.totalCount - yesterdayAgg.totalCount;
@@ -620,6 +405,43 @@
     const dodIndicator = document.getElementById('dodKpiIndicator');
     if (dodIndicator) {
       dodIndicator.style.display = isDodMode ? 'inline-flex' : 'none';
+    }
+
+    if (agg.totalCount === 0) {
+      document.getElementById('kpiTotalCount').textContent = '0';
+      document.getElementById('kpiSuccessCount').textContent = '0';
+      document.getElementById('kpiFailedCount').textContent = '0';
+      document.getElementById('kpiSuccessRate').textContent = '--';
+      document.getElementById('kpiTotalAmount').textContent = formatCurrency(0);
+      document.getElementById('kpiSuccessAmount').textContent = formatCurrency(0);
+      document.getElementById('kpiFailedAmount').textContent = formatCurrency(0);
+      const rateBar = document.getElementById('kpiRateBar');
+      if (rateBar) {
+        rateBar.style.width = '0%';
+        rateBar.style.background = 'var(--text-secondary)';
+      }
+      const slaBadge = document.getElementById('kpiSlaBadge');
+      if (slaBadge) {
+        slaBadge.textContent = 'Awaiting Ingestion';
+        slaBadge.className = 'kpi-badge neutral';
+      }
+      const totalBadge = document.getElementById('kpiTotalBadge');
+      if (totalBadge) {
+        totalBadge.className = 'kpi-badge neutral';
+        totalBadge.textContent = '0 Records';
+      }
+      const successShare = document.getElementById('kpiSuccessShare');
+      if (successShare) successShare.textContent = 'No transaction data';
+      const failedShare = document.getElementById('kpiFailedShare');
+      if (failedShare) failedShare.textContent = 'No transaction data';
+      const successAmtShare = document.getElementById('kpiSuccessAmtShare');
+      if (successAmtShare) successAmtShare.textContent = 'No transaction data';
+      const failedAmtShare = document.getElementById('kpiFailedAmtShare');
+      if (failedAmtShare) failedAmtShare.textContent = 'No transaction data';
+      const recVolElem = document.getElementById('kpiRecoverableVolume');
+      if (recVolElem) recVolElem.textContent = formatCurrency(0);
+      updateKpiSparklines();
+      return;
     }
 
     document.getElementById('kpiTotalCount').textContent = formatNumber(agg.totalCount);
@@ -812,7 +634,13 @@
     try {
       if (typeof getTimelineDataset !== 'function') return;
       const timeline = getTimelineDataset();
-      if (!timeline || !timeline.volumeData || timeline.volumeData.length === 0) return;
+      if (!timeline || !timeline.volumeData || timeline.volumeData.length === 0 || timeline.volumeData.every(v => v === 0)) {
+        ['sparkline-total', 'sparkline-success', 'sparkline-failed', 'sparkline-rate', 'sparkline-amount', 'sparkline-succ-amount', 'sparkline-fail-amount'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerHTML = '';
+        });
+        return;
+      }
       
       const volData = timeline.volumeData;
       const failedData = timeline.failedData || volData.map(() => 0);
@@ -1689,6 +1517,20 @@
   let activeRecFilter = 'all';
 
   function getRecommendationsList() {
+    if (getAggregates().totalCount === 0) {
+      return [{
+        priority: 3,
+        category: 'routing',
+        tag: 'INGESTION PENDING',
+        statusClass: 'status-watch',
+        statusLabel: 'Awaiting Telemetry',
+        title: 'Upload Data or Sync Cloud for Automated Intelligence',
+        desc: 'Once transactions are ingested from hourly CSV/Excel files or synced via Team Cloud, the AI diagnosis engine will automatically analyze route health, issuer timeouts, and provide targeted recovery recommendations.',
+        impact: '📊 Telemetry Ready',
+        owner: 'Owner: Payment Ops'
+      }];
+    }
+
     const list = [];
 
     // 0. Error Code Diagnostics (failedInfo.responseCode)
@@ -2100,6 +1942,40 @@
     return result;
   }
 
+  const INDIAN_STATES_DIST = [
+    { id: 'IN-MH', name: 'Maharashtra', weight: 22 },
+    { id: 'IN-KA', name: 'Karnataka', weight: 16 },
+    { id: 'IN-DL', name: 'Delhi NCR', weight: 14 },
+    { id: 'IN-TN', name: 'Tamil Nadu', weight: 12 },
+    { id: 'IN-TG', name: 'Telangana', weight: 10 },
+    { id: 'IN-GJ', name: 'Gujarat', weight: 8 },
+    { id: 'IN-UP', name: 'Uttar Pradesh', weight: 6 },
+    { id: 'IN-WB', name: 'West Bengal', weight: 4 },
+    { id: 'IN-KL', name: 'Kerala', weight: 3 },
+    { id: 'IN-RJ', name: 'Rajasthan', weight: 3 },
+    { id: 'IN-AP', name: 'Andhra Pradesh', weight: 2 }
+  ];
+
+  function hashCode(str) {
+    let hash = 0;
+    const s = String(str || '');
+    for (let i = 0; i < s.length; i++) {
+      hash = ((hash << 5) - hash) + s.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
+  }
+
+  function getDeterministicState(key) {
+    const positiveHash = Math.abs(hashCode(key)) % 100;
+    let cumulative = 0;
+    for (const s of INDIAN_STATES_DIST) {
+      cumulative += s.weight;
+      if (positiveHash < cumulative) return s.name;
+    }
+    return 'Maharashtra';
+  }
+
   function normalizeRow(row) {
     if (!row || typeof row !== 'object') return null;
 
@@ -2258,11 +2134,23 @@
     const rawIdentifier = getVal('paymentDetails.payMethodIdentifier', 'paymentDetails.vpa', 'vpa', 'payerVpa', 'handle');
     const upiHandle = extractUpiHandle(rawIdentifier);
 
+    // 7. Customer & State/Region Mapping (Sheet parameter or deterministic distribution)
+    const txnId = getVal('_id', 'referenceId', 'referenceNo') || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase());
+    const rawCustomerId = getVal('customerId', 'customer_id', 'CUSTOMER_ID', 'cust_id', 'userId', 'user_id', 'payerId', 'payerVpa', 'vpa');
+    const customerId = rawCustomerId || ('CUST-' + (Math.abs(hashCode(txnId)) % 9000 + 1000));
+
+    const rawState = getVal('state', 'customerState', 'billingState', 'userState', 'region', 'location', 'province', 'State', 'STATE');
+    const rawCountry = getVal('country', 'customerCountry', 'billingCountry', 'userCountry', 'Country', 'COUNTRY') || 'India';
+    const state = rawState || getDeterministicState(customerId);
+    const country = rawCountry;
+
     return {
-      id: getVal('_id', 'referenceId', 'referenceNo') || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase()),
+      id: txnId,
       merchantId,
       merchantName,
-      customerId: getVal('customerId', 'CUSTOMER_ID'),
+      customerId,
+      state,
+      country,
       status: rawStatus,
       isSuccess,
       isFailed: isFailedStatus,
@@ -2541,6 +2429,9 @@
     renderRecommendations();
     initCharts();
     renderFeed();
+    renderRouteArcChart();
+    renderGeoMetrics();
+    updateGreeting();
   }
 
   function showToast(message) {
@@ -2586,66 +2477,113 @@
     } else if (dataMode === 'uploaded') {
       if (tag) {
         tag.className = 'data-status-tag tag-uploaded';
-        tag.textContent = 'Live Uploaded Data';
+        tag.textContent = currentTransactions.length > 0 ? 'Live Uploaded Data' : 'Awaiting Ingestion';
       }
       const activeName = (uploadedBatches && uploadedBatches[uploadedBatches.length - 1]?.name) || 'Current Dataset';
       if (msg) {
-        msg.innerHTML = `✅ Viewing <strong>${currentTransactions.length} ingested transactions</strong> (${activeName}). All KPIs, Routing Reports &amp; Recommendations are displaying this uploaded data.`;
+        if (currentTransactions.length > 0) {
+          msg.innerHTML = `✅ Viewing <strong>${currentTransactions.length} ingested transactions</strong> (${activeName}). All KPIs, Routing Reports &amp; Recommendations are displaying this uploaded data.`;
+        } else {
+          msg.innerHTML = `No active transaction data. Click <strong>Upload Hourly Data</strong> or <strong>Team Cloud Sync</strong> to ingest Excel/CSV reports.`;
+        }
       }
-      if (resetBtn) resetBtn.style.display = 'inline-block';
+      if (resetBtn) resetBtn.style.display = currentTransactions.length > 0 ? 'inline-block' : 'none';
       if (liveBadge) {
         liveBadge.className = 'badge-pill badge-upload-mode';
-        liveBadge.innerHTML = '<span>📁</span> File Active';
+        liveBadge.innerHTML = currentTransactions.length > 0 ? '<span>📁</span> File Active' : '<span>⏳</span> Ready';
       }
       if (feedModeLabel) {
-        feedModeLabel.textContent = 'Displaying transactions from uploaded file';
+        feedModeLabel.textContent = currentTransactions.length > 0 ? 'Displaying transactions from uploaded file' : 'Awaiting transaction stream';
       }
     } else {
       if (tag) {
-        tag.className = 'data-status-tag tag-simulated';
-        tag.textContent = 'Demo Mode';
+        tag.className = 'data-status-tag tag-uploaded';
+        tag.textContent = 'Awaiting Ingestion';
       }
       if (msg) {
-        msg.innerHTML = `Displaying automated simulation. Click <strong>Upload Hourly Data</strong> to ingest Excel/CSV, or <strong>Live API Integration</strong> to stream live data.`;
+        msg.innerHTML = `No active transaction data. Click <strong>Upload Hourly Data</strong> or <strong>Team Cloud Sync</strong> to ingest Excel/CSV reports.`;
       }
       if (resetBtn) resetBtn.style.display = 'none';
       if (liveBadge) {
-        liveBadge.className = 'badge-pill badge-live';
-        liveBadge.innerHTML = '<span class="pulse-dot"></span> Live Gateway';
+        liveBadge.className = 'badge-pill badge-upload-mode';
+        liveBadge.innerHTML = '<span>⏳</span> Ready';
       }
       if (feedModeLabel) {
-        feedModeLabel.textContent = 'Displaying simulated real-time gateway pipeline';
+        feedModeLabel.textContent = 'Awaiting transaction stream';
       }
     }
   }
 
-  function resetToDemo() {
+  async function resetToDemo() {
     if (apiPollTimer) {
       clearInterval(apiPollTimer);
       apiPollTimer = null;
     }
-    dataMode = 'demo';
-    activeBatchId = 'demo';
-    merchants = JSON.parse(JSON.stringify(defaultDemoMerchants));
-    pspList = JSON.parse(JSON.stringify(defaultDemoPsp));
-    upiAppList = JSON.parse(JSON.stringify(defaultDemoUpiApp));
-    upiHandleList = JSON.parse(JSON.stringify(defaultDemoUpiHandle));
-
+    dataMode = 'uploaded';
+    activeBatchId = null;
+    uploadedBatches = [];
+    currentTransactions = [];
+    merchants = [];
+    pspList = [];
+    upiAppList = [];
+    upiHandleList = [];
+    paymentMethods = [];
     feedItems.length = 0;
-    for (let i = 0; i < 5; i++) {
-      generateMockTransaction();
+    uploadedFailureCounts = null;
+    uploadedFailureCodeCounts = null;
+
+    // 1. Clear IndexedDB
+    try {
+      const db = await openDB();
+      const tx = db.transaction('batches', 'readwrite');
+      const store = tx.objectStore('batches');
+      store.clear();
+    } catch (_) {}
+
+    // 2. Clear LocalStorage cache
+    try {
+      localStorage.removeItem(CLOUD_STORAGE_KEY);
+      localStorage.removeItem('tb_shared_transactions_latest');
+    } catch (_) {}
+
+    // 3. Clear Cloud storage if Admin
+    const user = (typeof authManager !== 'undefined' && authManager.getCurrentUser()) || { role: 'admin' };
+    if (user.role === 'admin' || (typeof permissionsManager !== 'undefined' && permissionsManager.canUpload())) {
+      try {
+        fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clear: true })
+        }).catch(() => {});
+        fetch(NTFY_TXS_TOPIC, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Title': 'Team Data Cleared' },
+          body: JSON.stringify({ action: 'batch_cleared', timestamp: Date.now() })
+        }).catch(() => {});
+      } catch (_) {}
     }
+
+    if (typeof cloudSyncManager !== 'undefined') {
+      cloudSyncManager.activeCloudBatchId = null;
+      cloudSyncManager.updateSyncPill('synced', 'Team Cloud Ready');
+    }
+
+    stopSimulation();
     updateStatusBanner();
     updateBatchSelector();
-    startSimulation();
     renderKPIs();
     renderAnalysisSection();
     renderRecommendations();
     initCharts();
+    renderFeed();
+    showToast('🗑️ All transaction data cleared. Dashboard in clean state.');
   }
 
   const resetBtnEl = document.getElementById('resetDataBtn');
   if (resetBtnEl) resetBtnEl.addEventListener('click', resetToDemo);
+
+  const resetBatchesModalBtn = document.getElementById('resetBatchesModalBtn');
+  if (resetBatchesModalBtn) resetBatchesModalBtn.addEventListener('click', resetToDemo);
 
   const DB_NAME = 'TransactBridgeStorage';
   const DB_VERSION = 1;
@@ -2702,26 +2640,27 @@
 
   function updateBatchSelector() {
     const sel = document.getElementById('batchSelect');
+    if (!sel) return;
     sel.innerHTML = '';
 
-    const optDemo = document.createElement('option');
-    optDemo.value = 'demo';
-    optDemo.textContent = 'Live Demo Traffic';
-    if (dataMode === 'demo') optDemo.selected = true;
-    sel.appendChild(optDemo);
-
-    if (uploadedBatches.length > 0) {
+    if (uploadedBatches.length === 0) {
+      const optEmpty = document.createElement('option');
+      optEmpty.value = '';
+      optEmpty.textContent = 'Awaiting Ingestion...';
+      optEmpty.selected = true;
+      sel.appendChild(optEmpty);
+    } else {
       const optAll = document.createElement('option');
       optAll.value = 'all';
       optAll.textContent = `All Uploaded Batches (${currentTransactions.length} txns)`;
-      if (dataMode === 'uploaded' && activeBatchId === 'all') optAll.selected = true;
+      if (activeBatchId === 'all' || !activeBatchId) optAll.selected = true;
       sel.appendChild(optAll);
 
       uploadedBatches.forEach((b) => {
         const opt = document.createElement('option');
         opt.value = b.id;
         opt.textContent = `${b.name} (${b.count} txns)`;
-        if (dataMode === 'uploaded' && activeBatchId === b.id) opt.selected = true;
+        if (activeBatchId === b.id) opt.selected = true;
         sel.appendChild(opt);
       });
     }
@@ -2729,14 +2668,15 @@
     renderBatchListTable();
   }
 
-  document.getElementById('batchSelect').addEventListener('change', (e) => {
-    const val = e.target.value;
-    activeBatchId = val;
-    if (val === 'demo') {
-      resetToDemo();
-    } else if (val === 'all') {
-      dataMode = 'uploaded';
-      currentTransactions = uploadedBatches.flatMap(b => b.transactions);
+  const batchSelectEl = document.getElementById('batchSelect');
+  if (batchSelectEl) {
+    batchSelectEl.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      activeBatchId = val;
+      if (val === 'all') {
+        dataMode = 'uploaded';
+        currentTransactions = uploadedBatches.flatMap(b => b.transactions);
       recomputeDashboardFromTransactions(currentTransactions);
       updateStatusBanner();
       stopSimulation();
@@ -2751,6 +2691,7 @@
       }
     }
   });
+}
 
   function renderBatchListTable() {
     const tbody = document.getElementById('batchListTbody');
@@ -2793,6 +2734,76 @@
 
       tbody.appendChild(tr);
     });
+  }
+
+  // Stakeholder Snapshot Management
+  function exportStakeholderSnapshot() {
+    const agg = getAggregates();
+    const snapshot = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      exportedBy: (typeof authManager !== 'undefined' && authManager.getCurrentUser()?.name) || 'Admin',
+      activeBatchId,
+      batches: uploadedBatches,
+      transactions: currentTransactions,
+      aggregates: agg,
+      alertSettings
+    };
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `TransactBridge_Snapshot_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('💾 Stakeholder Snapshot (.json) downloaded! Share or load offline anywhere.');
+  }
+
+  function importStakeholderSnapshot(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data || (!data.transactions && !data.batches)) {
+          showToast('⚠️ Invalid snapshot file format');
+          return;
+        }
+        if (data.batches && data.batches.length > 0) {
+          uploadedBatches = data.batches;
+          currentTransactions = data.transactions || data.batches.flatMap(b => b.transactions);
+        } else if (data.transactions) {
+          const norm = data.transactions.map(normalizeRow);
+          uploadedBatches = [{
+            id: 'snapshot_' + Date.now(),
+            name: `Imported Snapshot (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
+            uploadedAt: data.exportedAt || new Date().toISOString(),
+            count: norm.length,
+            transactions: norm
+          }];
+          currentTransactions = norm;
+        }
+        dataMode = 'uploaded';
+        activeBatchId = 'all';
+        saveBatchesToStorage();
+        recomputeDashboardFromTransactions(currentTransactions);
+        stopSimulation();
+        updateBatchSelector();
+        if (data.alertSettings) {
+          alertSettings = { ...alertSettings, ...data.alertSettings };
+          saveAlertSettings(false);
+        }
+        if (typeof cloudSyncManager !== 'undefined' && uploadedBatches[0]) {
+          cloudSyncManager.publishToCloud(uploadedBatches[0]);
+        }
+        showToast(`✅ Loaded snapshot with ${formatNumber(currentTransactions.length)} transactions!`);
+      } catch (err) {
+        showToast('❌ Error parsing snapshot: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
   }
 
   // File Upload Handlers
@@ -2984,9 +2995,7 @@
     if (currentTransactions && currentTransactions.length > 0) {
       currentTransactions.forEach(t => { if (t.pgProvider) pspSet.add(t.pgProvider); });
     }
-    if (pspSet.size === 0) {
-      ['RAZORPAY', 'CASHFREE', 'PAYU', 'PHONEPE', 'PAYTM'].forEach(p => pspSet.add(p));
-    }
+
 
     Array.from(pspSet).sort().forEach(p => {
       const opt = document.createElement('option');
@@ -3067,39 +3076,538 @@
       return { labels, volumeData, rateData, failedData, isReal: matchedCount > 0 };
     }
 
-    // Demo simulation mode
-    const labels = [];
-    const volumeData = [];
-    const rateData = [];
-    const failedData = [];
-
-    const totalPoints = orderedLabels.length;
-    const baseAgg = getAggregates().totalCount;
-    const windowRatio = (endHour - startHour) / 24;
-    const baseVol = Math.max(15, (baseAgg * windowRatio) / totalPoints);
-
-    orderedLabels.forEach((label, idx) => {
-      labels.push(label);
-      const [hhStr] = label.split(':');
-      const hh = parseInt(hhStr, 10);
-      const timeCurve = Math.sin(((hh - 6) / 24) * Math.PI * 2);
-      const curveMult = 0.65 + Math.max(0, 0.45 * (1 + timeCurve));
-      const randomNoise = 0.92 + Math.random() * 0.16;
-      const vol = Math.round(baseVol * curveMult * randomNoise);
-      const rate = Math.min(99.2, Math.max(89.5, 94.6 + Math.sin(idx * 0.4) * 2.2 + (Math.random() * 0.6 - 0.3)));
-      const fails = Math.round(vol * (1 - rate / 100));
-
-      volumeData.push(vol);
-      rateData.push(parseFloat(rate.toFixed(1)));
-      failedData.push(fails);
-    });
-
-    return { labels, volumeData, rateData, failedData, isReal: false };
+    // Empty dataset fallback (no mock sine curves)
+    return {
+      labels: orderedLabels,
+      volumeData: orderedLabels.map(() => 0),
+      rateData: orderedLabels.map(() => 0),
+      failedData: orderedLabels.map(() => 0),
+      isReal: false
+    };
   }
 
   // Canvas Charts
   let hoveredTimelineIdx = null;
   let currentTimelineRenderMeta = null;
+
+  // FinTech Semicircular Route Arc Chart (Bank.LY Style)
+  function renderRouteArcChart() {
+    const canvas = document.getElementById('routeArcChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = 220;
+    const h = 110;
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const railVols = { UPI: 0, Cards: 0, NetBanking: 0, Wallets: 0 };
+    let grandTotal = 0;
+
+    const countedTxns = currentTransactions.filter(t => t.isCountedInTotal);
+    const txnsToUse = countedTxns.length > 0 ? countedTxns : currentTransactions;
+
+    txnsToUse.forEach(t => {
+      grandTotal += (t.amount || 0);
+      const pm = (t.payMethod || '').toUpperCase();
+      if (pm.includes('UPI')) railVols.UPI += t.amount;
+      else if (pm.includes('CARD') || pm.includes('CC') || pm.includes('DC')) railVols.Cards += t.amount;
+      else if (pm.includes('NET') || pm.includes('NB') || pm.includes('BANK')) railVols.NetBanking += t.amount;
+      else if (pm.includes('WALLET') || pm.includes('WLT') || pm.includes('PREPAID')) railVols.Wallets += t.amount;
+      else railVols.UPI += t.amount;
+    });
+
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const bgTrackColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+    const cx = w / 2;
+    const cy = h - 12;
+    const tracks = [
+      { id: 'UPI', radius: 76, stroke: 7, color: '#0066FF', val: railVols.UPI },
+      { id: 'Cards', radius: 63, stroke: 7, color: '#10B981', val: railVols.Cards },
+      { id: 'NetBanking', radius: 50, stroke: 7, color: '#F59E0B', val: railVols.NetBanking },
+      { id: 'Wallets', radius: 37, stroke: 7, color: '#8B5CF6', val: railVols.Wallets }
+    ];
+
+    tracks.forEach(track => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, track.radius, Math.PI, 2 * Math.PI, false);
+      ctx.strokeStyle = bgTrackColor;
+      ctx.lineWidth = track.stroke;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      const share = grandTotal > 0 ? Math.min(1, Math.max(0, track.val / grandTotal)) : 0;
+      if (share > 0) {
+        ctx.beginPath();
+        const endAngle = Math.PI + (share * Math.PI);
+        ctx.arc(cx, cy, track.radius, Math.PI, endAngle, false);
+        ctx.strokeStyle = track.color;
+        ctx.lineWidth = track.stroke;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+    });
+
+    // Center Summary
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 13px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = isDark ? '#f8fafc' : '#0f172a';
+    ctx.fillText(formatCurrency(grandTotal), cx, cy - 14);
+
+    ctx.font = '500 8.5px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.fillText('Routing Share', cx, cy - 2);
+
+    // Update Legends
+    const updateLegend = (id, val) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const pct = grandTotal > 0 ? ((val / grandTotal) * 100).toFixed(1) : '0.0';
+      el.textContent = `${pct}% (${formatCurrency(val)})`;
+    };
+
+    updateLegend('arcValUpi', railVols.UPI);
+    updateLegend('arcValCards', railVols.Cards);
+    updateLegend('arcValNb', railVols.NetBanking);
+    updateLegend('arcValWallets', railVols.Wallets);
+
+    // Update Bottom Chips in timeline
+    const setChip = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = formatCurrency(val);
+    };
+    setChip('chipUpiVal', railVols.UPI);
+    setChip('chipCardsVal', railVols.Cards);
+    setChip('chipNbVal', railVols.NetBanking);
+    setChip('chipWalletsVal', railVols.Wallets);
+  }
+
+  // Geo Traffic & Regional Customer State Engine
+  const ALL_INDIAN_STATES = [
+    { id: 'IN-MH', name: 'Maharashtra' },
+    { id: 'IN-KA', name: 'Karnataka' },
+    { id: 'IN-DL', name: 'Delhi NCR' },
+    { id: 'IN-TN', name: 'Tamil Nadu' },
+    { id: 'IN-TG', name: 'Telangana' },
+    { id: 'IN-GJ', name: 'Gujarat' },
+    { id: 'IN-UP', name: 'Uttar Pradesh' },
+    { id: 'IN-WB', name: 'West Bengal' },
+    { id: 'IN-KL', name: 'Kerala' },
+    { id: 'IN-RJ', name: 'Rajasthan' },
+    { id: 'IN-AP', name: 'Andhra Pradesh' },
+    { id: 'IN-MP', name: 'Madhya Pradesh' },
+    { id: 'IN-PB', name: 'Punjab & Haryana' },
+    { id: 'IN-BR', name: 'Bihar & Jharkhand' },
+    { id: 'IN-OD', name: 'Odisha & Chhattisgarh' },
+    { id: 'IN-NE', name: 'Assam & North East' },
+    { id: 'IN-HP', name: 'Himachal Pradesh' },
+    { id: 'IN-JK', name: 'Jammu & Kashmir' }
+  ];
+
+  let currentGeoMapMode = 'india';
+  let currentGeoMetric = 'customers';
+  let selectedGeoState = 'all';
+  let cachedStateAnalytics = {};
+
+  function initGeoMap() {
+    const toggleIndia = document.getElementById('geoToggleIndia');
+    const toggleWorld = document.getElementById('geoToggleWorld');
+    const indiaSvg = document.getElementById('indiaGeoSvg');
+    const worldSvg = document.getElementById('worldGeoSvg');
+    const metricSelect = document.getElementById('geoMetricSelect');
+    const stateSelect = document.getElementById('geoStateSelect');
+
+    if (toggleIndia && toggleWorld && indiaSvg && worldSvg) {
+      toggleIndia.addEventListener('click', () => {
+        currentGeoMapMode = 'india';
+        toggleIndia.classList.add('active');
+        toggleWorld.classList.remove('active');
+        indiaSvg.style.display = 'block';
+        worldSvg.style.display = 'none';
+        renderGeoMetrics();
+      });
+
+      toggleWorld.addEventListener('click', () => {
+        currentGeoMapMode = 'world';
+        toggleWorld.classList.add('active');
+        toggleIndia.classList.remove('active');
+        worldSvg.style.display = 'block';
+        indiaSvg.style.display = 'none';
+        renderGeoMetrics();
+      });
+    }
+
+    if (metricSelect) {
+      metricSelect.addEventListener('change', (e) => {
+        currentGeoMetric = e.target.value;
+        const sub = document.getElementById('geoLeaderboardSub');
+        if (sub) {
+          if (currentGeoMetric === 'customers') sub.textContent = 'By Customer Count';
+          else if (currentGeoMetric === 'volume') sub.textContent = 'By Processed Volume';
+          else if (currentGeoMetric === 'txns') sub.textContent = 'By Transaction Count';
+          else if (currentGeoMetric === 'sr') sub.textContent = 'By Success Rate %';
+        }
+        renderGeoMetrics();
+      });
+    }
+
+    if (stateSelect) {
+      stateSelect.addEventListener('change', (e) => {
+        selectedGeoState = e.target.value;
+        highlightSelectedGeoState();
+      });
+    }
+
+    document.querySelectorAll('.geo-state-path').forEach(path => {
+      path.addEventListener('mouseenter', (e) => {
+        showGeoTooltip(e, path);
+      });
+      path.addEventListener('mousemove', (e) => {
+        positionGeoTooltip(e);
+      });
+      path.addEventListener('mouseleave', () => {
+        hideGeoTooltip();
+      });
+      path.addEventListener('click', () => {
+        const stateName = path.getAttribute('data-state-name');
+        if (stateName && stateSelect) {
+          const matchOpt = Array.from(stateSelect.options).find(o => o.value === stateName || o.textContent.includes(stateName));
+          if (matchOpt) {
+            stateSelect.value = matchOpt.value;
+            selectedGeoState = matchOpt.value;
+            highlightSelectedGeoState();
+          }
+        }
+      });
+    });
+  }
+
+  function showGeoTooltip(e, path) {
+    const tooltip = document.getElementById('geoMapTooltip');
+    if (!tooltip) return;
+
+    const stateId = path.getAttribute('data-state-id');
+    const stateName = path.getAttribute('data-state-name') || stateId;
+    const stats = cachedStateAnalytics[stateName] || cachedStateAnalytics[stateId] || {
+      name: stateName,
+      customerCount: 0,
+      txns: 0,
+      volume: 0,
+      sr: 0,
+      rank: '-'
+    };
+
+    const titleEl = document.getElementById('geoTooltipTitle');
+    const rankEl = document.getElementById('geoTooltipRank');
+    const custEl = document.getElementById('geoTooltipCustomers');
+    const txnsEl = document.getElementById('geoTooltipTxns');
+    const volEl = document.getElementById('geoTooltipVolume');
+    const srEl = document.getElementById('geoTooltipSr');
+
+    if (titleEl) titleEl.textContent = stats.name;
+    if (rankEl) rankEl.textContent = stats.rank ? `#${stats.rank} Market` : 'Regional Market';
+    if (custEl) custEl.textContent = formatNumber(stats.customerCount);
+    if (txnsEl) txnsEl.textContent = formatNumber(stats.txns);
+    if (volEl) volEl.textContent = formatCurrency(stats.volume);
+    if (srEl) {
+      srEl.textContent = stats.txns > 0 ? `${stats.sr.toFixed(1)}%` : '0.0%';
+      srEl.style.color = stats.sr >= 95 ? 'var(--success-green)' : (stats.sr >= 90 ? 'var(--warning-amber)' : 'var(--failed-red)');
+    }
+
+    tooltip.style.display = 'block';
+    positionGeoTooltip(e);
+  }
+
+  function positionGeoTooltip(e) {
+    const tooltip = document.getElementById('geoMapTooltip');
+    if (!tooltip) return;
+    const pad = 14;
+    let left = e.clientX + pad;
+    let top = e.clientY + pad;
+    if (left + 220 > window.innerWidth) {
+      left = e.clientX - 230;
+    }
+    if (top + 160 > window.innerHeight) {
+      top = e.clientY - 170;
+    }
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+  }
+
+  function hideGeoTooltip() {
+    const tooltip = document.getElementById('geoMapTooltip');
+    if (tooltip) tooltip.style.display = 'none';
+  }
+
+  function highlightSelectedGeoState() {
+    document.querySelectorAll('#indiaGeoSvg .geo-state-path').forEach(p => {
+      const name = p.getAttribute('data-state-name');
+      if (selectedGeoState !== 'all' && (name === selectedGeoState || p.getAttribute('data-state-id') === selectedGeoState)) {
+        p.classList.add('selected');
+      } else {
+        p.classList.remove('selected');
+      }
+    });
+  }
+
+  function renderGeoMetrics() {
+    const countedTxns = currentTransactions.filter(t => t.isCountedInTotal);
+    const txnsToUse = countedTxns.length > 0 ? countedTxns : currentTransactions;
+
+    const stateMap = {};
+    ALL_INDIAN_STATES.forEach(s => {
+      stateMap[s.name] = {
+        id: s.id,
+        name: s.name,
+        customers: new Set(),
+        customerCount: 0,
+        txns: 0,
+        success: 0,
+        failed: 0,
+        volume: 0,
+        successVolume: 0,
+        sr: 0,
+        rank: 0
+      };
+    });
+
+    const worldRegions = {
+      'India (Core Operating Hub)': { id: 'WORLD-IN', name: 'India (Core Operating Hub)', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 1 },
+      'North America': { id: 'WORLD-NA', name: 'North America', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 2 },
+      'Europe': { id: 'WORLD-EU', name: 'Europe', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 3 },
+      'Asia & Middle East': { id: 'WORLD-ASIA', name: 'Asia & Middle East', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 4 },
+      'South America': { id: 'WORLD-SA', name: 'South America', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 5 },
+      'Africa': { id: 'WORLD-AF', name: 'Africa', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 6 },
+      'Oceania & Australia': { id: 'WORLD-OC', name: 'Oceania & Australia', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 7 }
+    };
+
+    txnsToUse.forEach(t => {
+      const sName = t.state || 'Maharashtra';
+      if (!stateMap[sName]) {
+        stateMap[sName] = {
+          id: 'IN-' + sName.substring(0, 2).toUpperCase(),
+          name: sName,
+          customers: new Set(),
+          customerCount: 0,
+          txns: 0,
+          success: 0,
+          failed: 0,
+          volume: 0,
+          successVolume: 0,
+          sr: 0,
+          rank: 0
+        };
+      }
+      const item = stateMap[sName];
+      if (t.customerId) item.customers.add(t.customerId);
+      item.txns += 1;
+      item.volume += (t.amount || 0);
+      if (t.isSuccess) {
+        item.success += 1;
+        item.successVolume += (t.amount || 0);
+      } else {
+        item.failed += 1;
+      }
+
+      // World Hub aggregation
+      const inHub = worldRegions['India (Core Operating Hub)'];
+      if (t.customerId) inHub.customers.add(t.customerId);
+      inHub.txns += 1;
+      inHub.volume += (t.amount || 0);
+      if (t.isSuccess) inHub.success += 1;
+      else inHub.failed += 1;
+    });
+
+    Object.values(stateMap).forEach(s => {
+      s.customerCount = s.customers.size;
+      s.sr = s.txns > 0 ? (s.success / s.txns) * 100 : 0;
+    });
+
+    Object.values(worldRegions).forEach(w => {
+      w.customerCount = w.customers.size;
+      w.sr = w.txns > 0 ? (w.success / w.txns) * 100 : 0;
+    });
+
+    const sortedStates = Object.values(stateMap).sort((a, b) => {
+      if (currentGeoMetric === 'customers') return b.customerCount - a.customerCount;
+      if (currentGeoMetric === 'volume') return b.volume - a.volume;
+      if (currentGeoMetric === 'txns') return b.txns - a.txns;
+      if (currentGeoMetric === 'sr') return b.sr - a.sr;
+      return b.customerCount - a.customerCount;
+    });
+
+    sortedStates.forEach((s, idx) => {
+      s.rank = idx + 1;
+    });
+
+    cachedStateAnalytics = { ...stateMap, ...worldRegions };
+
+    let maxMetricVal = 1;
+    sortedStates.forEach(s => {
+      let v = 0;
+      if (currentGeoMetric === 'customers') v = s.customerCount;
+      else if (currentGeoMetric === 'volume') v = s.volume;
+      else if (currentGeoMetric === 'txns') v = s.txns;
+      else if (currentGeoMetric === 'sr') v = s.sr;
+      if (v > maxMetricVal) maxMetricVal = v;
+    });
+
+    document.querySelectorAll('#indiaGeoSvg .geo-state-path').forEach(path => {
+      const sName = path.getAttribute('data-state-name');
+      const sData = stateMap[sName];
+      if (sData) {
+        let val = 0;
+        if (currentGeoMetric === 'customers') val = sData.customerCount;
+        else if (currentGeoMetric === 'volume') val = sData.volume;
+        else if (currentGeoMetric === 'txns') val = sData.txns;
+        else if (currentGeoMetric === 'sr') val = sData.sr;
+
+        const ratio = maxMetricVal > 0 ? Math.min(1, Math.max(0, val / maxMetricVal)) : 0;
+        if (txnsToUse.length === 0 || val === 0) {
+          path.style.fill = 'rgba(0, 102, 255, 0.08)';
+        } else {
+          path.style.fill = `rgba(0, 102, 255, ${(0.18 + 0.72 * ratio).toFixed(2)})`;
+        }
+      }
+    });
+
+    const stateSelect = document.getElementById('geoStateSelect');
+    if (stateSelect && (stateSelect.options.length <= 1 || txnsToUse.length > 0)) {
+      const curVal = stateSelect.value;
+      stateSelect.innerHTML = '<option value="all">📍 All States (Pan-India)</option>';
+      sortedStates.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = `${s.name} (${s.txns} txns)`;
+        if (s.name === curVal) opt.selected = true;
+        stateSelect.appendChild(opt);
+      });
+    }
+
+    const lbList = document.getElementById('geoLeaderboardList');
+    if (lbList) {
+      lbList.innerHTML = '';
+      if (txnsToUse.length === 0) {
+        lbList.innerHTML = '<div style="padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">No state transaction data ingested yet.</div>';
+        return;
+      }
+
+      sortedStates.slice(0, 6).forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'geo-leaderboard-row';
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="geo-rank-num">#${s.rank}</div>
+            <div class="geo-state-info">
+              <div class="geo-state-name">${s.name}</div>
+              <div class="geo-state-count">${formatNumber(s.customerCount)} Customers • ${formatNumber(s.txns)} txns</div>
+            </div>
+          </div>
+          <div class="geo-state-stat">
+            <div class="geo-state-amount">${formatCurrency(s.volume)}</div>
+            <div class="geo-state-sr">${s.sr.toFixed(1)}% SR</div>
+          </div>
+        `;
+        row.addEventListener('click', () => {
+          if (stateSelect) {
+            stateSelect.value = s.name;
+            selectedGeoState = s.name;
+            highlightSelectedGeoState();
+          }
+        });
+        lbList.appendChild(row);
+      });
+    }
+  }
+
+  function updateGreeting() {
+    const heading = document.getElementById('greetingHeading');
+    if (!heading) return;
+    const hour = new Date().getHours();
+    let timeGreet = 'Good Morning';
+    if (hour >= 12 && hour < 17) timeGreet = 'Good Afternoon';
+    else if (hour >= 17 || hour < 5) timeGreet = 'Good Evening';
+    const userName = (currentUser && currentUser.name ? currentUser.name.split(' ')[0] : 'Shreyasth');
+    heading.textContent = `${timeGreet}, ${userName}`;
+  }
+
+  function initFintechControls() {
+    const quickUploadBtn = document.getElementById('quickUploadBtn');
+    const sidebarQuickUploadBtn = document.getElementById('sidebarQuickUploadBtn');
+    const sidebarOpenUploadBtn = document.getElementById('sidebarOpenUploadBtn');
+    const openUploadBtn = document.getElementById('openUploadBtn');
+    const uploadModal = document.getElementById('uploadModal');
+
+    const handleOpenUpload = () => {
+      if (uploadModal) uploadModal.classList.add('visible');
+    };
+
+    if (quickUploadBtn) quickUploadBtn.addEventListener('click', handleOpenUpload);
+    if (sidebarQuickUploadBtn) sidebarQuickUploadBtn.addEventListener('click', handleOpenUpload);
+    if (sidebarOpenUploadBtn) sidebarOpenUploadBtn.addEventListener('click', handleOpenUpload);
+
+    const quickSyncBtn = document.getElementById('quickSyncBtn');
+    const sidebarSyncBtn = document.getElementById('sidebarSyncBtn');
+    const cloudSyncPill = document.getElementById('cloudSyncPill');
+    const handleSync = () => {
+      if (cloudSyncPill) cloudSyncPill.click();
+    };
+    if (quickSyncBtn) quickSyncBtn.addEventListener('click', handleSync);
+    if (sidebarSyncBtn) sidebarSyncBtn.addEventListener('click', handleSync);
+
+    const quickAnalysisBtn = document.getElementById('quickAnalysisBtn');
+    const triggerAnalysisBtn = document.getElementById('triggerAnalysisBtn');
+    if (quickAnalysisBtn && triggerAnalysisBtn) {
+      quickAnalysisBtn.addEventListener('click', () => triggerAnalysisBtn.click());
+    }
+
+    const quickExportBtn = document.getElementById('quickExportBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    if (quickExportBtn && exportCsvBtn) {
+      quickExportBtn.addEventListener('click', () => exportCsvBtn.click());
+    }
+
+    const topAlertsBtn = document.getElementById('topAlertsBtn');
+    const sidebarOpenAlertsBtn = document.getElementById('sidebarOpenAlertsBtn');
+    const openAlertsModalBtn = document.getElementById('openAlertsModalBtn');
+    if (topAlertsBtn && openAlertsModalBtn) {
+      topAlertsBtn.addEventListener('click', () => openAlertsModalBtn.click());
+    }
+    if (sidebarOpenAlertsBtn && openAlertsModalBtn) {
+      sidebarOpenAlertsBtn.addEventListener('click', () => openAlertsModalBtn.click());
+    }
+
+    // Global Search Shortcut ⌘K / Ctrl+K
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('globalSearchInput');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      }
+    });
+
+    const globalSearchInput = document.getElementById('globalSearchInput');
+    if (globalSearchInput) {
+      globalSearchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const analysisSearch = document.getElementById('analysisSearchInput');
+        if (analysisSearch) {
+          analysisSearch.value = query;
+          analysisSearch.dispatchEvent(new Event('input'));
+        }
+      });
+    }
+
+    updateGreeting();
+  }
 
   function initCharts() {
     updateTimelinePspDropdown();
@@ -3108,6 +3616,8 @@
     renderFailureDonutChart();
     renderPaymentMethodChart();
     renderRoutingBenchmarkChart();
+    renderRouteArcChart();
+    renderGeoMetrics();
     renderAnalysisSection();
   }
 
@@ -3134,8 +3644,16 @@
     const numPoints = labels.length;
     if (numPoints === 0) return;
 
-    const maxVol = Math.max(5, Math.max(...volumeData) * 1.25);
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    if (volumeData.every(v => v === 0)) {
+      ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting transaction data to plot timeline...', w / 2, h / 2);
+      return;
+    }
+
+    const maxVol = Math.max(5, Math.max(...volumeData) * 1.25);
 
     // Store metadata for accurate mouse hit-testing & tooltips
     const step = chartW / numPoints;
@@ -3375,18 +3893,20 @@
     const outerRadius = Math.min(centerX, centerY) * 0.78;
     const innerRadius = outerRadius * 0.56;
 
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+    if (getAggregates().totalCount === 0) {
+      ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting transaction data...', w / 2, h / 2);
+      return;
+    }
+
     // Collect response code counts
     const codeMap = {};
     if (dataMode === 'uploaded' && uploadedFailureCodeCounts && Object.keys(uploadedFailureCodeCounts).length > 0) {
       Object.assign(codeMap, uploadedFailureCodeCounts);
-    } else {
-      // Demo simulated response codes
-      const demoFails = getAggregates().failedCount || 1240;
-      codeMap['USER_DROP_PAYMENT_REQUEST'] = Math.round(demoFails * 0.42);
-      codeMap['ISSUER_TIMEOUT'] = Math.round(demoFails * 0.28);
-      codeMap['INSUFFICIENT_FUNDS'] = Math.round(demoFails * 0.16);
-      codeMap['AUTHENTICATION_FAILED'] = Math.round(demoFails * 0.09);
-      codeMap['PAYMENT_EXPIRED'] = Math.max(1, demoFails - Object.values(codeMap).reduce((a,b)=>a+b, 0));
     }
 
     const sortedEntries = Object.entries(codeMap).sort((a, b) => b[1] - a[1]);
@@ -3436,8 +3956,6 @@
       ctx.fill();
       currentAngle += sliceAngle;
     });
-
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
 
     // Donut Center Text
     ctx.textAlign = 'center';
@@ -3646,9 +4164,14 @@
     const h = rect.height;
     ctx.clearRect(0, 0, w, h);
 
-    if (!paymentMethods || paymentMethods.length === 0) return;
-
     const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    if (!paymentMethods || paymentMethods.length === 0 || paymentMethods.every(pm => pm.totalCount === 0)) {
+      ctx.fillStyle = isLight ? '#64748b' : '#9ca3af';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting transaction data...', w / 2, h / 2);
+      return;
+    }
     const padding = { top: 22, right: 30, bottom: 20, left: 68 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
@@ -3741,7 +4264,13 @@
 
     const list = [...pspList].filter(p => p.count > 0).slice(0, 5);
     benchmarkRowCoordinates = [];
-    if (list.length === 0) return;
+    if (list.length === 0) {
+      ctx.fillStyle = isLight ? '#64748b' : '#9ca3af';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting transaction data...', w / 2, h / 2);
+      return;
+    }
 
     const rowH = chartH / list.length;
     const barH = rowH * 0.55;
@@ -3860,65 +4389,99 @@
     renderAnalysisSection();
   }
 
+  function getMerchantAvatarInfo(name) {
+    const n = String(name || '').toLowerCase();
+    if (n.includes('swiggy')) return { cls: 'swiggy', text: 'SW' };
+    if (n.includes('amazon')) return { cls: 'amazon', text: 'AZ' };
+    if (n.includes('uber')) return { cls: 'uber', text: 'UB' };
+    if (n.includes('flipkart')) return { cls: 'flipkart', text: 'FK' };
+    if (n.includes('netflix')) return { cls: 'netflix', text: 'NF' };
+    if (n.includes('zomato')) return { cls: 'zomato', text: 'ZM' };
+    if (n.includes('shopify')) return { cls: 'shopify', text: 'SH' };
+    if (n.includes('apple')) return { cls: 'apple', text: 'AP' };
+
+    const words = String(name || 'TB').trim().split(/[\s_-]+/);
+    if (words.length >= 2 && words[0] && words[1]) {
+      return { cls: '', text: (words[0][0] + words[1][0]).toUpperCase() };
+    }
+    return { cls: '', text: String(name || 'TX').substring(0, 2).toUpperCase() };
+  }
+
   function renderFeed() {
     const listEl = document.getElementById('feedList');
     if (!listEl) return;
     listEl.innerHTML = '';
+
+    if (feedItems.length === 0) {
+      listEl.innerHTML = '<div style="padding: 28px 16px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⏳ No live feed transactions yet. Ingest hourly CSV/Excel or sync from Team Cloud to view live transactions.</div>';
+      return;
+    }
+
     feedItems.forEach(item => {
+      const avatarInfo = getMerchantAvatarInfo(item.merchantName);
       const div = document.createElement('div');
-      div.className = 'feed-item';
+      div.className = 'feed-row-item';
       div.innerHTML = `
-        <div class="feed-left">
-          <span class="feed-status-dot ${item.isSuccess ? 'success' : 'failed'}"></span>
-          <div class="feed-meta">
-            <span class="feed-txn-id">${item.txnId}</span>
-            <span class="feed-sub">${item.merchantName} • ${item.method} • ${item.timeStr}</span>
+        <div class="feed-row-left">
+          <div class="feed-avatar-square ${avatarInfo.cls}">${avatarInfo.text}</div>
+          <div>
+            <div class="feed-meta-title">${item.merchantName}</div>
+            <div class="feed-meta-sub">${item.method} • ${item.timeStr}</div>
           </div>
         </div>
-        <div class="feed-right">
-          <div>
-            <div class="feed-amount ${item.isSuccess ? 'text-success' : 'text-failed'}">
-              ${item.isSuccess ? '+' : '✕'} ${formatExactCurrency(item.amount)}
-            </div>
-            ${!item.isSuccess ? `<span style="font-size: 0.7rem; color: var(--failed-red);">${item.failReason}</span>` : ''}
+        <div>
+          <div class="feed-amount-badge ${item.isSuccess ? 'success' : 'failed'}">
+            ${item.isSuccess ? '+' : '✕'} ${formatExactCurrency(item.amount)}
           </div>
-          <span class="feed-badge ${item.isSuccess ? 'kpi-badge up' : 'kpi-badge down'}">
-            ${item.isSuccess ? 'SETTLED' : 'DECLINED'}
-          </span>
+          <div style="font-size: 0.68rem; color: var(--text-dim); text-align: right;">
+            ${item.isSuccess ? 'Settled' : (item.failReason || 'Declined')}
+          </div>
         </div>
       `;
       listEl.appendChild(div);
     });
   }
 
-  for (let i = 0; i < 5; i++) {
-    generateMockTransaction();
-  }
-
   const toggleSimBtn = document.getElementById('toggleSimBtn');
   const simStatusText = document.getElementById('simStatusText');
 
   function startSimulation() {
-    if (simInterval) clearInterval(simInterval);
-    simInterval = setInterval(generateMockTransaction, 2400);
-    simActive = true;
-    toggleSimBtn.className = 'btn-action btn-sim-active';
-    simStatusText.textContent = 'Streaming Active';
+    if (simInterval) {
+      clearInterval(simInterval);
+      simInterval = null;
+    }
+    simActive = false;
+    if (toggleSimBtn) {
+      toggleSimBtn.className = 'btn-action';
+      toggleSimBtn.style.display = 'none';
+    }
+    if (simStatusText) {
+      simStatusText.textContent = 'Streaming Inactive';
+    }
   }
 
   function stopSimulation() {
-    if (simInterval) clearInterval(simInterval);
+    if (simInterval) {
+      clearInterval(simInterval);
+      simInterval = null;
+    }
     simActive = false;
-    toggleSimBtn.className = 'btn-action';
-    simStatusText.textContent = 'Streaming Paused';
+    if (toggleSimBtn) {
+      toggleSimBtn.className = 'btn-action';
+      toggleSimBtn.style.display = 'none';
+    }
+    if (simStatusText) {
+      simStatusText.textContent = 'Streaming Inactive';
+    }
   }
 
-  toggleSimBtn.addEventListener('click', () => {
-    if (simActive) stopSimulation();
-    else startSimulation();
-  });
+  if (toggleSimBtn) {
+    toggleSimBtn.addEventListener('click', () => {
+      stopSimulation();
+    });
+  }
 
-  startSimulation();
+  stopSimulation();
 
   document.getElementById('timeRangeSelect').addEventListener('change', (e) => {
     currentTimeRange = e.target.value;
@@ -6415,36 +6978,58 @@ Incident Timestamp: ${timeStr}`;
         const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
 
         emailjs.init({ publicKey: ej.publicKey });
-        emailjs.send(ej.serviceId, ej.templateId, {
-          to_emails: emails.join(', '),
-          to_email: emails[0] || 'ops@transactbridge.io',
-          to_name: 'Operations Team',
-          from_name: 'Transact Bridge Incident Sentinel',
-          recipient: emails.join(', '),
-          subject: emailSubject,
-          message: emailBody,
-          incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
-          success_rate: `${sr.toFixed(2)}%`,
-          sla_target: `${critThreshold.toFixed(1)}%`,
-          total_transactions: formatNumber(agg.totalCount),
-          failed_transactions: formatNumber(agg.failedCount),
-          failed_rate: `${agg.failureRate.toFixed(2)}%`,
-          failed_amount: formatCurrency(agg.failedAmount),
-          recoverable_amount: formatCurrency(recoverableAmt),
-          impacted_gateway: diag.topPsp || 'Razorpay Gateway',
-          dominant_cause: cleanError,
-          technical_friction: `${techPct}%`,
-          user_friction: `${100 - techPct}%`,
-          email_body: emailBody,
-          email_body_html: emailBodyHtml,
-          timestamp: new Date().toLocaleString()
-        }).then(function(res) {
-          showToast(`✉️ Automated email dispatched via EmailJS to ${emails.length} recipient(s)!`);
-        }, function(err) {
-          console.warn('EmailJS error, falling back to mail client:', err);
-          showToast(`⚠️ EmailJS error (${err.text || 'Check keys'}). Opening mail client...`);
-          window.location.href = mailtoUrl;
-        });
+        
+        (async () => {
+          const results = [];
+          for (const targetEmail of emails) {
+            try {
+              const res = await emailjs.send(ej.serviceId, ej.templateId, {
+                to_email: targetEmail,
+                to_emails: targetEmail,
+                recipient: targetEmail,
+                recipient_email: targetEmail,
+                email: targetEmail,
+                to: targetEmail,
+                dest_email: targetEmail,
+                user_email: targetEmail,
+                reply_to: 'ops@transactbridge.com',
+                to_name: targetEmail.split('@')[0] || 'Operations Team',
+                from_name: 'Transact Bridge Incident Sentinel',
+                subject: emailSubject,
+                message: emailBody,
+                incident_title: reason || (isBreachSimulated ? 'SLA Breach Simulation' : 'CRITICAL SLA ALERT'),
+                success_rate: `${sr.toFixed(2)}%`,
+                sla_target: `${critThreshold.toFixed(1)}%`,
+                total_transactions: formatNumber(agg.totalCount),
+                failed_transactions: formatNumber(agg.failedCount),
+                failed_rate: `${agg.failureRate.toFixed(2)}%`,
+                failed_amount: formatCurrency(agg.failedAmount),
+                recoverable_amount: formatCurrency(recoverableAmt),
+                impacted_gateway: diag.topPsp || 'Awaiting Ingestion',
+                dominant_cause: cleanError || 'None',
+                technical_friction: `${techPct}%`,
+                user_friction: `${100 - techPct}%`,
+                email_body: emailBody,
+                email_body_html: emailBodyHtml,
+                timestamp: new Date().toLocaleString()
+              });
+              results.push({ email: targetEmail, ok: true, status: res.status || 200 });
+            } catch (err) {
+              results.push({ email: targetEmail, ok: false, error: err.text || err.message });
+            }
+            await new Promise(r => setTimeout(r, 200));
+          }
+
+          const successes = results.filter(r => r.ok).length;
+          if (successes > 0) {
+            showToast(`✉️ Automated email dispatched via EmailJS to ${successes} recipient(s)!`);
+          } else {
+            const firstErr = results.find(r => !r.ok)?.error;
+            console.warn('EmailJS error, falling back to mail client:', firstErr);
+            showToast(`⚠️ EmailJS error (${firstErr || 'Check template & keys'}). Opening mail client...`);
+            window.location.href = mailtoUrl;
+          }
+        })();
         return;
       } catch (e) {
         console.warn('EmailJS exception:', e);
@@ -7046,7 +7631,7 @@ Incident Timestamp: ${timeStr}`;
   // EmailJS Test Dispatch Button
   const testEmailJsBtn = document.getElementById('testEmailJsBtn');
   if (testEmailJsBtn) {
-    testEmailJsBtn.addEventListener('click', () => {
+    testEmailJsBtn.addEventListener('click', async () => {
       const sId = document.getElementById('emailjsServiceId')?.value.trim();
       const tId = document.getElementById('emailjsTemplateId')?.value.trim();
       const pKey = document.getElementById('emailjsPublicKey')?.value.trim();
@@ -7064,59 +7649,141 @@ Incident Timestamp: ${timeStr}`;
         return;
       }
       const testEmails = alertSettings.recipients.emails || [];
-      const recipientStr = testEmails.join(', ') || 'ops@transactbridge.io';
-      showToast('⏳ Sending test email via EmailJS...');
+      if (testEmails.length === 0) {
+        showToast('⚠️ Please configure at least one email address tag above first');
+        return;
+      }
+
+      showToast(`⏳ Sending test email to ${testEmails.length} recipient(s)...`);
+      const statusReport = document.getElementById('emailJsStatusReport');
+      if (statusReport) {
+        statusReport.style.display = 'block';
+        statusReport.innerHTML = `<div style="font-size: 0.72rem; color: var(--text-dim); padding: 8px; background: rgba(59, 130, 246, 0.05); border-radius: 6px;">⏳ Dispatching test emails sequentially to ${testEmails.length} address(es)...</div>`;
+      }
+
       try {
         const agg = getAggregates();
-        const sr = agg.totalCount > 0 ? agg.successRate : 84.6;
+        const hasData = agg.totalCount > 0;
+        const sr = hasData ? agg.successRate : 0.0;
         const { emailSubject, emailBody, emailBodyHtml } = buildIncidentMessages(sr, agg, 'SLA Watchdog System Verification');
         const diag = getTopFailureDiagnostics();
         const cleanError = formatCleanErrorReason(diag.topErrorCode);
-        const recoverableAmt = Math.round((agg.failedAmount || 8518847) * 0.78);
+        const recoverableAmt = Math.round((agg.failedAmount || 0) * 0.78);
         const critThreshold = alertSettings.thresholds.criticalSr || 90.0;
         const techPct = (cleanError.includes('Bank') || cleanError.includes('Gateway') || cleanError.includes('Timeout')) ? 68 : 32;
 
         emailjs.init({ publicKey: pKey });
-        emailjs.send(sId, tId, {
-          to_emails: recipientStr,
-          to_email: testEmails[0] || 'ops@transactbridge.io',
-          to_name: 'Operations Team',
-          from_name: 'Transact Bridge Incident Sentinel',
-          recipient: recipientStr,
-          subject: emailSubject,
-          message: emailBody,
-          incident_title: 'SLA Watchdog System Verification',
-          success_rate: `${sr.toFixed(2)}%`,
-          sla_target: `${critThreshold.toFixed(1)}%`,
-          total_transactions: formatNumber(agg.totalCount || 3617908),
-          failed_transactions: formatNumber(agg.failedCount || 160721),
-          failed_rate: `${(agg.failureRate || 15.4).toFixed(2)}%`,
-          failed_amount: formatCurrency(agg.failedAmount || 8518847),
-          recoverable_amount: formatCurrency(recoverableAmt || 6644700),
-          impacted_gateway: diag.topPsp || 'Razorpay Gateway',
-          dominant_cause: cleanError || 'Customer Checkout Abandonment (User Drop-off)',
-          technical_friction: `${techPct}%`,
-          user_friction: `${100 - techPct}%`,
-          email_body: emailBody,
-          email_body_html: emailBodyHtml,
-          timestamp: new Date().toLocaleString()
-        }).then(function(res) {
-          showToast('✅ Test email sent successfully via EmailJS!');
+
+        const results = [];
+        for (const targetEmail of testEmails) {
+          const isGmail = targetEmail.toLowerCase().includes('@gmail.com');
+          try {
+            const res = await emailjs.send(sId, tId, {
+              to_email: targetEmail,
+              to_emails: targetEmail,
+              recipient: targetEmail,
+              recipient_email: targetEmail,
+              email: targetEmail,
+              to: targetEmail,
+              dest_email: targetEmail,
+              user_email: targetEmail,
+              reply_to: 'ops@transactbridge.com',
+              to_name: targetEmail.split('@')[0] || 'Operations Team',
+              from_name: 'Transact Bridge Incident Sentinel',
+              subject: emailSubject,
+              message: emailBody,
+              incident_title: 'SLA Watchdog System Verification',
+              success_rate: hasData ? `${sr.toFixed(2)}%` : '--',
+              sla_target: `${critThreshold.toFixed(1)}%`,
+              total_transactions: formatNumber(agg.totalCount),
+              failed_transactions: formatNumber(agg.failedCount),
+              failed_rate: hasData ? `${agg.failureRate.toFixed(2)}%` : '0.00%',
+              failed_amount: formatCurrency(agg.failedAmount),
+              recoverable_amount: formatCurrency(recoverableAmt),
+              impacted_gateway: diag.topPsp || 'Awaiting Ingestion',
+              dominant_cause: cleanError || 'None',
+              technical_friction: `${techPct}%`,
+              user_friction: `${100 - techPct}%`,
+              email_body: emailBody,
+              email_body_html: emailBodyHtml,
+              timestamp: new Date().toLocaleString()
+            });
+            results.push({ email: targetEmail, ok: true, isGmail, statusText: '200 OK (Dispatched)' });
+          } catch (err) {
+            results.push({ email: targetEmail, ok: false, isGmail, statusText: err?.text || err?.message || 'Delivery Rejected' });
+          }
+          await new Promise(r => setTimeout(r, 250));
+        }
+
+        const successes = results.filter(r => r.ok).length;
+        if (statusReport) {
+          statusReport.style.display = 'block';
+          statusReport.innerHTML = `
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-top: 10px;">
+              <div style="font-weight: 700; font-size: 0.76rem; margin-bottom: 6px; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
+                <span>📬 Multi-Recipient Dispatch Status (${successes}/${testEmails.length} Sent):</span>
+                <span class="status-chip ${successes === testEmails.length ? 'healthy' : 'warning'}">${successes === testEmails.length ? 'ALL DISPATCHED' : 'PARTIAL'}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem;">
+                ${results.map(r => `
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; border-radius: 4px; background: ${r.ok ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)'};">
+                    <span>${r.ok ? '✅' : '❌'} <strong>${r.email}</strong></span>
+                    <span style="font-size: 0.68rem; color: ${r.ok ? 'var(--success-green)' : 'var(--failed-red)'}; font-weight: 600;">${r.statusText}</span>
+                  </div>
+                  ${r.isGmail && r.ok ? `<div style="font-size: 0.68rem; color: var(--warning-amber); padding-left: 18px;">⚠️ Note: Messages sent to <code>${r.email}</code> often land in <strong>Spam / Junk</strong> or <strong>Promotions</strong>.</div>` : ''}
+                `).join('')}
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color); font-size: 0.7rem; color: var(--text-muted); line-height: 1.4;">
+                💡 <strong>Only receiving on your primary email?</strong> In your <a href="https://dashboard.emailjs.com/admin/templates" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary); text-decoration: underline;">EmailJS Dashboard</a> &rarr; Template &rarr; <strong>Settings</strong>, ensure the <strong>"To Email"</strong> field is set to <code>{{to_email}}</code> (not your own email).
+              </div>
+            </div>
+          `;
+        }
+
+        if (successes > 0) {
+          showToast(`✅ Test email delivered to ${successes} of ${testEmails.length} recipient(s)!`);
           const ejBadge = document.getElementById('emailjsStatusBadge');
           if (ejBadge) {
-            ejBadge.textContent = 'VERIFIED';
+            ejBadge.textContent = 'CONNECTED';
             ejBadge.className = 'status-chip healthy';
           }
-          const feedback = document.getElementById('emailJsSaveFeedback');
-          if (feedback) {
-            feedback.style.display = 'block';
-            feedback.innerHTML = '✅ Verified live connection! Test dispatch delivered to ' + recipientStr;
-          }
-        }, function(err) {
-          showToast(`❌ EmailJS failed: ${err.text || err.message || 'Check your keys'}`);
-        });
+        } else {
+          const firstErr = results.find(r => !r.ok)?.statusText;
+          showToast(`❌ EmailJS failed: ${firstErr || 'Check your template and keys'}`);
+        }
       } catch (err) {
         showToast(`❌ EmailJS exception: ${err.message}`);
+      }
+    });
+  }
+
+  // Copy {{to_email}} Variable Button
+  const copyToEmailVarBtn = document.getElementById('copyToEmailVarBtn');
+  if (copyToEmailVarBtn) {
+    copyToEmailVarBtn.addEventListener('click', () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText('{{to_email}}').then(() => {
+          showToast('📋 Copied {{to_email}} to clipboard! Paste it into EmailJS Template Settings.');
+        });
+      } else {
+        prompt('Copy {{to_email}} for EmailJS Template Settings:', '{{to_email}}');
+      }
+    });
+  }
+
+  // Stakeholder Snapshot Export / Import Handlers
+  const exportSnapshotBtn = document.getElementById('exportSnapshotBtn');
+  if (exportSnapshotBtn) {
+    exportSnapshotBtn.addEventListener('click', () => exportStakeholderSnapshot());
+  }
+
+  const importSnapshotFile = document.getElementById('importSnapshotFile');
+  if (importSnapshotFile) {
+    importSnapshotFile.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        importStakeholderSnapshot(file);
+        closeUploadModal();
       }
     });
   }
@@ -8580,9 +9247,9 @@ Recommended Immediate Actions:
       } catch (_) {}
 
       try {
-        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1', {
+        fetch('https://ntfy.sh/tb_shared_permissions_transactbridge_v1', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Title': 'TransactBridge Role Permissions' },
           body: JSON.stringify(payload)
         }).catch(() => {});
       } catch (_) {}
@@ -8601,11 +9268,22 @@ Recommended Immediate Actions:
       } catch (_) {}
 
       try {
-        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1?t=${Date.now()}`);
+        const fbRes = await fetch('https://ntfy.sh/tb_shared_permissions_transactbridge_v1/json?poll=1');
         if (fbRes.ok) {
-          const fbJson = await fbRes.json();
-          if (fbJson && fbJson.permissions) {
-            this.savePermissions(fbJson.permissions, false);
+          const text = await fbRes.text();
+          const lines = text.trim().split('\n').filter(Boolean);
+          if (lines.length > 0) {
+            const last = JSON.parse(lines[lines.length - 1]);
+            let data = null;
+            if (last.attachment && last.attachment.url) {
+              const attRes = await fetch(last.attachment.url);
+              if (attRes.ok) data = await attRes.json();
+            } else if (last.message) {
+              try { data = JSON.parse(last.message); } catch (_) {}
+            }
+            if (data && data.permissions) {
+              this.savePermissions(data.permissions, false);
+            }
           }
         }
       } catch (_) {}
@@ -8614,16 +9292,22 @@ Recommended Immediate Actions:
 
   // =========================================================================
   // Transact Bridge Global Cloud Synchronization Module
-  // Allows any uploaded dataset to be viewed live by anyone with the link
+  // Real-time synchronization across Admin and Viewer sessions
   // =========================================================================
   const CLOUD_STORAGE_KEY = 'tb_cloud_latest_batch';
   const CLOUD_ALERT_STORAGE_KEY = 'tb_cloud_alert_settings';
+  const NTFY_TXS_TOPIC = 'https://ntfy.sh/tb_shared_txs_transactbridge_v1';
+  const NTFY_ALERTS_TOPIC = 'https://ntfy.sh/tb_shared_alerts_transactbridge_v1';
+  const NTFY_PERMS_TOPIC = 'https://ntfy.sh/tb_shared_permissions_transactbridge_v1';
 
   const cloudSyncManager = {
     activeCloudBatchId: null,
     lastSyncTimestamp: null,
     isSyncing: false,
     syncInterval: null,
+    sseTxs: null,
+    sseAlerts: null,
+    ssePerms: null,
 
     init() {
       this.bindEvents();
@@ -8631,11 +9315,14 @@ Recommended Immediate Actions:
       this.fetchFromCloud(true);
       this.fetchAlertSettingsFromCloud();
 
-      // Periodic cloud polling (every 35s)
+      // Real-Time Server-Sent Events (SSE) stream for instant sub-second sync across all users!
+      this.initRealtimeStream();
+
+      // Periodic cloud polling backup (every 15s)
       this.syncInterval = setInterval(() => {
         this.fetchFromCloud(true);
         this.fetchAlertSettingsFromCloud();
-      }, 35000);
+      }, 15000);
 
       // Auto-sync when window gains focus or tab becomes visible
       window.addEventListener('focus', () => {
@@ -8650,17 +9337,137 @@ Recommended Immediate Actions:
       });
     },
 
+    initRealtimeStream() {
+      try {
+        if (typeof EventSource !== 'undefined') {
+          // 1. Live transactions stream
+          this.sseTxs = new EventSource(`${NTFY_TXS_TOPIC}/sse`);
+          this.sseTxs.onmessage = async (e) => {
+            try {
+              if (!e.data) return;
+              const evt = JSON.parse(e.data);
+              if (evt.event === 'message') {
+                let data = null;
+                if (evt.attachment && evt.attachment.url) {
+                  const r = await fetch(evt.attachment.url);
+                  if (r.ok) data = await r.json();
+                } else if (evt.message) {
+                  try { data = JSON.parse(evt.message); } catch (_) {}
+                }
+                if (data) {
+                  // If shared data was cleared
+                  if (data.action === 'batch_cleared') {
+                    resetToDemo();
+                    showToast('🗑️ Shared team data was cleared by Administrator.');
+                    return;
+                  }
+                  // If lightweight ping (< 300 bytes)
+                  if (data.action === 'batch_updated' || data.type === 'batch_update') {
+                    this.fetchFromCloud(false);
+                    return;
+                  }
+                  const b = data.batch || data;
+                  if (b && b.transactions && b.transactions.length > 0 && b.id !== this.activeCloudBatchId) {
+                    this.applyCloudBatch(data, false);
+                    showToast(`☁️ Live Ingestion: Received ${formatNumber(b.count || b.transactions.length)} records from ${data.uploadedBy || 'Admin'}!`);
+                  }
+                }
+              }
+            } catch (_) {}
+          };
+
+          // 2. Live alert config stream
+          this.sseAlerts = new EventSource(`${NTFY_ALERTS_TOPIC}/sse`);
+          this.sseAlerts.onmessage = async (e) => {
+            try {
+              if (!e.data) return;
+              const evt = JSON.parse(e.data);
+              if (evt.event === 'message') {
+                let data = null;
+                if (evt.attachment && evt.attachment.url) {
+                  const r = await fetch(evt.attachment.url);
+                  if (r.ok) data = await r.json();
+                } else if (evt.message) {
+                  try { data = JSON.parse(evt.message); } catch (_) {}
+                }
+                if (data && (data.alertSettings || data.thresholds)) {
+                  this.applyCloudAlertSettings(data.alertSettings || data);
+                }
+              }
+            } catch (_) {}
+          };
+
+          // 3. Live permissions stream
+          this.ssePerms = new EventSource(`${NTFY_PERMS_TOPIC}/sse`);
+          this.ssePerms.onmessage = async (e) => {
+            try {
+              if (!e.data) return;
+              const evt = JSON.parse(e.data);
+              if (evt.event === 'message') {
+                let data = null;
+                if (evt.attachment && evt.attachment.url) {
+                  const r = await fetch(evt.attachment.url);
+                  if (r.ok) data = await r.json();
+                } else if (evt.message) {
+                  try { data = JSON.parse(evt.message); } catch (_) {}
+                }
+                if (data && data.permissions && typeof rolePermissionsManager !== 'undefined') {
+                  rolePermissionsManager.savePermissions(data.permissions, false);
+                }
+              }
+            } catch (_) {}
+          };
+        }
+      } catch (err) {
+        console.warn('Realtime SSE stream setup failed:', err.message);
+      }
+    },
+
+    handleSyncAction() {
+      const user = (typeof authManager !== 'undefined' && authManager.getCurrentUser()) || { role: 'admin' };
+      const isAdmin = user.role === 'admin' || (typeof permissionsManager !== 'undefined' && permissionsManager.canUpload());
+
+      // If user is Admin and has local uploaded transactions, PUSH to team cloud
+      if (isAdmin && currentTransactions && currentTransactions.length > 0) {
+        const batchToSync = (uploadedBatches && uploadedBatches.length > 0) ? uploadedBatches[0] : {
+          id: activeBatchId || 'batch_' + Date.now(),
+          name: 'Manual Upload Batch',
+          uploadedAt: new Date().toISOString(),
+          count: currentTransactions.length,
+          transactions: currentTransactions
+        };
+        this.publishToCloud(batchToSync);
+        if (typeof rolePermissionsManager !== 'undefined') {
+          rolePermissionsManager.loadPermissions();
+        }
+      } else {
+        // Viewer or Admin without local transactions: PULL latest from cloud
+        this.fetchFromCloud(false);
+        this.fetchAlertSettingsFromCloud();
+        if (typeof rolePermissionsManager !== 'undefined') {
+          rolePermissionsManager.loadPermissions();
+        }
+      }
+    },
+
     bindEvents() {
       const cloudRefreshBtn = document.getElementById('cloudRefreshBtn');
+      const cloudSyncPill = document.getElementById('cloudSyncPill');
       const dropdownRefreshCloudBtn = document.getElementById('dropdownRefreshCloudBtn');
       const shareTeamLinkBtn = document.getElementById('shareTeamLinkBtn');
       const dropdownShareLinkBtn = document.getElementById('dropdownShareLinkBtn');
 
+      if (cloudSyncPill) {
+        cloudSyncPill.style.cursor = 'pointer';
+        cloudSyncPill.addEventListener('click', () => {
+          this.handleSyncAction();
+        });
+      }
+
       if (cloudRefreshBtn) {
         cloudRefreshBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          this.fetchFromCloud(false);
-          this.fetchAlertSettingsFromCloud();
+          this.handleSyncAction();
         });
       }
 
@@ -8668,8 +9475,7 @@ Recommended Immediate Actions:
         dropdownRefreshCloudBtn.addEventListener('click', () => {
           const userDropdownCard = document.getElementById('userDropdownCard');
           if (userDropdownCard) userDropdownCard.style.display = 'none';
-          this.fetchFromCloud(false);
-          this.fetchAlertSettingsFromCloud();
+          this.handleSyncAction();
         });
       }
 
@@ -8716,23 +9522,22 @@ Recommended Immediate Actions:
         localStorage.setItem(CLOUD_ALERT_STORAGE_KEY, JSON.stringify(settings));
       } catch (_) {}
 
-      try {
-        await fetch('/api/data', {
+      // Concurrently publish to /api/data AND cloud relay
+      const promises = [
+        fetch('/api/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-      } catch (err) {
-        console.warn('POST /api/data alert settings failed:', err.message);
-      }
+        }).catch(err => console.warn('POST /api/data alert settings failed:', err.message)),
 
-      try {
-        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1', {
+        fetch(NTFY_ALERTS_TOPIC, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(settings)
-        }).catch(() => {});
-      } catch (_) {}
+          headers: { 'Content-Type': 'application/json', 'Title': 'TransactBridge Alert Config' },
+          body: JSON.stringify(payload)
+        }).catch(() => {})
+      ];
+
+      await Promise.allSettled(promises);
     },
 
     applyCloudAlertSettings(cloudSettings) {
@@ -8796,14 +9601,25 @@ Recommended Immediate Actions:
         console.warn('GET /api/data alertSettings failed:', err.message);
       }
 
-      // 2. Try durable public fallback KV
+      // 2. Try durable cloud relay
       try {
-        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1?t=${Date.now()}`);
+        const fbRes = await fetch(`${NTFY_ALERTS_TOPIC}/json?poll=1`);
         if (fbRes.ok) {
-          const fbSettings = await fbRes.json();
-          if (fbSettings && fbSettings.thresholds) {
-            this.applyCloudAlertSettings(fbSettings);
-            return;
+          const text = await fbRes.text();
+          const lines = text.trim().split('\n').filter(Boolean);
+          if (lines.length > 0) {
+            const last = JSON.parse(lines[lines.length - 1]);
+            let data = null;
+            if (last.attachment && last.attachment.url) {
+              const attRes = await fetch(last.attachment.url);
+              if (attRes.ok) data = await attRes.json();
+            } else if (last.message) {
+              try { data = JSON.parse(last.message); } catch (_) {}
+            }
+            if (data && (data.alertSettings || data.thresholds)) {
+              this.applyCloudAlertSettings(data.alertSettings || data);
+              return;
+            }
           }
         }
       } catch (_) {}
@@ -8822,13 +9638,29 @@ Recommended Immediate Actions:
       this.updateSyncPill('syncing');
 
       const user = authManager.getCurrentUser() || { name: 'Admin', role: 'admin' };
+      const rawTxs = batchObj.transactions;
+
+      // Transmit all uploaded transactions (compact array format) - NO arbitrary capping!
+      const compactTxs = rawTxs.map(t => [
+        t.id || '',
+        t.merchantId || '',
+        t.status || (t.isSuccess ? 'SUCCESS' : 'FAILED'),
+        t.amount || 0,
+        t.payMethod || 'UPI',
+        t.pgProvider || '',
+        t.upiApp || '',
+        t.upiHandle || '',
+        t.createdDate || t.dateTime || new Date().toISOString(),
+        t.responseCode || t.failureReason || ''
+      ]);
+
       const payload = {
         batch: {
           id: batchObj.id,
           name: batchObj.name,
           uploadedAt: batchObj.uploadedAt,
-          count: batchObj.transactions.length,
-          transactions: batchObj.transactions
+          count: rawTxs.length,
+          transactions: compactTxs
         },
         uploadedBy: user.name,
         aggregates: getAggregates(),
@@ -8836,38 +9668,47 @@ Recommended Immediate Actions:
       };
 
       try {
-        // 1. Post to Vercel Serverless API (/api/data)
-        const res = await fetch('/api/data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          const resData = await res.json();
-          this.activeCloudBatchId = batchObj.id;
-          this.lastSyncTimestamp = Date.now();
-          this.updateSyncPill('synced', 'Team Cloud Synced');
-          showToast(`☁️ Synchronized ${formatNumber(batchObj.transactions.length)} transactions to team cloud!`);
-          return;
-        }
-      } catch (err) {
-        console.warn('POST /api/data failed (local dev or no api host):', err.message);
-      }
-
-      // Also cache in local cloud mirror and durable cloud relay
-      try {
         localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(payload));
-        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
+      } catch (_) {}
+
+      // Concurrently push to /api/data AND cloud relay ping (< 300 bytes)
+      const promises = [
+        fetch('/api/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        }).catch(() => {});
-      } catch (e) {}
+        }).then(r => r.ok ? r.json() : null).catch(err => {
+          console.warn('POST /api/data failed:', err.message);
+          return null;
+        }),
+
+        // Lightweight SSE ping: NO heavy body, so ntfy NEVER rejects with 413!
+        fetch(NTFY_TXS_TOPIC, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Title': `Shared Batch: ${batchObj.name}`
+          },
+          body: JSON.stringify({
+            action: 'batch_updated',
+            batchId: batchObj.id,
+            name: batchObj.name,
+            count: rawTxs.length,
+            uploadedBy: user.name,
+            timestamp: Date.now()
+          })
+        }).then(r => r.ok ? r.json() : null).catch(err => {
+          console.warn('POST ntfy ping failed:', err.message);
+          return null;
+        })
+      ];
+
+      await Promise.allSettled(promises);
 
       this.activeCloudBatchId = batchObj.id;
       this.lastSyncTimestamp = Date.now();
       this.updateSyncPill('synced', 'Team Cloud Synced');
+      showToast(`☁️ Synchronized ${formatNumber(rawTxs.length)} transactions to team cloud!`);
     },
 
     async fetchFromCloud(silent = false) {
@@ -8875,19 +9716,66 @@ Recommended Immediate Actions:
       this.isSyncing = true;
       if (!silent) this.updateSyncPill('syncing');
 
-      const applyCloudBatch = (cloudBatch) => {
-        if (!cloudBatch || !cloudBatch.transactions || cloudBatch.transactions.length === 0) return false;
-        if (cloudBatch.id === this.activeCloudBatchId && dataMode === 'uploaded') return false;
+      let applied = false;
+      let foundCloudData = false;
 
-        this.activeCloudBatchId = cloudBatch.id;
+      const applyCloudBatch = (cloudBatch) => {
+        if (!cloudBatch) return false;
+        const b = cloudBatch.batch || cloudBatch;
+        const txs = b.transactions || cloudBatch.transactions;
+        if (!txs || txs.length === 0) return false;
+        foundCloudData = true;
+
+        if (b.id === this.activeCloudBatchId && dataMode === 'uploaded') return false;
+
+        this.activeCloudBatchId = b.id;
         this.lastSyncTimestamp = Date.now();
 
-        const normalized = cloudBatch.transactions.map(normalizeRow);
+        // Unpack compact array rows if present, else normalize standard rows
+        const normalized = txs.map(t => {
+          if (Array.isArray(t)) {
+            const [id, merchantId, status, amount, payMethod, pgProvider, upiApp, upiHandle, date, responseCode] = t;
+            const isSuccess = (status === 'SUCCESS');
+            const isFailed = (status === 'FAILED' || status === 'DECLINED' || status === 'DROPPED' || status === 'REJECTED');
+            return {
+              id: id || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase()),
+              merchantId: merchantId || 'MERCH_DEFAULT',
+              merchantName: merchantId || 'MERCH_DEFAULT',
+              customerId: '',
+              status: status || 'SUCCESS',
+              isSuccess,
+              isFailed,
+              isCountedInTotal: true,
+              isRevenueAtRisk: isFailed,
+              amount: Number(amount) || 0,
+              totalAmount: Number(amount) || 0,
+              currency: 'INR',
+              payMethod: payMethod || 'UPI',
+              sourceDevice: 'Mobile',
+              sourceOS: 'Android',
+              bankName: '',
+              pgProvider: pgProvider || 'UNKNOWN_PSP',
+              upiApp: upiApp || 'UPI',
+              upiHandle: upiHandle || '',
+              failCategory: 'timeout',
+              responseCode: responseCode || '',
+              failureReason: responseCode || '',
+              failedState: responseCode || '',
+              rawFailState: responseCode || '',
+              successDate: isSuccess ? date : '',
+              failedDate: isFailed ? date : '',
+              createdDate: date || new Date().toISOString(),
+              dateTime: date || new Date().toISOString()
+            };
+          }
+          return normalizeRow(t);
+        });
+
         uploadedBatches = [{
-          id: cloudBatch.id,
-          name: cloudBatch.name || 'Shared Team Batch',
-          uploadedAt: cloudBatch.uploadedAt,
-          count: normalized.length,
+          id: b.id,
+          name: b.name || 'Shared Team Batch',
+          uploadedAt: b.uploadedAt || cloudBatch.uploadedAt,
+          count: b.count || normalized.length,
           transactions: normalized
         }];
 
@@ -8906,16 +9794,19 @@ Recommended Immediate Actions:
         if (banner && tag && msg) {
           tag.className = 'data-status-tag tag-uploaded';
           tag.textContent = 'Team Shared Ingestion';
-          const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
-          msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
+          const timeStr = (b.uploadedAt || cloudBatch.uploadedAt) ? new Date(b.uploadedAt || cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+          msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(b.count || normalized.length)} records). Live for all users on this link.`;
         }
 
         this.updateSyncPill('synced', 'Team Cloud Synced');
         if (!silent) {
-          showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
+          showToast(`☁️ Loaded ${formatNumber(b.count || normalized.length)} shared team transactions!`);
         }
+        applied = true;
         return true;
       };
+
+      this.applyCloudBatch = applyCloudBatch;
 
       try {
         // 1. Fetch from Vercel Serverless API (/api/data)
@@ -8923,15 +9814,21 @@ Recommended Immediate Actions:
         if (res.ok) {
           const json = await res.json();
           if (json && json.success) {
-            // Apply synced alert settings if included
             if (json.alertSettings || (json.data && json.data.alertSettings)) {
               this.applyCloudAlertSettings(json.alertSettings || json.data.alertSettings);
             }
-            if (json.data && json.data.transactions && json.data.transactions.length > 0) {
-              if (applyCloudBatch(json.data)) {
-                this.isSyncing = false;
-                return;
+            if (json.data) {
+              const b = json.data.batch || json.data;
+              if (b.transactions && b.transactions.length > 0) {
+                if (applyCloudBatch(json.data)) {
+                  this.isSyncing = false;
+                  return;
+                }
               }
+            } else {
+              // Server explicitly has no shared data (empty or cleared)
+              try { localStorage.removeItem(CLOUD_STORAGE_KEY); } catch (_) {}
+              this.activeCloudBatchId = null;
             }
           }
         }
@@ -8939,27 +9836,64 @@ Recommended Immediate Actions:
         console.warn('GET /api/data unavailable:', err.message);
       }
 
-      // 2. Fetch from durable public cloud relay fallback
+      // 2. Fetch from durable public cloud relay
       try {
-        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1?t=${Date.now()}`);
+        const fbRes = await fetch(`${NTFY_TXS_TOPIC}/json?poll=1`);
         if (fbRes.ok) {
-          const fbBatch = await fbRes.json();
-          if (fbBatch) {
-            if (fbBatch.alertSettings) {
-              this.applyCloudAlertSettings(fbBatch.alertSettings);
+          const text = await fbRes.text();
+          const lines = text.trim().split('\n').filter(Boolean);
+          if (lines.length > 0) {
+            const last = JSON.parse(lines[lines.length - 1]);
+            let data = null;
+            if (last.attachment && last.attachment.url) {
+              const attRes = await fetch(last.attachment.url);
+              if (attRes.ok) data = await attRes.json();
+            } else if (last.message) {
+              try { data = JSON.parse(last.message); } catch (_) {}
             }
-            if (fbBatch.transactions && fbBatch.transactions.length > 0) {
-              if (applyCloudBatch(fbBatch)) {
-                this.isSyncing = false;
-                return;
+            if (data) {
+              if (data.alertSettings) {
+                this.applyCloudAlertSettings(data.alertSettings);
+              }
+              const b = data.batch || data;
+              if (b.transactions && b.transactions.length > 0) {
+                if (applyCloudBatch(data)) {
+                  this.isSyncing = false;
+                  return;
+                }
               }
             }
           }
         }
-      } catch (_) {}
+      } catch (err) {
+        console.warn('Cloud relay fetch failed:', err.message);
+      }
+
+      // 3. Fallback to localStorage cached batch only if offline / server failed
+      if (!applied && currentTransactions.length === 0) {
+        try {
+          const cached = localStorage.getItem(CLOUD_STORAGE_KEY);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && (parsed.batch || parsed.transactions)) {
+              applyCloudBatch(parsed);
+            }
+          }
+        } catch (_) {}
+      }
 
       this.updateSyncPill('synced', 'Team Cloud Synced');
       this.isSyncing = false;
+
+      if (!silent) {
+        if (applied) {
+          // Toast already shown
+        } else if (foundCloudData || currentTransactions.length > 0) {
+          showToast(`☁️ Cloud is already up to date (${formatNumber(currentTransactions.length)} records active).`);
+        } else {
+          showToast('☁️ Cloud connected & ready. Awaiting first dataset upload.');
+        }
+      }
     },
 
     copyShareLink() {
@@ -8976,7 +9910,7 @@ Recommended Immediate Actions:
     }
   };
 
-  loadAlertSettings();
+    loadAlertSettings();
   loadBatchesFromStorage();
 
   renderKPIs();
@@ -8989,4 +9923,10 @@ Recommended Immediate Actions:
   permissionsManager.init();
   cloudSyncManager.init();
 
+  // Initialize FinTech SaaS Layout, Route Arc Gauge, & Interactive Geo Engine
+  initGeoMap();
+  initFintechControls();
+  renderRouteArcChart();
+  renderGeoMetrics();
+  updateGreeting();
 })();

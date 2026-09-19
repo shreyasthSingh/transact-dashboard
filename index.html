@@ -12,336 +12,389 @@
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
-  <div class="dashboard-container">
+  <div class="app-layout">
     
-    <!-- Top Header -->
-    <header class="dashboard-header">
-      <div class="brand-section">
-        <div class="brand-logo-card">
-          <img src="assets/logo.png" alt="Transact Bridge Logo">
+    <!-- Left Navigation Sidebar (Bank.LY FinTech Style) -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo-icon">
+          <img src="assets/logo.png" alt="Transact Bridge Logo" class="sidebar-logo-img">
         </div>
-        <div class="brand-titles">
-          <div class="brand-title-row">
-            <h1 class="app-heading">Transaction Monitoring</h1>
-            <span class="badge-pill badge-upload-mode" id="gatewayLiveBadge">
-              <span>⏳</span>
-              Ready
-            </span>
-          </div>
-          <span class="app-subheading">Real-Time Payment Health, Volume &amp; Hourly Merchant Ingestion</span>
-        </div>
-      </div>
-
-      <!-- Header Filter Controls -->
-      <div class="header-actions">
-        <!-- Manual Hourly Data Upload Button -->
-        <button id="openUploadBtn" class="btn-action btn-upload" title="Upload Hourly Excel or CSV dataset">
-          <span>📤</span> Upload Hourly Data
-        </button>
-
-        <!-- Live API Integration Button -->
-        <button id="openApiModalBtn" class="btn-action btn-api" title="Connect Live API Endpoint for Real-Time Streaming">
-          <span>🔗</span> Live API Integration
-        </button>
-
-        <!-- Day-over-Day (DoD) Comparison Toggle -->
-        <button id="toggleDodBtn" class="btn-action btn-dod" title="Compare current day performance against previous day baseline">
-          <span>⚖️</span> Compare with Previous Day
-        </button>
-
-        <!-- Success Rate & SLA Alerts Button -->
-        <button id="openAlertsModalBtn" class="btn-action btn-alerts" title="Configure Email & WhatsApp Success Rate Alert Rules">
-          <span class="icon">🔔</span> Alerts &amp; SLA Rules <span id="activeAlertsBadge" class="alert-status-dot"></span>
-        </button>
-
-        <!-- Batch Selector -->
-        <div class="control-group" id="batchSelectorGroup">
-          <select id="batchSelect" class="select-custom" aria-label="Hourly Batch Selector">
-            <option value="" selected>Awaiting Ingestion...</option>
-          </select>
-        </div>
-
-        <!-- Time Range Selector -->
-        <div class="control-group">
-          <select id="timeRangeSelect" class="select-custom" aria-label="Time Range">
-            <option value="15m">Real-Time (Last 15m)</option>
-            <option value="1h">Last 1 Hour</option>
-            <option value="24h" selected>Today (24h)</option>
-            <option value="dod">📅 Day-over-Day (Today vs Yesterday)</option>
-            <option value="7d">Last 7 Days</option>
-            <option value="30d">Last 30 Days</option>
-          </select>
-        </div>
-
-        <!-- Currency Selector -->
-        <div class="control-group">
-          <select id="currencySelect" class="select-custom" aria-label="Currency">
-            <option value="INR" selected>INR (₹)</option>
-            <option value="USD">USD ($)</option>
-            <option value="EUR">EUR (€)</option>
-            <option value="GBP">GBP (£)</option>
-          </select>
-        </div>
-
-        <!-- Live Traffic Simulator Toggle (Hidden for Stakeholder Review) -->
-        <button id="toggleSimBtn" class="btn-action" title="Toggle Real-Time Stream Simulation" style="display: none;">
-          <span>●</span> <span id="simStatusText">Streaming Inactive</span>
-        </button>
-
-        <!-- Trigger Custom Analysis Button -->
-        <button id="triggerAnalysisBtn" class="btn-action btn-trigger-analysis" title="Trigger Custom Diagnostic & Incident Analysis (Alt + A)">
-          <span class="pulse-icon-lightning">⚡</span> Trigger Analysis
-        </button>
-
-        <!-- CSV Export Button -->
-        <button id="exportCsvBtn" class="btn-action btn-primary" title="Export Merchant Report as CSV">
-          <span>📥</span> Export Report
-        </button>
-
-        <!-- Theme Switcher -->
-        <button id="themeToggleBtn" class="btn-action" title="Toggle Light/Dark Theme">
-          <span id="themeIcon">🌙 Dark Mode</span>
-        </button>
-
-        <!-- Global Cloud Sync Status Pill -->
-        <div class="cloud-sync-pill" id="cloudSyncPill" title="Team Cloud Sync Status — Click to synchronize latest team data" role="button" tabindex="0">
-          <span class="cloud-sync-dot"></span>
-          <span id="cloudSyncText">Team Cloud Ready</span>
-          <button type="button" id="cloudRefreshBtn" class="btn-cloud-refresh" title="Pull latest dataset uploaded by team">🔄</button>
-        </div>
-
-        <!-- Share Team Link Button -->
-        <button id="shareTeamLinkBtn" class="btn-action btn-share-link" title="Copy Team Dashboard Link">
-          <span>🔗</span> Share Link
-        </button>
-
-        <!-- Admin Role Permission Control Center -->
-        <button id="openPermissionsBtn" class="btn-action btn-permissions" title="Admin Permission Control Center (Admin Only)" style="display: none;">
-          <span>🛡️</span> Permissions
-        </button>
-
-        <!-- User Profile & Session Controls -->
-        <div class="user-profile-menu" id="userProfileMenu">
-          <button type="button" class="user-profile-badge" id="userProfileBtn" title="Current Logged-in Account">
-            <span class="user-avatar-circle" id="userAvatarCircle">SS</span>
-            <div class="user-info-text">
-              <span class="user-name" id="userNameLabel">Shreyasth</span>
-              <span class="user-role-badge role-admin" id="userRoleBadge">ADMIN</span>
-            </div>
-            <span class="user-caret">▾</span>
-          </button>
-          <div class="user-dropdown-card" id="userDropdownCard" style="display: none;">
-            <div class="dropdown-header">
-              <div class="dropdown-user-name" id="userDropdownName">Shreyasth Singh</div>
-              <div class="dropdown-email" id="userDropdownEmail">Shreyasth@transactbridge.com</div>
-              <div class="dropdown-role-desc" id="userDropdownRoleDesc">Platform Administrator (Full Control)</div>
-            </div>
-            <div class="dropdown-divider"></div>
-            <button type="button" class="dropdown-item" id="dropdownPermissionsBtn" style="display: none;">🛡️ Role Permissions</button>
-            <button type="button" class="dropdown-item" id="dropdownSwitchUserBtn">👤 Switch User / Role</button>
-            <button type="button" class="dropdown-item" id="dropdownRefreshCloudBtn">☁️ Force Cloud Re-sync</button>
-            <button type="button" class="dropdown-item" id="dropdownShareLinkBtn">🔗 Copy Team Link</button>
-            <div class="dropdown-divider"></div>
-            <button type="button" class="dropdown-item text-danger" id="resetDataBtn">🗑️ Clear All Data (Reset)</button>
-            <button type="button" class="dropdown-item text-danger" id="logoutBtn">🚪 Sign Out</button>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- Data Source Status Banner -->
-    <div class="data-status-banner" id="dataStatusBanner">
-      <div class="data-status-info">
-        <span class="data-status-tag tag-uploaded" id="dataModeTag">Awaiting Ingestion</span>
-        <span id="dataStatusMessage">No active transaction data. Click <strong>Upload Hourly Data</strong> or <strong>Team Cloud Sync</strong> to ingest Excel/CSV reports.</span>
-      </div>
-    </div>
-
-    <!-- SLA & Success Rate Emergency Alert Banner -->
-    <div class="sla-emergency-banner" id="slaEmergencyBanner" style="display: none;">
-      <div class="sla-banner-content">
-        <div class="sla-banner-left">
-          <span class="sla-badge-icon pulse-alert">🚨</span>
-          <div>
-            <div class="sla-banner-title">
-              <span id="slaBannerTitle">CRITICAL SLA ALERT: Platform Success Rate Degraded</span>
-              <span class="sla-badge-sr" id="slaBannerSrBadge">84.2% SR</span>
-            </div>
-            <div class="sla-banner-sub" id="slaBannerSub">
-              Transaction success rate dropped below the configured SLA threshold. High failure concentration detected on gateway routes.
-            </div>
-          </div>
-        </div>
-        <div class="sla-banner-actions">
-          <button id="slaSendWhatsappBtn" class="btn-action btn-sla-wa" title="Dispatch incident brief via WhatsApp to team">
-            <span>💬</span> WhatsApp Alert
-          </button>
-          <button id="slaSendEmailBtn" class="btn-action btn-sla-email" title="Dispatch incident report via Email to team">
-            <span>✉️</span> Email Alert
-          </button>
-          <button id="slaOpenRecoverBtn" class="btn-action btn-sla-recover" title="Inspect Recoverable Volume & Failover Strategy">
-            <span>💡</span> Recovery Solution
-          </button>
-          <button id="slaConfigureBtn" class="btn-action btn-sla-config" title="Adjust Alert Thresholds & Recipients">
-            <span>⚙️</span> Settings
-          </button>
-          <button id="slaDismissBtn" class="btn-action btn-sla-dismiss" title="Acknowledge and dismiss this alert banner">
-            ✕
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Day-over-Day Comparison Active Banner -->
-    <div class="dod-active-banner" id="dodActiveBanner" style="display: none;">
-      <div class="dod-banner-content">
-        <div class="dod-banner-left">
-          <span class="dod-badge-icon">⚖️</span>
-          <div>
-            <div class="dod-banner-title">Day-over-Day (DoD) Comparison Active</div>
-            <div class="dod-banner-sub">Analyzing Current Day (Today) vs. Previous Day (Yesterday) across volume, conversion rates &amp; routing.</div>
-          </div>
-        </div>
-        <div class="dod-banner-actions">
-          <button id="openDodModalBtn" class="btn-action btn-dod-inspect" title="Inspect detailed Day-over-Day variance tables">
-            <span>📊</span> View Detailed DoD Report
-          </button>
-          <button id="exitDodBtn" class="btn-action btn-dod-exit" title="Exit Day-over-Day Comparison Mode">
-            <span>✕</span> Exit DoD View
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Overall KPI Metrics Section -->
-    <section class="kpi-section">
-      <div class="section-header-row">
         <div>
-          <h2 class="section-title">
-            <span class="section-title-icon">⚡</span> Overall Transaction Metrics
-          </h2>
-          <span id="dodKpiIndicator" class="dod-kpi-badge" style="display: none;">
-            ⚖️ Day-over-Day Variance Mode (Today vs. Yesterday)
-          </span>
+          <div class="sidebar-brand-name">Transact Bridge</div>
+          <span class="sidebar-brand-badge">ENTERPRISE</span>
         </div>
-        <span id="lastUpdatedTime" style="font-size: 0.78rem; color: var(--text-dim);">Updated: Just now</span>
       </div>
 
-      <div class="kpi-grid">
-        <!-- 1. Total Transaction Count -->
-        <div class="kpi-card">
-          <div class="kpi-top">
-            <span class="kpi-label">Total Transactions</span>
-            <div class="kpi-icon-wrap">📊</div>
-          </div>
-          <div class="kpi-value" id="kpiTotalCount">0</div>
-          <div class="kpi-sparkline-svg" id="sparkline-total"></div>
-          <div class="kpi-footer">
-            <span>Processed Gateway Volume</span>
-            <span class="kpi-badge up" id="kpiTotalBadge">Total Txns</span>
-          </div>
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="sidebar-nav-group">
+          <a href="#dashboardOverview" class="sidebar-nav-item active" data-nav="dashboard">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+            <span class="nav-badge-pill" id="sidebarLivePill">LIVE</span>
+          </a>
+          <a href="#timelineSection" class="sidebar-nav-item" data-nav="timeline">
+            <span class="nav-icon">📈</span>
+            <span>Volume &amp; SLA</span>
+          </a>
+          <a href="#geoTrafficSection" class="sidebar-nav-item" data-nav="geo">
+            <span class="nav-icon">🗺️</span>
+            <span>Geo &amp; States</span>
+            <span class="nav-badge-pill" style="background: rgba(0, 102, 255, 0.12); color: var(--accent-primary);">NEW</span>
+          </a>
+          <a href="#analysisSection" class="sidebar-nav-item" data-nav="analysis">
+            <span class="nav-icon">🏛️</span>
+            <span>PSPs &amp; Routing</span>
+          </a>
+          <a href="#recommendationsSection" class="sidebar-nav-item" data-nav="recommendations">
+            <span class="nav-icon">🎯</span>
+            <span>Recommendations</span>
+          </a>
         </div>
 
-        <!-- 2. Success Transaction Count -->
-        <div class="kpi-card success-theme">
-          <div class="kpi-top">
-            <span class="kpi-label">Success Count</span>
-            <div class="kpi-icon-wrap">✓</div>
-          </div>
-          <div class="kpi-value text-success" id="kpiSuccessCount">0</div>
-          <div class="kpi-sparkline-svg" id="sparkline-success"></div>
-          <div class="kpi-footer">
-            <span id="kpiSuccessShare">0% of total</span>
-            <span class="kpi-badge up">Settled</span>
-          </div>
+        <div class="sidebar-nav-divider"></div>
+
+        <div class="sidebar-nav-group">
+          <a href="javascript:void(0)" class="sidebar-nav-item" id="sidebarOpenUploadBtn">
+            <span class="nav-icon">📤</span>
+            <span>Upload Sheet</span>
+          </a>
+          <a href="javascript:void(0)" class="sidebar-nav-item" id="sidebarOpenAlertsBtn">
+            <span class="nav-icon">🔔</span>
+            <span>SLA &amp; Alerts</span>
+          </a>
+          <a href="javascript:void(0)" class="sidebar-nav-item" id="sidebarSyncBtn">
+            <span class="nav-icon">☁️</span>
+            <span>Team Cloud Sync</span>
+          </a>
         </div>
 
-        <!-- 3. Failed Transaction Count -->
-        <div class="kpi-card failed-theme">
-          <div class="kpi-top">
-            <span class="kpi-label">Failed Count</span>
-            <div class="kpi-icon-wrap">✕</div>
+        <!-- Sidebar Team Sync Status Card -->
+        <div class="sidebar-status-card">
+          <div class="sidebar-status-header">
+            <span class="cloud-sync-dot"></span>
+            <span class="sidebar-status-title" id="sidebarSyncTitle">Team Sync Active</span>
           </div>
-          <div class="kpi-value text-failed" id="kpiFailedCount">0</div>
-          <div class="kpi-sparkline-svg" id="sparkline-failed"></div>
-          <div class="kpi-footer">
-            <span id="kpiFailedShare">0% of total</span>
-            <span class="kpi-badge down">Declined / Errored</span>
-          </div>
+          <div class="sidebar-status-desc" id="sidebarSyncDesc">Instant shared state across Admin &amp; Viewers.</div>
+          <button type="button" class="btn-sidebar-action" id="sidebarQuickUploadBtn">
+            <span>📤</span> Upload Report
+          </button>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+
+      <!-- Top Greeting & Header Bar (Bank.LY Style) -->
+      <header class="app-top-header" id="dashboardOverview">
+        <div>
+          <h1 class="greeting-heading" id="greetingHeading">Good Morning, Shreyasth</h1>
+          <p class="greeting-subheading" id="greetingSubheading">Platform Health, Gateway Routing &amp; Real-Time Hourly Ingestion</p>
         </div>
 
-        <!-- 4. Overall Success Rate % -->
-        <div class="kpi-card rate-theme">
-          <div class="kpi-top">
-            <span class="kpi-label">Overall Success Rate</span>
-            <div class="kpi-icon-wrap" id="kpiSlaSettingsTrigger" title="Click to Configure KPI &amp; SLA Thresholds" style="cursor: pointer;">🎯</div>
+        <div class="top-header-right">
+          <!-- Global Search Input with Shortcut -->
+          <div class="header-search-bar">
+            <span>🔍</span>
+            <input type="text" id="globalSearchInput" placeholder="Search gateways, states, merchants..." aria-label="Global Search">
+            <span class="kbd-shortcut">⌘K</span>
           </div>
-          <div class="kpi-value" id="kpiSuccessRate">0.00%</div>
-          <div class="kpi-sparkline-svg" id="sparkline-rate"></div>
-          <div class="rate-progress-bar-bg">
-            <div class="rate-progress-bar-fill" id="kpiRateBar" style="width: 0%;"></div>
-          </div>
-          <div class="kpi-footer" style="margin-top: 0.6rem;">
-            <div id="kpiTargetSlaWrapper" class="clickable-target-sla" title="Click to adjust Target SLA and KPI thresholds">
-              <span id="kpiTargetSlaLabel">Target SLA: &gt;95.00%</span>
-              <span class="kpi-edit-icon">✏️</span>
+
+          <!-- Top Alerts Trigger -->
+          <button type="button" class="btn-icon-badge" id="topAlertsBtn" title="Configure Email &amp; WhatsApp Alerts">
+            <span>🔔</span>
+            <span class="notification-badge-dot" id="topAlertsBadgeDot" style="display: none;"></span>
+          </button>
+
+          <!-- User Profile & Account Dropdown -->
+          <div class="user-profile-menu" id="userProfileMenu">
+            <button type="button" class="user-profile-badge" id="userProfileBtn" title="Current Logged-in Account">
+              <span class="user-avatar-circle" id="userAvatarCircle">SS</span>
+              <div class="user-info-text">
+                <span class="user-name" id="userNameLabel">Shreyasth</span>
+                <span class="user-role-badge role-admin" id="userRoleBadge">ADMIN</span>
+              </div>
+              <span class="user-caret">▾</span>
+            </button>
+            <div class="user-dropdown-card" id="userDropdownCard" style="display: none;">
+              <div class="dropdown-header">
+                <div class="dropdown-user-name" id="userDropdownName">Shreyasth Singh</div>
+                <div class="dropdown-email" id="userDropdownEmail">Shreyasth@transactbridge.com</div>
+                <div class="dropdown-role-desc" id="userDropdownRoleDesc">Platform Administrator (Full Control)</div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item" id="dropdownPermissionsBtn" style="display: none;">🛡️ Role Permissions</button>
+              <button type="button" class="dropdown-item" id="dropdownSwitchUserBtn">👤 Switch User / Role</button>
+              <button type="button" class="dropdown-item" id="dropdownRefreshCloudBtn">☁️ Force Cloud Re-sync</button>
+              <button type="button" class="dropdown-item" id="dropdownShareLinkBtn">🔗 Copy Team Link</button>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item text-danger" id="resetDataBtn">🗑️ Clear All Data (Reset)</button>
+              <button type="button" class="dropdown-item text-danger" id="logoutBtn">🚪 Sign Out</button>
             </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Sub-Header Toolbar (Filter Controls, Cloud Sync & Ingestion) -->
+      <div class="sub-header-toolbar">
+        <div class="toolbar-left">
+          <!-- Manual Hourly Data Upload Button -->
+          <button id="openUploadBtn" class="btn-action btn-upload" title="Upload Hourly Excel or CSV dataset">
+            <span>📤</span> Upload Hourly Data
+          </button>
+
+          <!-- Batch Selector -->
+          <div class="control-group" id="batchSelectorGroup">
+            <select id="batchSelect" class="select-custom" aria-label="Hourly Batch Selector">
+              <option value="" selected>Awaiting Ingestion...</option>
+            </select>
+          </div>
+
+          <!-- Time Range Selector -->
+          <div class="control-group">
+            <select id="timeRangeSelect" class="select-custom" aria-label="Time Range">
+              <option value="15m">Real-Time (Last 15m)</option>
+              <option value="1h">Last 1 Hour</option>
+              <option value="24h" selected>Today (24h)</option>
+              <option value="dod">📅 Day-over-Day (Today vs Yesterday)</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+          </div>
+
+          <!-- Currency Selector -->
+          <div class="control-group">
+            <select id="currencySelect" class="select-custom" aria-label="Currency">
+              <option value="INR" selected>INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
+          </div>
+
+          <!-- Day-over-Day (DoD) Comparison Toggle -->
+          <button id="toggleDodBtn" class="btn-action btn-dod" title="Compare current day performance against previous day baseline">
+            <span>⚖️</span> Compare with Previous Day
+          </button>
+        </div>
+
+        <div class="toolbar-right">
+          <!-- Global Cloud Sync Status Pill -->
+          <div class="cloud-sync-pill" id="cloudSyncPill" title="Team Cloud Sync Status — Click to synchronize latest team data" role="button" tabindex="0">
+            <span class="cloud-sync-dot"></span>
+            <span id="cloudSyncText">Team Cloud Ready</span>
+            <button type="button" id="cloudRefreshBtn" class="btn-cloud-refresh" title="Pull latest dataset uploaded by team">🔄</button>
+          </div>
+
+          <!-- Live API Button -->
+          <button id="openApiModalBtn" class="btn-action btn-api" title="Connect Live API Endpoint">
+            <span>🔗</span> API
+          </button>
+
+          <!-- Alerts & SLA Rules Button -->
+          <button id="openAlertsModalBtn" class="btn-action btn-alerts" title="Configure Email &amp; WhatsApp Alert Rules">
+            <span class="icon">🔔</span> Alerts <span id="activeAlertsBadge" class="alert-status-dot"></span>
+          </button>
+
+          <!-- Trigger Custom Analysis Button -->
+          <button id="triggerAnalysisBtn" class="btn-action btn-trigger-analysis" title="Trigger Custom Diagnostic &amp; Incident Analysis">
+            <span class="pulse-icon-lightning">⚡</span> Analysis
+          </button>
+
+          <!-- CSV Export Button -->
+          <button id="exportCsvBtn" class="btn-action btn-primary" title="Export Merchant Report as CSV">
+            <span>📥</span> Export
+          </button>
+
+          <!-- Share Team Link Button -->
+          <button id="shareTeamLinkBtn" class="btn-action btn-share-link" title="Copy Team Dashboard Link">
+            <span>🔗</span> Share
+          </button>
+
+          <!-- Theme Switcher -->
+          <button id="themeToggleBtn" class="btn-action" title="Toggle Light/Dark Theme">
+            <span id="themeIcon">🌙</span>
+          </button>
+
+          <!-- Hidden Simulator & Admin Permissions -->
+          <button id="toggleSimBtn" class="btn-action" style="display: none;"><span>●</span> <span id="simStatusText">Streaming</span></button>
+          <button id="openPermissionsBtn" class="btn-action btn-permissions" style="display: none;"><span>🛡️</span> Permissions</button>
+          <span class="badge-pill badge-upload-mode" id="gatewayLiveBadge" style="display: none;">Ready</span>
+        </div>
+      </div>
+
+      <!-- Data Source Status Banner -->
+      <div class="data-status-banner" id="dataStatusBanner">
+        <div class="data-status-info">
+          <span class="data-status-tag tag-uploaded" id="dataModeTag">Awaiting Ingestion</span>
+          <span id="dataStatusMessage">No active transaction data. Click <strong>Upload Hourly Data</strong> or <strong>Team Cloud Sync</strong> to ingest Excel/CSV reports.</span>
+        </div>
+      </div>
+
+      <!-- SLA & Success Rate Emergency Alert Banner -->
+      <div class="sla-emergency-banner" id="slaEmergencyBanner" style="display: none;">
+        <div class="sla-banner-content">
+          <div class="sla-banner-left">
+            <span class="sla-badge-icon pulse-alert">🚨</span>
+            <div>
+              <div class="sla-banner-title">
+                <span id="slaBannerTitle">CRITICAL SLA ALERT: Platform Success Rate Degraded</span>
+                <span class="sla-badge-sr" id="slaBannerSrBadge">84.2% SR</span>
+              </div>
+              <div class="sla-banner-sub" id="slaBannerSub">
+                Transaction success rate dropped below the configured SLA threshold. High failure concentration detected on gateway routes.
+              </div>
+            </div>
+          </div>
+          <div class="sla-banner-actions">
+            <button id="slaSendWhatsappBtn" class="btn-action btn-sla-wa" title="Dispatch incident brief via WhatsApp to team">
+              <span>💬</span> WhatsApp Alert
+            </button>
+            <button id="slaSendEmailBtn" class="btn-action btn-sla-email" title="Dispatch incident report via Email to team">
+              <span>✉️</span> Email Alert
+            </button>
+            <button id="slaOpenRecoverBtn" class="btn-action btn-sla-recover" title="Inspect Recoverable Volume &amp; Failover Strategy">
+              <span>💡</span> Recovery Solution
+            </button>
+            <button id="slaConfigureBtn" class="btn-action btn-sla-config" title="Adjust Alert Thresholds &amp; Recipients">
+              <span>⚙️</span> Settings
+            </button>
+            <button id="slaDismissBtn" class="btn-action btn-sla-dismiss" title="Acknowledge and dismiss this alert banner">
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day-over-Day Comparison Active Banner -->
+      <div class="dod-active-banner" id="dodActiveBanner" style="display: none;">
+        <div class="dod-banner-content">
+          <div class="dod-banner-left">
+            <span class="dod-badge-icon">⚖️</span>
+            <div>
+              <div class="dod-banner-title">Day-over-Day (DoD) Comparison Active</div>
+              <div class="dod-banner-sub">Analyzing Current Day (Today) vs. Previous Day (Yesterday) across volume, conversion rates &amp; routing.</div>
+            </div>
+          </div>
+          <div class="dod-banner-actions">
+            <button id="openDodModalBtn" class="btn-action btn-dod-inspect" title="Inspect detailed Day-over-Day variance tables">
+              <span>📊</span> View Detailed DoD Report
+            </button>
+            <button id="exitDodBtn" class="btn-action btn-dod-exit" title="Exit Day-over-Day Comparison Mode">
+              <span>✕</span> Exit DoD View
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FinTech Top Row: 4 Modern Cards (Bank.LY Style Matching Screenshot 2) -->
+      <section class="fintech-top-row">
+        <!-- Card 1: Total Processed Volume (Primary Action Card) -->
+        <div class="fintech-card">
+          <div class="fintech-card-header">
+            <span class="fintech-card-title">TOTAL PROCESSED VOLUME</span>
+            <span class="fintech-pill-badge positive" id="kpiTotalBadge">0 Records</span>
+          </div>
+          <div class="fintech-card-value" id="kpiTotalAmount">₹0.00</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 0.75rem; color: var(--text-muted);">
+            <span>Count: <strong id="kpiTotalCount" style="color: var(--text-main);">0</strong> txns</span>
+            <span id="sparkline-amount" class="kpi-sparkline-svg" style="display: inline-block; width: 60px; height: 18px;"></span>
+          </div>
+          <!-- Quick Action Buttons (Matching Screenshot 2 Send/Receive/Invoicing) -->
+          <div class="quick-action-pills-row">
+            <button type="button" class="btn-quick-pill" id="quickUploadBtn" title="Upload Hourly CSV/Excel"><span>📤</span> Upload</button>
+            <button type="button" class="btn-quick-pill" id="quickSyncBtn" title="Sync Team Cloud State"><span>🔄</span> Sync</button>
+            <button type="button" class="btn-quick-pill" id="quickAnalysisBtn" title="Trigger Diagnostic Analysis"><span>⚡</span> Diagnose</button>
+            <button type="button" class="btn-quick-pill" id="quickExportBtn" title="Export CSV Report"><span>📥</span> Export</button>
+          </div>
+        </div>
+
+        <!-- Card 2: Revenue at Risk (Failed Volume) -->
+        <div class="fintech-card">
+          <div class="fintech-card-header">
+            <span class="fintech-card-title">REVENUE AT RISK</span>
+            <span class="fintech-pill-badge negative" id="kpiFailedShare">0% failed</span>
+          </div>
+          <div class="fintech-card-value text-failed" id="kpiFailedAmount">₹0.00</div>
+          <div class="kpi-sparkline-svg" id="sparkline-fail-amount" style="margin: 8px 0;"></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); margin-top: auto;">
+            <span>Failed: <strong id="kpiFailedCount" class="text-failed">0</strong> txns</span>
+            <span id="kpiFailedAmtShare" style="font-size: 0.72rem;">0% uncollected</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Overall Success Rate & SLA Target -->
+        <div class="fintech-card">
+          <div class="fintech-card-header">
+            <span class="fintech-card-title">OVERALL SUCCESS RATE</span>
             <span class="kpi-badge neutral" id="kpiSlaBadge">Optimal</span>
           </div>
-        </div>
-
-        <!-- 5. Total Transaction Amount -->
-        <div class="kpi-card">
-          <div class="kpi-top">
-            <span class="kpi-label">Total Amount</span>
-            <div class="kpi-icon-wrap">💳</div>
+          <div class="fintech-card-value" id="kpiSuccessRate">0.00%</div>
+          <div class="rate-progress-bar-bg" style="margin-top: 10px;">
+            <div class="rate-progress-bar-fill" id="kpiRateBar" style="width: 0%;"></div>
           </div>
-          <div class="kpi-value" id="kpiTotalAmount">₹0.00</div>
-          <div class="kpi-sparkline-svg" id="sparkline-amount"></div>
-          <div class="kpi-footer">
-            <span>Gross Processed Volume</span>
-            <span class="kpi-badge up">Volume</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-top: auto; padding-top: 8px;">
+            <div id="kpiTargetSlaWrapper" class="clickable-target-sla" title="Click to adjust Target SLA">
+              <span id="kpiTargetSlaLabel">Target SLA: &gt;95.00%</span>
+              <span class="kpi-edit-icon" id="kpiSlaSettingsTrigger">✏️</span>
+            </div>
+            <span>Settled: <strong id="kpiSuccessCount" class="text-success">0</strong></span>
           </div>
         </div>
 
-        <!-- 6. Success Amount -->
-        <div class="kpi-card success-theme">
-          <div class="kpi-top">
-            <span class="kpi-label">Success Amount</span>
-            <div class="kpi-icon-wrap">💰</div>
+        <!-- Card 4: Semicircular Arc Gauge Card (Screenshot 2 Accounts Summary) -->
+        <div class="fintech-card arc-summary-card">
+          <div class="fintech-card-header">
+            <span class="fintech-card-title">ROUTING SHARE GAUGE</span>
+            <span class="fintech-pill-badge neutral" id="arcTotalRoutesBadge">Active Rails</span>
           </div>
-          <div class="kpi-value text-success" id="kpiSuccessAmount">₹0.00</div>
-          <div class="kpi-sparkline-svg" id="sparkline-succ-amount"></div>
-          <div class="kpi-footer">
-            <span id="kpiSuccessAmtShare">0% collected</span>
-            <span class="kpi-badge up">Captured</span>
+          <div class="arc-canvas-wrap">
+            <canvas id="routeArcChart" width="220" height="110"></canvas>
+          </div>
+          <div class="arc-legend-list" id="routeArcLegend">
+            <div class="arc-legend-row">
+              <span class="arc-legend-label"><span class="arc-dot" style="background:#0066FF;"></span>UPI</span>
+              <span class="arc-legend-value" id="arcValUpi">0.0%</span>
+            </div>
+            <div class="arc-legend-row">
+              <span class="arc-legend-label"><span class="arc-dot" style="background:#10B981;"></span>Cards</span>
+              <span class="arc-legend-value" id="arcValCards">0.0%</span>
+            </div>
+            <div class="arc-legend-row">
+              <span class="arc-legend-label"><span class="arc-dot" style="background:#F59E0B;"></span>NetBanking</span>
+              <span class="arc-legend-value" id="arcValNb">0.0%</span>
+            </div>
+            <div class="arc-legend-row">
+              <span class="arc-legend-label"><span class="arc-dot" style="background:#8B5CF6;"></span>Wallets</span>
+              <span class="arc-legend-value" id="arcValWallets">0.0%</span>
+            </div>
           </div>
         </div>
+      </section>
 
-        <!-- 7. Revenue at Risk (Failed Volume) -->
-        <div class="kpi-card failed-theme">
-          <div class="kpi-top">
-            <span class="kpi-label">Revenue at Risk</span>
-            <div class="kpi-icon-wrap">⚠️</div>
-          </div>
-          <div class="kpi-value text-failed" id="kpiFailedAmount">₹0.00</div>
-          <div class="kpi-sparkline-svg" id="sparkline-fail-amount"></div>
-          <div class="kpi-footer">
-            <span id="kpiFailedAmtShare">0% uncollected</span>
-            <span class="kpi-badge down">Failed Volume</span>
-          </div>
+      <!-- Subtle Operational Meta Ribbon (Preserving All Legacy Analytics Elements) -->
+      <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 8px 16px; font-size: 0.76rem; color: var(--text-muted); flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+          <span>Settled Volume: <strong id="kpiSuccessAmount" style="color: var(--success-green);">₹0.00</strong> (<span id="kpiSuccessAmtShare">0%</span>)</span>
+          <span>•</span>
+          <span id="recoverableKpiCard" style="cursor: pointer;" title="Inspect Recoverable Volume Strategy">
+            Recoverable Volume: <strong id="kpiRecoverableVolume" class="text-accent">₹0.00</strong> (<span id="kpiRecoverableShare">via Smart Re-routing</span>)
+            <button id="openRecoverableModalBtn" style="border: none; background: transparent; cursor: pointer; color: var(--accent-primary); font-size: 0.74rem; font-weight: 600; padding: 0 4px;">🔍 Playbook</button>
+          </span>
+          <span id="dodKpiIndicator" class="dod-kpi-badge" style="display: none;">⚖️ DoD Variance Active</span>
         </div>
-
-        <!-- 8. Recoverable Routing Opportunity -->
-        <div class="kpi-card opportunity-theme" id="recoverableKpiCard" style="cursor: pointer;" title="Click to inspect Recoverable Volume Analysis & Solution Playbook">
-          <div class="kpi-top">
-            <span class="kpi-label">Recoverable Volume</span>
-            <div class="kpi-icon-wrap">💡</div>
-          </div>
-          <div class="kpi-value text-accent" id="kpiRecoverableVolume">₹0.00</div>
-          <div class="kpi-footer">
-            <span id="kpiRecoverableShare">via Smart Re-routing</span>
-            <button class="kpi-badge up btn-kpi-inspect" id="openRecoverableModalBtn" style="border: none; cursor: pointer; text-decoration: none;" title="Inspect Volume Recovery Strategy">🔍 Recovery Analysis</button>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="lastUpdatedTime">Updated: Just now</span>
+          <!-- Hidden sparkline holders for backwards-compatibility -->
+          <div style="display: none;">
+            <div id="sparkline-total"></div>
+            <div id="sparkline-success"></div>
+            <div id="sparkline-failed"></div>
+            <div id="sparkline-rate"></div>
+            <div id="sparkline-succ-amount"></div>
+            <span id="kpiSuccessShare">0%</span>
           </div>
         </div>
       </div>
@@ -382,12 +435,10 @@
           <span class="exec-val" id="execActionItemCount">4 Strategic Recommendations</span>
         </div>
       </div>
-    </section>
 
-    <!-- Interactive Charts Grid -->
-    <section class="charts-section">
-      <div class="charts-grid">
-        <!-- Main Chart: Transaction Volume & Success Rate Trend -->
+      <!-- FinTech Middle Row: Volume Timeline + Recent Transactions Live Feed (Bank.LY Style) -->
+      <section class="fintech-middle-row" id="timelineSection">
+        <!-- Left: Transaction Volume & Success Rate Timeline -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">
@@ -435,9 +486,47 @@
           <div class="canvas-container">
             <canvas id="timelineChart"></canvas>
           </div>
+          <!-- Bottom Payment Method Chips -->
+          <div class="chart-bottom-chips">
+            <div class="chart-chip-item">
+              <span class="chart-chip-lbl"><span class="arc-dot" style="background:#0066FF;"></span> UPI Volume</span>
+              <span class="chart-chip-val" id="chipUpiVal">₹0.00</span>
+            </div>
+            <div class="chart-chip-item">
+              <span class="chart-chip-lbl"><span class="arc-dot" style="background:#10B981;"></span> Cards Volume</span>
+              <span class="chart-chip-val" id="chipCardsVal">₹0.00</span>
+            </div>
+            <div class="chart-chip-item">
+              <span class="chart-chip-lbl"><span class="arc-dot" style="background:#F59E0B;"></span> NetBanking</span>
+              <span class="chart-chip-val" id="chipNbVal">₹0.00</span>
+            </div>
+            <div class="chart-chip-item">
+              <span class="chart-chip-lbl"><span class="arc-dot" style="background:#8B5CF6;"></span> Wallets</span>
+              <span class="chart-chip-val" id="chipWalletsVal">₹0.00</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Donut Chart: Failure Diagnostics Breakdown -->
+        <!-- Right: Recent Live Transactions Feed (Bank.LY Style) -->
+        <div class="chart-card feed-widget-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <span>⚡</span> Recent Transactions
+            </h3>
+            <span class="badge-pill badge-upload-mode" id="feedModeLabel" style="font-size: 0.72rem;">Live Stream</span>
+          </div>
+          <p style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; margin-bottom: 8px;">
+            Real-time merchant gateway execution feed
+          </p>
+          <div class="feed-widget-list" id="feedList">
+            <!-- Dynamically populated by renderFeed() with merchant logos -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Secondary Charts Row -->
+      <section class="secondary-charts-grid">
+        <!-- Error Code Breakdown -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">
@@ -448,10 +537,7 @@
             <canvas id="failureChart"></canvas>
           </div>
         </div>
-      </div>
 
-      <!-- Secondary Charts Row -->
-      <div class="secondary-charts-grid">
         <!-- Payment Methods Breakdown -->
         <div class="chart-card">
           <div class="chart-header">
@@ -483,8 +569,141 @@
             <canvas id="routingBenchmarkChart" title="Click any gateway bar for detailed routing analysis"></canvas>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <!-- State-Wise & Regional Traffic Map Section -->
+      <section class="geo-traffic-card" id="geoTrafficSection">
+        <div class="geo-header-row">
+          <div class="geo-title-area">
+            <h3><span>🗺️</span> Regional Traffic &amp; Customer Distribution</h3>
+            <p>Interactive state-wise analysis across customer count, transaction volume &amp; gateway success rates.</p>
+          </div>
+          <div class="geo-controls-wrap">
+            <div class="geo-toggle-pill">
+              <button type="button" class="geo-toggle-btn active" id="geoToggleIndia" data-map="india">🇮🇳 India View</button>
+              <button type="button" class="geo-toggle-btn" id="geoToggleWorld" data-map="world">🌍 World View</button>
+            </div>
+            <select id="geoMetricSelect" class="table-filter-select" title="Color map by metric">
+              <option value="customers" selected>👥 Customer Count</option>
+              <option value="volume">💳 Processed Volume (₹)</option>
+              <option value="txns">📊 Transaction Count</option>
+              <option value="sr">✓ Success Rate %</option>
+            </select>
+            <select id="geoStateSelect" class="table-filter-select" title="Filter by State / Region">
+              <option value="all">📍 All States (Pan-India)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="geo-content-grid">
+          <div class="geo-map-wrapper">
+            <!-- Interactive India Vector SVG Map -->
+            <svg id="indiaGeoSvg" class="geo-svg-map" viewBox="0 0 600 680" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="geoGlow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0066FF" flood-opacity="0.35"/>
+                </filter>
+              </defs>
+              <!-- State Paths -->
+              <path class="geo-state-path" id="path-IN-JK" data-state-id="IN-JK" data-state-name="Jammu &amp; Kashmir" d="M 210,35 C 240,25 270,30 280,65 C 290,95 275,135 250,140 C 230,142 205,120 190,95 C 180,75 190,45 210,35 Z" />
+              <path class="geo-state-path" id="path-IN-HP" data-state-id="IN-HP" data-state-name="Himachal Pradesh" d="M 230,135 C 255,130 280,135 285,165 C 290,190 270,205 245,195 C 235,185 225,160 230,135 Z" />
+              <path class="geo-state-path" id="path-IN-PB" data-state-id="IN-PB" data-state-name="Punjab &amp; Haryana" d="M 180,145 C 220,140 230,155 235,185 C 235,215 205,225 180,215 C 170,195 165,165 180,145 Z" />
+              <path class="geo-state-path" id="path-IN-DL" data-state-id="IN-DL" data-state-name="Delhi NCR" d="M 235,195 C 245,195 250,202 250,210 C 250,218 245,224 235,224 C 225,224 220,218 220,210 C 220,202 225,195 235,195 Z" />
+              <path class="geo-state-path" id="path-IN-RJ" data-state-id="IN-RJ" data-state-name="Rajasthan" d="M 115,190 C 165,175 190,195 195,235 C 200,270 170,300 135,295 C 105,285 90,250 95,220 C 100,200 105,195 115,190 Z" />
+              <path class="geo-state-path" id="path-IN-UP" data-state-id="IN-UP" data-state-name="Uttar Pradesh" d="M 245,195 C 295,190 350,210 365,245 C 375,275 345,290 295,290 C 255,290 240,265 235,225 C 235,210 240,200 245,195 Z" />
+              <path class="geo-state-path" id="path-IN-BR" data-state-id="IN-BR" data-state-name="Bihar &amp; Jharkhand" d="M 365,245 C 410,240 440,255 445,290 C 450,325 415,345 375,345 C 355,340 345,310 355,275 C 360,255 362,250 365,245 Z" />
+              <path class="geo-state-path" id="path-IN-WB" data-state-id="IN-WB" data-state-name="West Bengal" d="M 435,280 C 455,275 470,290 475,330 C 475,370 445,390 430,375 C 420,350 425,315 435,280 Z" />
+              <path class="geo-state-path" id="path-IN-NE" data-state-id="IN-NE" data-state-name="Assam &amp; North East" d="M 470,230 C 520,215 565,225 575,260 C 580,290 550,320 505,315 C 480,310 465,280 465,255 C 465,240 468,235 470,230 Z" />
+              <path class="geo-state-path" id="path-IN-GJ" data-state-id="IN-GJ" data-state-name="Gujarat" d="M 70,275 C 115,265 145,280 145,315 C 145,350 115,365 80,360 C 55,345 50,305 70,275 Z" />
+              <path class="geo-state-path" id="path-IN-MP" data-state-id="IN-MP" data-state-name="Madhya Pradesh" d="M 175,290 C 245,275 315,280 330,315 C 340,350 300,375 235,375 C 180,375 160,345 165,310 C 168,298 172,292 175,290 Z" />
+              <path class="geo-state-path" id="path-IN-OD" data-state-id="IN-OD" data-state-name="Odisha &amp; Chhattisgarh" d="M 330,325 C 375,320 420,345 425,385 C 425,420 385,445 345,435 C 320,425 315,385 320,355 C 323,338 327,330 330,325 Z" />
+              <path class="geo-state-path" id="path-IN-MH" data-state-id="IN-MH" data-state-name="Maharashtra" d="M 135,355 C 205,345 255,355 265,395 C 270,435 230,465 165,465 C 125,460 115,420 120,385 C 125,365 130,358 135,355 Z" />
+              <path class="geo-state-path" id="path-IN-TG" data-state-id="IN-TG" data-state-name="Telangana" d="M 235,420 C 275,410 305,425 305,455 C 305,485 275,505 240,495 C 220,485 215,455 225,435 C 228,425 232,422 235,420 Z" />
+              <path class="geo-state-path" id="path-IN-AP" data-state-id="IN-AP" data-state-name="Andhra Pradesh" d="M 275,455 C 315,445 355,475 350,520 C 340,555 295,565 265,545 C 250,525 255,490 270,465 C 272,458 274,456 275,455 Z" />
+              <path class="geo-state-path" id="path-IN-KA" data-state-id="IN-KA" data-state-name="Karnataka" d="M 165,465 C 220,455 245,475 245,525 C 245,565 215,595 175,585 C 145,570 145,525 155,490 C 158,475 162,468 165,465 Z" />
+              <path class="geo-state-path" id="path-IN-KL" data-state-id="IN-KL" data-state-name="Kerala" d="M 180,580 C 205,575 215,595 210,635 C 205,660 190,670 175,660 C 165,640 165,605 180,580 Z" />
+              <path class="geo-state-path" id="path-IN-TN" data-state-id="IN-TN" data-state-name="Tamil Nadu" d="M 220,535 C 265,525 285,550 280,600 C 275,640 240,665 215,650 C 205,630 205,590 215,555 C 217,542 219,537 220,535 Z" />
+              <!-- Centroid State Labels -->
+              <g class="geo-state-labels" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff" pointer-events="none">
+                <text x="235" y="85" font-size="9" fill="var(--text-muted)">JK</text>
+                <text x="145" y="245">RJ</text>
+                <text x="235" y="213" font-size="8" fill="#0066FF">DL</text>
+                <text x="300" y="245">UP</text>
+                <text x="105" y="325">GJ</text>
+                <text x="245" y="335">MP</text>
+                <text x="405" y="295">BR</text>
+                <text x="450" y="340">WB</text>
+                <text x="520" y="275">NE</text>
+                <text x="375" y="380">OD</text>
+                <text x="195" y="415">MH</text>
+                <text x="265" y="460">TG</text>
+                <text x="200" y="525">KA</text>
+                <text x="305" y="515">AP</text>
+                <text x="250" y="605">TN</text>
+                <text x="190" y="625" font-size="9">KL</text>
+              </g>
+            </svg>
+
+            <!-- Interactive World Vector SVG Map (Hidden by Default) -->
+            <svg id="worldGeoSvg" class="geo-svg-map" viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+              <path class="geo-state-path" id="world-na" data-state-id="WORLD-NA" data-state-name="North America" d="M 80,80 C 130,50 240,60 260,110 C 270,160 220,200 170,220 C 120,220 90,160 70,130 Z" />
+              <path class="geo-state-path" id="world-sa" data-state-id="WORLD-SA" data-state-name="South America" d="M 210,230 C 250,230 280,270 270,340 C 260,400 220,440 200,430 C 180,400 180,310 200,250 Z" />
+              <path class="geo-state-path" id="world-eu" data-state-id="WORLD-EU" data-state-name="Europe" d="M 410,70 C 470,60 510,80 500,140 C 470,170 430,160 390,150 C 380,120 390,90 410,70 Z" />
+              <path class="geo-state-path" id="world-af" data-state-id="WORLD-AF" data-state-name="Africa" d="M 410,180 C 470,180 520,220 500,310 C 480,380 440,400 420,380 C 390,320 380,240 410,180 Z" />
+              <path class="geo-state-path" id="world-asia" data-state-id="WORLD-ASIA" data-state-name="Asia &amp; Middle East" d="M 520,70 C 650,50 780,80 770,190 C 750,240 680,260 620,240 C 580,230 530,220 510,160 C 510,110 510,90 520,70 Z" />
+              <path class="geo-state-path" id="world-india" data-state-id="WORLD-IN" data-state-name="India (Core Operating Hub)" style="fill:#0066FF !important; stroke:#ffffff; stroke-width:2.5; filter:url(#geoGlow);" d="M 570,180 C 595,175 625,185 625,215 C 625,245 605,285 590,290 C 575,285 565,240 565,215 C 565,195 568,185 570,180 Z" />
+              <path class="geo-state-path" id="world-oc" data-state-id="WORLD-OC" data-state-name="Oceania &amp; Australia" d="M 700,300 C 760,290 800,320 790,380 C 770,410 720,420 680,390 C 670,350 680,320 700,300 Z" />
+              
+              <g font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle" pointer-events="none">
+                <text x="160" y="150">North America</text>
+                <text x="235" y="330">South America</text>
+                <text x="445" y="120">Europe</text>
+                <text x="445" y="280">Africa</text>
+                <text x="660" y="150">Asia</text>
+                <text x="590" y="235" font-size="11" fill="#ffffff" font-weight="800">🇮🇳 India</text>
+                <text x="740" y="355">Oceania</text>
+              </g>
+            </svg>
+
+            <!-- Floating Tooltip for Hovering on States/Regions -->
+            <div class="geo-tooltip" id="geoMapTooltip">
+              <div class="geo-tooltip-header">
+                <span class="geo-tooltip-title" id="geoTooltipTitle">Maharashtra</span>
+                <span class="geo-tooltip-rank" id="geoTooltipRank">#1 State</span>
+              </div>
+              <div class="geo-tooltip-grid">
+                <div class="geo-tooltip-row">
+                  <span class="geo-tooltip-lbl">👥 Customer Count:</span>
+                  <span class="geo-tooltip-val" id="geoTooltipCustomers">0</span>
+                </div>
+                <div class="geo-tooltip-row">
+                  <span class="geo-tooltip-lbl">📊 Transactions:</span>
+                  <span class="geo-tooltip-val" id="geoTooltipTxns">0</span>
+                </div>
+                <div class="geo-tooltip-row">
+                  <span class="geo-tooltip-lbl">💳 Total Volume:</span>
+                  <span class="geo-tooltip-val" id="geoTooltipVolume">₹0.00</span>
+                </div>
+                <div class="geo-tooltip-row">
+                  <span class="geo-tooltip-lbl">✓ Success Rate:</span>
+                  <span class="geo-tooltip-val" id="geoTooltipSr">0.0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Regional Markets Leaderboard -->
+          <div class="geo-leaderboard-card">
+            <div class="geo-leaderboard-header">
+              <span>Top Regional Markets</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);" id="geoLeaderboardSub">By Customer Count</span>
+            </div>
+            <div id="geoLeaderboardList" style="display: flex; flex-direction: column; gap: 6px; max-height: 350px; overflow-y: auto;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
 
     
     <!-- Payment Routing & Ecosystem Analysis Reports (PSP, UPI App, UPI Handle) -->
@@ -627,49 +846,8 @@
         <!-- Rendered dynamically by app.js matching Screenshot 2 -->
       </div>
     </section>
-
-    <!-- Dedicated "Created By" Section with Uploaded Transact Bridge Logo -->
-    <footer class="footer-created-by">
-      <div class="footer-content-row">
-        <div class="footer-brand-box">
-          <div class="footer-logo-badge">
-            <img src="assets/logo.png" alt="Created by Transact Bridge">
-          </div>
-          <div class="footer-brand-text">
-            <div class="created-by-tag">Platform Architect &amp; Gateway Provider</div>
-            <div class="footer-brand-title">Created by Transact Bridge</div>
-            <div class="footer-brand-desc">
-              High-availability payment orchestration and intelligent transaction monitoring platform. Engineered for 99.999% reliability, sub-50ms latency routing, automated decline recovery, and hourly settlement reconciliation.
-            </div>
-          </div>
-        </div>
-
-        <div class="footer-badges">
-          <div class="footer-pill-spec">
-            <span class="spec-label">Brand Palette</span>
-            <div class="color-swatch-row">
-              <span class="swatch-box" style="background: #001626;" title="Midnight Navy: #001626"></span>
-              <span class="swatch-box" style="background: #007aff;" title="Transact Blue: #007aff"></span>
-              <span class="swatch-box" style="background: #10b981;" title="Success Green: #10b981"></span>
-              <span class="swatch-box" style="background: #f43f5e;" title="Failure Coral: #f43f5e"></span>
-            </div>
-            <span class="spec-value" style="font-size: 0.72rem; margin-top: 3px;">#001626 / #007aff</span>
-          </div>
-
-          <div class="footer-pill-spec">
-            <span class="spec-label">Gateway Compliance</span>
-            <span class="spec-value">PCI-DSS Level 1</span>
-          </div>
-
-          <div class="footer-pill-spec">
-            <span class="spec-label">Cloud Deployment</span>
-            <span class="spec-value">Vercel Edge Ready</span>
-          </div>
-        </div>
-      </div>
-    </footer>
-
-  </div>
+  </main>
+</div>
 
   <!-- Upload Hourly Data Modal -->
   <div class="modal-overlay" id="uploadModal">

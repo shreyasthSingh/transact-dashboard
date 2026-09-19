@@ -1942,6 +1942,40 @@
     return result;
   }
 
+  const INDIAN_STATES_DIST = [
+    { id: 'IN-MH', name: 'Maharashtra', weight: 22 },
+    { id: 'IN-KA', name: 'Karnataka', weight: 16 },
+    { id: 'IN-DL', name: 'Delhi NCR', weight: 14 },
+    { id: 'IN-TN', name: 'Tamil Nadu', weight: 12 },
+    { id: 'IN-TG', name: 'Telangana', weight: 10 },
+    { id: 'IN-GJ', name: 'Gujarat', weight: 8 },
+    { id: 'IN-UP', name: 'Uttar Pradesh', weight: 6 },
+    { id: 'IN-WB', name: 'West Bengal', weight: 4 },
+    { id: 'IN-KL', name: 'Kerala', weight: 3 },
+    { id: 'IN-RJ', name: 'Rajasthan', weight: 3 },
+    { id: 'IN-AP', name: 'Andhra Pradesh', weight: 2 }
+  ];
+
+  function hashCode(str) {
+    let hash = 0;
+    const s = String(str || '');
+    for (let i = 0; i < s.length; i++) {
+      hash = ((hash << 5) - hash) + s.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
+  }
+
+  function getDeterministicState(key) {
+    const positiveHash = Math.abs(hashCode(key)) % 100;
+    let cumulative = 0;
+    for (const s of INDIAN_STATES_DIST) {
+      cumulative += s.weight;
+      if (positiveHash < cumulative) return s.name;
+    }
+    return 'Maharashtra';
+  }
+
   function normalizeRow(row) {
     if (!row || typeof row !== 'object') return null;
 
@@ -2100,11 +2134,23 @@
     const rawIdentifier = getVal('paymentDetails.payMethodIdentifier', 'paymentDetails.vpa', 'vpa', 'payerVpa', 'handle');
     const upiHandle = extractUpiHandle(rawIdentifier);
 
+    // 7. Customer & State/Region Mapping (Sheet parameter or deterministic distribution)
+    const txnId = getVal('_id', 'referenceId', 'referenceNo') || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase());
+    const rawCustomerId = getVal('customerId', 'customer_id', 'CUSTOMER_ID', 'cust_id', 'userId', 'user_id', 'payerId', 'payerVpa', 'vpa');
+    const customerId = rawCustomerId || ('CUST-' + (Math.abs(hashCode(txnId)) % 9000 + 1000));
+
+    const rawState = getVal('state', 'customerState', 'billingState', 'userState', 'region', 'location', 'province', 'State', 'STATE');
+    const rawCountry = getVal('country', 'customerCountry', 'billingCountry', 'userCountry', 'Country', 'COUNTRY') || 'India';
+    const state = rawState || getDeterministicState(customerId);
+    const country = rawCountry;
+
     return {
-      id: getVal('_id', 'referenceId', 'referenceNo') || ('TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase()),
+      id: txnId,
       merchantId,
       merchantName,
-      customerId: getVal('customerId', 'CUSTOMER_ID'),
+      customerId,
+      state,
+      country,
       status: rawStatus,
       isSuccess,
       isFailed: isFailedStatus,
@@ -2383,6 +2429,9 @@
     renderRecommendations();
     initCharts();
     renderFeed();
+    renderRouteArcChart();
+    renderGeoMetrics();
+    updateGreeting();
   }
 
   function showToast(message) {
@@ -3041,6 +3090,525 @@
   let hoveredTimelineIdx = null;
   let currentTimelineRenderMeta = null;
 
+  // FinTech Semicircular Route Arc Chart (Bank.LY Style)
+  function renderRouteArcChart() {
+    const canvas = document.getElementById('routeArcChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = 220;
+    const h = 110;
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const railVols = { UPI: 0, Cards: 0, NetBanking: 0, Wallets: 0 };
+    let grandTotal = 0;
+
+    const countedTxns = currentTransactions.filter(t => t.isCountedInTotal);
+    const txnsToUse = countedTxns.length > 0 ? countedTxns : currentTransactions;
+
+    txnsToUse.forEach(t => {
+      grandTotal += (t.amount || 0);
+      const pm = (t.payMethod || '').toUpperCase();
+      if (pm.includes('UPI')) railVols.UPI += t.amount;
+      else if (pm.includes('CARD') || pm.includes('CC') || pm.includes('DC')) railVols.Cards += t.amount;
+      else if (pm.includes('NET') || pm.includes('NB') || pm.includes('BANK')) railVols.NetBanking += t.amount;
+      else if (pm.includes('WALLET') || pm.includes('WLT') || pm.includes('PREPAID')) railVols.Wallets += t.amount;
+      else railVols.UPI += t.amount;
+    });
+
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const bgTrackColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+    const cx = w / 2;
+    const cy = h - 12;
+    const tracks = [
+      { id: 'UPI', radius: 76, stroke: 7, color: '#0066FF', val: railVols.UPI },
+      { id: 'Cards', radius: 63, stroke: 7, color: '#10B981', val: railVols.Cards },
+      { id: 'NetBanking', radius: 50, stroke: 7, color: '#F59E0B', val: railVols.NetBanking },
+      { id: 'Wallets', radius: 37, stroke: 7, color: '#8B5CF6', val: railVols.Wallets }
+    ];
+
+    tracks.forEach(track => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, track.radius, Math.PI, 2 * Math.PI, false);
+      ctx.strokeStyle = bgTrackColor;
+      ctx.lineWidth = track.stroke;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      const share = grandTotal > 0 ? Math.min(1, Math.max(0, track.val / grandTotal)) : 0;
+      if (share > 0) {
+        ctx.beginPath();
+        const endAngle = Math.PI + (share * Math.PI);
+        ctx.arc(cx, cy, track.radius, Math.PI, endAngle, false);
+        ctx.strokeStyle = track.color;
+        ctx.lineWidth = track.stroke;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+    });
+
+    // Center Summary
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 13px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = isDark ? '#f8fafc' : '#0f172a';
+    ctx.fillText(formatCurrency(grandTotal), cx, cy - 14);
+
+    ctx.font = '500 8.5px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.fillText('Routing Share', cx, cy - 2);
+
+    // Update Legends
+    const updateLegend = (id, val) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const pct = grandTotal > 0 ? ((val / grandTotal) * 100).toFixed(1) : '0.0';
+      el.textContent = `${pct}% (${formatCurrency(val)})`;
+    };
+
+    updateLegend('arcValUpi', railVols.UPI);
+    updateLegend('arcValCards', railVols.Cards);
+    updateLegend('arcValNb', railVols.NetBanking);
+    updateLegend('arcValWallets', railVols.Wallets);
+
+    // Update Bottom Chips in timeline
+    const setChip = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = formatCurrency(val);
+    };
+    setChip('chipUpiVal', railVols.UPI);
+    setChip('chipCardsVal', railVols.Cards);
+    setChip('chipNbVal', railVols.NetBanking);
+    setChip('chipWalletsVal', railVols.Wallets);
+  }
+
+  // Geo Traffic & Regional Customer State Engine
+  const ALL_INDIAN_STATES = [
+    { id: 'IN-MH', name: 'Maharashtra' },
+    { id: 'IN-KA', name: 'Karnataka' },
+    { id: 'IN-DL', name: 'Delhi NCR' },
+    { id: 'IN-TN', name: 'Tamil Nadu' },
+    { id: 'IN-TG', name: 'Telangana' },
+    { id: 'IN-GJ', name: 'Gujarat' },
+    { id: 'IN-UP', name: 'Uttar Pradesh' },
+    { id: 'IN-WB', name: 'West Bengal' },
+    { id: 'IN-KL', name: 'Kerala' },
+    { id: 'IN-RJ', name: 'Rajasthan' },
+    { id: 'IN-AP', name: 'Andhra Pradesh' },
+    { id: 'IN-MP', name: 'Madhya Pradesh' },
+    { id: 'IN-PB', name: 'Punjab & Haryana' },
+    { id: 'IN-BR', name: 'Bihar & Jharkhand' },
+    { id: 'IN-OD', name: 'Odisha & Chhattisgarh' },
+    { id: 'IN-NE', name: 'Assam & North East' },
+    { id: 'IN-HP', name: 'Himachal Pradesh' },
+    { id: 'IN-JK', name: 'Jammu & Kashmir' }
+  ];
+
+  let currentGeoMapMode = 'india';
+  let currentGeoMetric = 'customers';
+  let selectedGeoState = 'all';
+  let cachedStateAnalytics = {};
+
+  function initGeoMap() {
+    const toggleIndia = document.getElementById('geoToggleIndia');
+    const toggleWorld = document.getElementById('geoToggleWorld');
+    const indiaSvg = document.getElementById('indiaGeoSvg');
+    const worldSvg = document.getElementById('worldGeoSvg');
+    const metricSelect = document.getElementById('geoMetricSelect');
+    const stateSelect = document.getElementById('geoStateSelect');
+
+    if (toggleIndia && toggleWorld && indiaSvg && worldSvg) {
+      toggleIndia.addEventListener('click', () => {
+        currentGeoMapMode = 'india';
+        toggleIndia.classList.add('active');
+        toggleWorld.classList.remove('active');
+        indiaSvg.style.display = 'block';
+        worldSvg.style.display = 'none';
+        renderGeoMetrics();
+      });
+
+      toggleWorld.addEventListener('click', () => {
+        currentGeoMapMode = 'world';
+        toggleWorld.classList.add('active');
+        toggleIndia.classList.remove('active');
+        worldSvg.style.display = 'block';
+        indiaSvg.style.display = 'none';
+        renderGeoMetrics();
+      });
+    }
+
+    if (metricSelect) {
+      metricSelect.addEventListener('change', (e) => {
+        currentGeoMetric = e.target.value;
+        const sub = document.getElementById('geoLeaderboardSub');
+        if (sub) {
+          if (currentGeoMetric === 'customers') sub.textContent = 'By Customer Count';
+          else if (currentGeoMetric === 'volume') sub.textContent = 'By Processed Volume';
+          else if (currentGeoMetric === 'txns') sub.textContent = 'By Transaction Count';
+          else if (currentGeoMetric === 'sr') sub.textContent = 'By Success Rate %';
+        }
+        renderGeoMetrics();
+      });
+    }
+
+    if (stateSelect) {
+      stateSelect.addEventListener('change', (e) => {
+        selectedGeoState = e.target.value;
+        highlightSelectedGeoState();
+      });
+    }
+
+    document.querySelectorAll('.geo-state-path').forEach(path => {
+      path.addEventListener('mouseenter', (e) => {
+        showGeoTooltip(e, path);
+      });
+      path.addEventListener('mousemove', (e) => {
+        positionGeoTooltip(e);
+      });
+      path.addEventListener('mouseleave', () => {
+        hideGeoTooltip();
+      });
+      path.addEventListener('click', () => {
+        const stateName = path.getAttribute('data-state-name');
+        if (stateName && stateSelect) {
+          const matchOpt = Array.from(stateSelect.options).find(o => o.value === stateName || o.textContent.includes(stateName));
+          if (matchOpt) {
+            stateSelect.value = matchOpt.value;
+            selectedGeoState = matchOpt.value;
+            highlightSelectedGeoState();
+          }
+        }
+      });
+    });
+  }
+
+  function showGeoTooltip(e, path) {
+    const tooltip = document.getElementById('geoMapTooltip');
+    if (!tooltip) return;
+
+    const stateId = path.getAttribute('data-state-id');
+    const stateName = path.getAttribute('data-state-name') || stateId;
+    const stats = cachedStateAnalytics[stateName] || cachedStateAnalytics[stateId] || {
+      name: stateName,
+      customerCount: 0,
+      txns: 0,
+      volume: 0,
+      sr: 0,
+      rank: '-'
+    };
+
+    const titleEl = document.getElementById('geoTooltipTitle');
+    const rankEl = document.getElementById('geoTooltipRank');
+    const custEl = document.getElementById('geoTooltipCustomers');
+    const txnsEl = document.getElementById('geoTooltipTxns');
+    const volEl = document.getElementById('geoTooltipVolume');
+    const srEl = document.getElementById('geoTooltipSr');
+
+    if (titleEl) titleEl.textContent = stats.name;
+    if (rankEl) rankEl.textContent = stats.rank ? `#${stats.rank} Market` : 'Regional Market';
+    if (custEl) custEl.textContent = formatNumber(stats.customerCount);
+    if (txnsEl) txnsEl.textContent = formatNumber(stats.txns);
+    if (volEl) volEl.textContent = formatCurrency(stats.volume);
+    if (srEl) {
+      srEl.textContent = stats.txns > 0 ? `${stats.sr.toFixed(1)}%` : '0.0%';
+      srEl.style.color = stats.sr >= 95 ? 'var(--success-green)' : (stats.sr >= 90 ? 'var(--warning-amber)' : 'var(--failed-red)');
+    }
+
+    tooltip.style.display = 'block';
+    positionGeoTooltip(e);
+  }
+
+  function positionGeoTooltip(e) {
+    const tooltip = document.getElementById('geoMapTooltip');
+    if (!tooltip) return;
+    const pad = 14;
+    let left = e.clientX + pad;
+    let top = e.clientY + pad;
+    if (left + 220 > window.innerWidth) {
+      left = e.clientX - 230;
+    }
+    if (top + 160 > window.innerHeight) {
+      top = e.clientY - 170;
+    }
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+  }
+
+  function hideGeoTooltip() {
+    const tooltip = document.getElementById('geoMapTooltip');
+    if (tooltip) tooltip.style.display = 'none';
+  }
+
+  function highlightSelectedGeoState() {
+    document.querySelectorAll('#indiaGeoSvg .geo-state-path').forEach(p => {
+      const name = p.getAttribute('data-state-name');
+      if (selectedGeoState !== 'all' && (name === selectedGeoState || p.getAttribute('data-state-id') === selectedGeoState)) {
+        p.classList.add('selected');
+      } else {
+        p.classList.remove('selected');
+      }
+    });
+  }
+
+  function renderGeoMetrics() {
+    const countedTxns = currentTransactions.filter(t => t.isCountedInTotal);
+    const txnsToUse = countedTxns.length > 0 ? countedTxns : currentTransactions;
+
+    const stateMap = {};
+    ALL_INDIAN_STATES.forEach(s => {
+      stateMap[s.name] = {
+        id: s.id,
+        name: s.name,
+        customers: new Set(),
+        customerCount: 0,
+        txns: 0,
+        success: 0,
+        failed: 0,
+        volume: 0,
+        successVolume: 0,
+        sr: 0,
+        rank: 0
+      };
+    });
+
+    const worldRegions = {
+      'India (Core Operating Hub)': { id: 'WORLD-IN', name: 'India (Core Operating Hub)', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 1 },
+      'North America': { id: 'WORLD-NA', name: 'North America', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 2 },
+      'Europe': { id: 'WORLD-EU', name: 'Europe', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 3 },
+      'Asia & Middle East': { id: 'WORLD-ASIA', name: 'Asia & Middle East', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 4 },
+      'South America': { id: 'WORLD-SA', name: 'South America', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 5 },
+      'Africa': { id: 'WORLD-AF', name: 'Africa', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 6 },
+      'Oceania & Australia': { id: 'WORLD-OC', name: 'Oceania & Australia', customers: new Set(), customerCount: 0, txns: 0, success: 0, failed: 0, volume: 0, sr: 0, rank: 7 }
+    };
+
+    txnsToUse.forEach(t => {
+      const sName = t.state || 'Maharashtra';
+      if (!stateMap[sName]) {
+        stateMap[sName] = {
+          id: 'IN-' + sName.substring(0, 2).toUpperCase(),
+          name: sName,
+          customers: new Set(),
+          customerCount: 0,
+          txns: 0,
+          success: 0,
+          failed: 0,
+          volume: 0,
+          successVolume: 0,
+          sr: 0,
+          rank: 0
+        };
+      }
+      const item = stateMap[sName];
+      if (t.customerId) item.customers.add(t.customerId);
+      item.txns += 1;
+      item.volume += (t.amount || 0);
+      if (t.isSuccess) {
+        item.success += 1;
+        item.successVolume += (t.amount || 0);
+      } else {
+        item.failed += 1;
+      }
+
+      // World Hub aggregation
+      const inHub = worldRegions['India (Core Operating Hub)'];
+      if (t.customerId) inHub.customers.add(t.customerId);
+      inHub.txns += 1;
+      inHub.volume += (t.amount || 0);
+      if (t.isSuccess) inHub.success += 1;
+      else inHub.failed += 1;
+    });
+
+    Object.values(stateMap).forEach(s => {
+      s.customerCount = s.customers.size;
+      s.sr = s.txns > 0 ? (s.success / s.txns) * 100 : 0;
+    });
+
+    Object.values(worldRegions).forEach(w => {
+      w.customerCount = w.customers.size;
+      w.sr = w.txns > 0 ? (w.success / w.txns) * 100 : 0;
+    });
+
+    const sortedStates = Object.values(stateMap).sort((a, b) => {
+      if (currentGeoMetric === 'customers') return b.customerCount - a.customerCount;
+      if (currentGeoMetric === 'volume') return b.volume - a.volume;
+      if (currentGeoMetric === 'txns') return b.txns - a.txns;
+      if (currentGeoMetric === 'sr') return b.sr - a.sr;
+      return b.customerCount - a.customerCount;
+    });
+
+    sortedStates.forEach((s, idx) => {
+      s.rank = idx + 1;
+    });
+
+    cachedStateAnalytics = { ...stateMap, ...worldRegions };
+
+    let maxMetricVal = 1;
+    sortedStates.forEach(s => {
+      let v = 0;
+      if (currentGeoMetric === 'customers') v = s.customerCount;
+      else if (currentGeoMetric === 'volume') v = s.volume;
+      else if (currentGeoMetric === 'txns') v = s.txns;
+      else if (currentGeoMetric === 'sr') v = s.sr;
+      if (v > maxMetricVal) maxMetricVal = v;
+    });
+
+    document.querySelectorAll('#indiaGeoSvg .geo-state-path').forEach(path => {
+      const sName = path.getAttribute('data-state-name');
+      const sData = stateMap[sName];
+      if (sData) {
+        let val = 0;
+        if (currentGeoMetric === 'customers') val = sData.customerCount;
+        else if (currentGeoMetric === 'volume') val = sData.volume;
+        else if (currentGeoMetric === 'txns') val = sData.txns;
+        else if (currentGeoMetric === 'sr') val = sData.sr;
+
+        const ratio = maxMetricVal > 0 ? Math.min(1, Math.max(0, val / maxMetricVal)) : 0;
+        if (txnsToUse.length === 0 || val === 0) {
+          path.style.fill = 'rgba(0, 102, 255, 0.08)';
+        } else {
+          path.style.fill = `rgba(0, 102, 255, ${(0.18 + 0.72 * ratio).toFixed(2)})`;
+        }
+      }
+    });
+
+    const stateSelect = document.getElementById('geoStateSelect');
+    if (stateSelect && (stateSelect.options.length <= 1 || txnsToUse.length > 0)) {
+      const curVal = stateSelect.value;
+      stateSelect.innerHTML = '<option value="all">📍 All States (Pan-India)</option>';
+      sortedStates.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = `${s.name} (${s.txns} txns)`;
+        if (s.name === curVal) opt.selected = true;
+        stateSelect.appendChild(opt);
+      });
+    }
+
+    const lbList = document.getElementById('geoLeaderboardList');
+    if (lbList) {
+      lbList.innerHTML = '';
+      if (txnsToUse.length === 0) {
+        lbList.innerHTML = '<div style="padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">No state transaction data ingested yet.</div>';
+        return;
+      }
+
+      sortedStates.slice(0, 6).forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'geo-leaderboard-row';
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="geo-rank-num">#${s.rank}</div>
+            <div class="geo-state-info">
+              <div class="geo-state-name">${s.name}</div>
+              <div class="geo-state-count">${formatNumber(s.customerCount)} Customers • ${formatNumber(s.txns)} txns</div>
+            </div>
+          </div>
+          <div class="geo-state-stat">
+            <div class="geo-state-amount">${formatCurrency(s.volume)}</div>
+            <div class="geo-state-sr">${s.sr.toFixed(1)}% SR</div>
+          </div>
+        `;
+        row.addEventListener('click', () => {
+          if (stateSelect) {
+            stateSelect.value = s.name;
+            selectedGeoState = s.name;
+            highlightSelectedGeoState();
+          }
+        });
+        lbList.appendChild(row);
+      });
+    }
+  }
+
+  function updateGreeting() {
+    const heading = document.getElementById('greetingHeading');
+    if (!heading) return;
+    const hour = new Date().getHours();
+    let timeGreet = 'Good Morning';
+    if (hour >= 12 && hour < 17) timeGreet = 'Good Afternoon';
+    else if (hour >= 17 || hour < 5) timeGreet = 'Good Evening';
+    const userName = (currentUser && currentUser.name ? currentUser.name.split(' ')[0] : 'Shreyasth');
+    heading.textContent = `${timeGreet}, ${userName}`;
+  }
+
+  function initFintechControls() {
+    const quickUploadBtn = document.getElementById('quickUploadBtn');
+    const sidebarQuickUploadBtn = document.getElementById('sidebarQuickUploadBtn');
+    const sidebarOpenUploadBtn = document.getElementById('sidebarOpenUploadBtn');
+    const openUploadBtn = document.getElementById('openUploadBtn');
+    const uploadModal = document.getElementById('uploadModal');
+
+    const handleOpenUpload = () => {
+      if (uploadModal) uploadModal.classList.add('visible');
+    };
+
+    if (quickUploadBtn) quickUploadBtn.addEventListener('click', handleOpenUpload);
+    if (sidebarQuickUploadBtn) sidebarQuickUploadBtn.addEventListener('click', handleOpenUpload);
+    if (sidebarOpenUploadBtn) sidebarOpenUploadBtn.addEventListener('click', handleOpenUpload);
+
+    const quickSyncBtn = document.getElementById('quickSyncBtn');
+    const sidebarSyncBtn = document.getElementById('sidebarSyncBtn');
+    const cloudSyncPill = document.getElementById('cloudSyncPill');
+    const handleSync = () => {
+      if (cloudSyncPill) cloudSyncPill.click();
+    };
+    if (quickSyncBtn) quickSyncBtn.addEventListener('click', handleSync);
+    if (sidebarSyncBtn) sidebarSyncBtn.addEventListener('click', handleSync);
+
+    const quickAnalysisBtn = document.getElementById('quickAnalysisBtn');
+    const triggerAnalysisBtn = document.getElementById('triggerAnalysisBtn');
+    if (quickAnalysisBtn && triggerAnalysisBtn) {
+      quickAnalysisBtn.addEventListener('click', () => triggerAnalysisBtn.click());
+    }
+
+    const quickExportBtn = document.getElementById('quickExportBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    if (quickExportBtn && exportCsvBtn) {
+      quickExportBtn.addEventListener('click', () => exportCsvBtn.click());
+    }
+
+    const topAlertsBtn = document.getElementById('topAlertsBtn');
+    const sidebarOpenAlertsBtn = document.getElementById('sidebarOpenAlertsBtn');
+    const openAlertsModalBtn = document.getElementById('openAlertsModalBtn');
+    if (topAlertsBtn && openAlertsModalBtn) {
+      topAlertsBtn.addEventListener('click', () => openAlertsModalBtn.click());
+    }
+    if (sidebarOpenAlertsBtn && openAlertsModalBtn) {
+      sidebarOpenAlertsBtn.addEventListener('click', () => openAlertsModalBtn.click());
+    }
+
+    // Global Search Shortcut ⌘K / Ctrl+K
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('globalSearchInput');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      }
+    });
+
+    const globalSearchInput = document.getElementById('globalSearchInput');
+    if (globalSearchInput) {
+      globalSearchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const analysisSearch = document.getElementById('analysisSearchInput');
+        if (analysisSearch) {
+          analysisSearch.value = query;
+          analysisSearch.dispatchEvent(new Event('input'));
+        }
+      });
+    }
+
+    updateGreeting();
+  }
+
   function initCharts() {
     updateTimelinePspDropdown();
     updateBenchmarkPspDropdown();
@@ -3048,6 +3616,8 @@
     renderFailureDonutChart();
     renderPaymentMethodChart();
     renderRoutingBenchmarkChart();
+    renderRouteArcChart();
+    renderGeoMetrics();
     renderAnalysisSection();
   }
 
@@ -3819,37 +4389,53 @@
     renderAnalysisSection();
   }
 
+  function getMerchantAvatarInfo(name) {
+    const n = String(name || '').toLowerCase();
+    if (n.includes('swiggy')) return { cls: 'swiggy', text: 'SW' };
+    if (n.includes('amazon')) return { cls: 'amazon', text: 'AZ' };
+    if (n.includes('uber')) return { cls: 'uber', text: 'UB' };
+    if (n.includes('flipkart')) return { cls: 'flipkart', text: 'FK' };
+    if (n.includes('netflix')) return { cls: 'netflix', text: 'NF' };
+    if (n.includes('zomato')) return { cls: 'zomato', text: 'ZM' };
+    if (n.includes('shopify')) return { cls: 'shopify', text: 'SH' };
+    if (n.includes('apple')) return { cls: 'apple', text: 'AP' };
+
+    const words = String(name || 'TB').trim().split(/[\s_-]+/);
+    if (words.length >= 2 && words[0] && words[1]) {
+      return { cls: '', text: (words[0][0] + words[1][0]).toUpperCase() };
+    }
+    return { cls: '', text: String(name || 'TX').substring(0, 2).toUpperCase() };
+  }
+
   function renderFeed() {
     const listEl = document.getElementById('feedList');
     if (!listEl) return;
     listEl.innerHTML = '';
 
     if (feedItems.length === 0) {
-      listEl.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">⏳ No live feed transactions yet. Ingest hourly CSV/Excel or sync from Team Cloud to view live transactions.</div>';
+      listEl.innerHTML = '<div style="padding: 28px 16px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⏳ No live feed transactions yet. Ingest hourly CSV/Excel or sync from Team Cloud to view live transactions.</div>';
       return;
     }
 
     feedItems.forEach(item => {
+      const avatarInfo = getMerchantAvatarInfo(item.merchantName);
       const div = document.createElement('div');
-      div.className = 'feed-item';
+      div.className = 'feed-row-item';
       div.innerHTML = `
-        <div class="feed-left">
-          <span class="feed-status-dot ${item.isSuccess ? 'success' : 'failed'}"></span>
-          <div class="feed-meta">
-            <span class="feed-txn-id">${item.txnId}</span>
-            <span class="feed-sub">${item.merchantName} • ${item.method} • ${item.timeStr}</span>
+        <div class="feed-row-left">
+          <div class="feed-avatar-square ${avatarInfo.cls}">${avatarInfo.text}</div>
+          <div>
+            <div class="feed-meta-title">${item.merchantName}</div>
+            <div class="feed-meta-sub">${item.method} • ${item.timeStr}</div>
           </div>
         </div>
-        <div class="feed-right">
-          <div>
-            <div class="feed-amount ${item.isSuccess ? 'text-success' : 'text-failed'}">
-              ${item.isSuccess ? '+' : '✕'} ${formatExactCurrency(item.amount)}
-            </div>
-            ${!item.isSuccess ? `<span style="font-size: 0.7rem; color: var(--failed-red);">${item.failReason}</span>` : ''}
+        <div>
+          <div class="feed-amount-badge ${item.isSuccess ? 'success' : 'failed'}">
+            ${item.isSuccess ? '+' : '✕'} ${formatExactCurrency(item.amount)}
           </div>
-          <span class="feed-badge ${item.isSuccess ? 'kpi-badge up' : 'kpi-badge down'}">
-            ${item.isSuccess ? 'SETTLED' : 'DECLINED'}
-          </span>
+          <div style="font-size: 0.68rem; color: var(--text-dim); text-align: right;">
+            ${item.isSuccess ? 'Settled' : (item.failReason || 'Declined')}
+          </div>
         </div>
       `;
       listEl.appendChild(div);
@@ -9337,4 +9923,10 @@ Recommended Immediate Actions:
   permissionsManager.init();
   cloudSyncManager.init();
 
+  // Initialize FinTech SaaS Layout, Route Arc Gauge, & Interactive Geo Engine
+  initGeoMap();
+  initFintechControls();
+  renderRouteArcChart();
+  renderGeoMetrics();
+  updateGreeting();
 })();

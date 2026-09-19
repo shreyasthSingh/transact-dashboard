@@ -3906,7 +3906,16 @@ body.modal-open {
   font-size: 0.74rem;
   font-weight: 600;
   color: #10b981;
+  cursor: pointer;
+  user-select: none;
   transition: all 0.2s ease;
+}
+
+.cloud-sync-pill:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .cloud-sync-pill.syncing {
@@ -4577,3 +4586,864 @@ body.hide-financials [data-metric="recoverableRevenue"] {
   opacity: 0.7;
 }
 
+
+/* ==========================================================================
+   FinTech SaaS Overhaul (Matching Screenshot 2 - Bank.LY Style)
+   ========================================================================== */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  width: 100%;
+}
+
+.app-sidebar {
+  width: 250px;
+  min-width: 250px;
+  background: var(--card-bg);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 100;
+  padding: 22px 16px;
+  overflow-y: auto;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.02);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 18px;
+}
+
+.sidebar-logo-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #ffffff !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.sidebar-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sidebar-brand-name {
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+}
+
+.sidebar-brand-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  background: rgba(0, 102, 255, 0.1);
+  color: var(--accent-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 4px;
+}
+
+.sidebar-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.sidebar-nav-item:hover {
+  background: var(--bg-secondary);
+  color: var(--text-main);
+}
+
+.sidebar-nav-item.active {
+  background: rgba(0, 102, 255, 0.08);
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.sidebar-nav-item .nav-icon {
+  font-size: 1.1rem;
+  width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-nav-item .nav-badge-pill {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success-green);
+}
+
+.sidebar-nav-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 14px 0;
+}
+
+.sidebar-status-card {
+  margin-top: auto;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.sidebar-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.sidebar-status-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.sidebar-status-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+
+.btn-sidebar-action {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-sidebar-action:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding: 26px 32px 60px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-x: hidden;
+}
+
+.app-top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.greeting-heading {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.greeting-subheading {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+.top-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px 14px;
+  box-shadow: var(--shadow-sm);
+  width: 270px;
+  transition: all 0.2s ease;
+}
+
+.header-search-bar:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+
+.header-search-bar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.82rem;
+  color: var(--text-main);
+  width: 100%;
+}
+
+.kbd-shortcut {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.btn-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  font-size: 1.05rem;
+}
+
+.btn-icon-badge:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+}
+
+.notification-badge-dot {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  background: var(--failed-red);
+  border-radius: 50%;
+  border: 2px solid var(--card-bg);
+}
+
+.sub-header-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 10px 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* FinTech Top Row Grid */
+.fintech-top-row {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr 1.25fr;
+  gap: 18px;
+}
+
+@media (max-width: 1200px) {
+  .fintech-top-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .fintech-top-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fintech-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.fintech-card:hover {
+  box-shadow: var(--shadow-card);
+  border-color: rgba(0, 102, 255, 0.2);
+}
+
+.fintech-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.fintech-card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.fintech-card-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.fintech-pill-badge {
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fintech-pill-badge.positive {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-green);
+}
+
+.fintech-pill-badge.negative {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--failed-red);
+}
+
+.fintech-pill-badge.neutral {
+  background: rgba(0, 102, 255, 0.08);
+  color: var(--accent-primary);
+}
+
+.quick-action-pills-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-quick-pill {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-quick-pill:hover {
+  background: var(--card-bg);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Semicircular Arc Gauge Card */
+.arc-summary-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.arc-canvas-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 4px 0 8px 0;
+}
+
+.arc-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.arc-legend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+.arc-legend-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.arc-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.arc-legend-value {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* FinTech Middle Row */
+.fintech-middle-row {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 1080px) {
+  .fintech-middle-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-bottom-chips {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+  overflow-x: auto;
+}
+
+.chart-chip-item {
+  flex: 1;
+  min-width: 110px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chart-chip-lbl {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chart-chip-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* Recent Live Feed */
+.feed-widget-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.feed-widget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  max-height: 290px;
+  overflow-y: auto;
+}
+
+.feed-row-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: all 0.15s ease;
+}
+
+.feed-row-item:hover {
+  background: var(--bg-secondary);
+}
+
+.feed-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.feed-avatar-square {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.feed-avatar-square.swiggy { background: #fc8019; }
+.feed-avatar-square.amazon { background: #232f3e; color: #ff9900; }
+.feed-avatar-square.uber { background: #000000; }
+.feed-avatar-square.flipkart { background: #2874f0; }
+.feed-avatar-square.netflix { background: #e50914; }
+.feed-avatar-square.zomato { background: #cb202d; }
+.feed-avatar-square.shopify { background: #96bf48; }
+.feed-avatar-square.apple { background: #555555; }
+
+.feed-meta-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.feed-meta-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.feed-amount-badge {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.feed-amount-badge.success { color: var(--success-green); }
+.feed-amount-badge.failed { color: var(--failed-red); }
+
+/* Geo Traffic Map Section */
+.geo-traffic-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.geo-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.geo-title-area h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.geo-title-area p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.geo-controls-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.geo-toggle-pill {
+  display: flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.geo-toggle-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.geo-toggle-btn.active {
+  background: var(--card-bg);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.geo-content-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .geo-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.geo-map-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  background: radial-gradient(circle at center, rgba(0, 102, 255, 0.05) 0%, transparent 70%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px dashed var(--border-subtle);
+}
+
+.geo-svg-map {
+  width: 100%;
+  max-width: 520px;
+  height: 400px;
+}
+
+.geo-state-path {
+  fill: rgba(0, 102, 255, 0.18);
+  stroke: var(--card-bg);
+  stroke-width: 1.6;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.geo-state-path:hover {
+  fill: #0066FF !important;
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 4px 12px rgba(0, 102, 255, 0.45));
+}
+
+.geo-state-path.selected {
+  fill: #0052CC !important;
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.geo-tooltip {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.78rem;
+  display: none;
+  transform: translate(14px, 14px);
+  min-width: 200px;
+}
+
+.geo-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.geo-tooltip-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #ffffff;
+}
+
+.geo-tooltip-rank {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(0, 102, 255, 0.4);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.geo-tooltip-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.geo-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.geo-tooltip-lbl {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.geo-tooltip-val {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.geo-leaderboard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.geo-leaderboard-header {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.geo-leaderboard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.geo-leaderboard-row:hover {
+  background: var(--card-bg);
+}
+
+.geo-rank-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(0, 102, 255, 0.1);
+  color: var(--accent-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.geo-state-info {
+  flex: 1;
+}
+
+.geo-state-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.geo-state-count {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.geo-state-stat {
+  text-align: right;
+}
+
+.geo-state-amount {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.geo-state-sr {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--success-green);
+}
