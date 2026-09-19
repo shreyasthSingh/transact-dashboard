@@ -94,11 +94,14 @@
     }
   }
 
-  function saveAlertSettings() {
+  function saveAlertSettings(broadcast = true) {
     try {
       localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
     } catch (e) {
       console.warn('Failed to persist alert settings', e);
+    }
+    if (broadcast && typeof cloudSyncManager !== 'undefined' && cloudSyncManager.publishAlertSettings) {
+      cloudSyncManager.publishAlertSettings(alertSettings);
     }
   }
 
@@ -6674,14 +6677,39 @@ Incident Timestamp: ${timeStr}`;
   }
 
   function openAlertsModal() {
-    if (typeof permissionsManager !== 'undefined' && !permissionsManager.hasPermission('canDispatchAlerts')) {
-      showToast('🔒 Alert configuration is restricted by Administrator policy. Contact Shreyasth@transactbridge.com.');
-      return;
+    const user = typeof authManager !== 'undefined' ? authManager.getCurrentUser() : null;
+    const isAdmin = user && user.role === 'admin';
+    const canDispatch = typeof permissionsManager === 'undefined' || permissionsManager.hasPermission('canDispatchAlerts');
+
+    if (typeof cloudSyncManager !== 'undefined' && cloudSyncManager.fetchAlertSettingsFromCloud) {
+      cloudSyncManager.fetchAlertSettingsFromCloud();
     }
+
     syncAlertModalInputs();
     renderAlertEmailChips();
     renderAlertPhoneChips();
     renderAlertLogTable();
+
+    const saveBtn = document.getElementById('saveAlertsSettingsBtn');
+    const resetBtn = document.getElementById('resetAlertDefaultsBtn');
+    const alertStatusChip = document.getElementById('alertStatusChip');
+
+    if (!isAdmin && !canDispatch) {
+      if (saveBtn) saveBtn.style.display = 'none';
+      if (resetBtn) resetBtn.style.display = 'none';
+      if (alertStatusChip) {
+        alertStatusChip.textContent = 'ADMIN CONFIGURED (VIEW-ONLY)';
+        alertStatusChip.className = 'status-chip info';
+      }
+    } else {
+      if (saveBtn) saveBtn.style.display = 'inline-flex';
+      if (resetBtn) resetBtn.style.display = 'inline-flex';
+      if (alertStatusChip) {
+        alertStatusChip.textContent = 'ACTIVE';
+        alertStatusChip.className = 'status-chip healthy';
+      }
+    }
+
     openModal('alertsConfigModal');
   }
 
@@ -7879,7 +7907,34 @@ Recommended Immediate Actions:
         userProfileBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           const isVisible = userDropdownCard.style.display === 'block';
-          userDropdownCard.style.display = isVisible ? 'none' : 'block';
+          if (isVisible) {
+            userDropdownCard.style.display = 'none';
+          } else {
+            // Viewport boundary guard: prevent clipping on either left or right edge
+            const btnRect = userProfileBtn.getBoundingClientRect();
+            const cardWidth = 250;
+            const pad = 12;
+            
+            // If card aligned to right of button (right: 0), left edge is (btnRect.right - cardWidth)
+            const wouldOverflowLeft = (btnRect.right - cardWidth) < pad;
+            // If card aligned to left of button (left: 0), right edge is (btnRect.left + cardWidth)
+            const wouldOverflowRight = (btnRect.left + cardWidth) > (window.innerWidth - pad);
+
+            if (wouldOverflowLeft && !wouldOverflowRight) {
+              userDropdownCard.style.left = '0';
+              userDropdownCard.style.right = 'auto';
+            } else if (wouldOverflowRight && !wouldOverflowLeft) {
+              userDropdownCard.style.right = '0';
+              userDropdownCard.style.left = 'auto';
+            } else if (btnRect.left < 160) {
+              userDropdownCard.style.left = '0';
+              userDropdownCard.style.right = 'auto';
+            } else {
+              userDropdownCard.style.right = '0';
+              userDropdownCard.style.left = 'auto';
+            }
+            userDropdownCard.style.display = 'block';
+          }
         });
 
         document.addEventListener('click', (e) => {
@@ -7933,29 +7988,6 @@ Recommended Immediate Actions:
         forgotPasswordLink.addEventListener('click', (e) => {
           e.preventDefault();
           showToast('🔒 Password Reset: Please contact Administrator (Shreyasth@transactbridge.com) for password assistance.');
-        });
-      }
-
-      const registerHelpLink = document.getElementById('registerHelpLink');
-      if (registerHelpLink) {
-        registerHelpLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          showToast('📋 Account Provisioning: New accounts must be provisioned by Administrator (Shreyasth@transactbridge.com).');
-        });
-      }
-
-      // SSO Social Buttons (Reference Design)
-      const ssoGoogleBtn = document.getElementById('ssoGoogleBtn');
-      if (ssoGoogleBtn) {
-        ssoGoogleBtn.addEventListener('click', () => {
-          showToast('🔒 Google Workspace SSO: Please authenticate with your corporate credentials (Shreyasth@transactbridge.com or Ops@transactbridge.com) above.');
-        });
-      }
-
-      const ssoCorporateBtn = document.getElementById('ssoCorporateBtn');
-      if (ssoCorporateBtn) {
-        ssoCorporateBtn.addEventListener('click', () => {
-          showToast('🔒 Enterprise Identity: Please authenticate with your authorized Transact Bridge credentials above.');
         });
       }
 
@@ -8098,9 +8130,12 @@ Recommended Immediate Actions:
 
       showToast(`👋 Welcome back, ${this.currentUser.name} (${this.currentUser.role.toUpperCase()})!`);
 
-      // Immediately trigger cloud sync upon login
+      // Immediately trigger cloud sync and alert settings sync upon login
       if (typeof cloudSyncManager !== 'undefined') {
         cloudSyncManager.fetchFromCloud(false);
+        if (cloudSyncManager.fetchAlertSettingsFromCloud) {
+          cloudSyncManager.fetchAlertSettingsFromCloud();
+        }
       }
     },
 
@@ -8153,7 +8188,7 @@ Recommended Immediate Actions:
   const DEFAULT_PERMISSIONS = {
     canUpload: false,
     canAdjustSla: false,
-    canDispatchAlerts: false,
+    canDispatchAlerts: true,
     canTriggerAnalysis: false,
     canExportReports: true,
     canViewFinancials: true
@@ -8435,6 +8470,7 @@ Recommended Immediate Actions:
   // Allows any uploaded dataset to be viewed live by anyone with the link
   // =========================================================================
   const CLOUD_STORAGE_KEY = 'tb_cloud_latest_batch';
+  const CLOUD_ALERT_STORAGE_KEY = 'tb_cloud_alert_settings';
 
   const cloudSyncManager = {
     activeCloudBatchId: null,
@@ -8446,17 +8482,23 @@ Recommended Immediate Actions:
       this.bindEvents();
       // Initial fetch from cloud
       this.fetchFromCloud(true);
+      this.fetchAlertSettingsFromCloud();
 
       // Periodic cloud polling (every 35s)
       this.syncInterval = setInterval(() => {
         this.fetchFromCloud(true);
+        this.fetchAlertSettingsFromCloud();
       }, 35000);
 
       // Auto-sync when window gains focus or tab becomes visible
-      window.addEventListener('focus', () => this.fetchFromCloud(true));
+      window.addEventListener('focus', () => {
+        this.fetchFromCloud(true);
+        this.fetchAlertSettingsFromCloud();
+      });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           this.fetchFromCloud(true);
+          this.fetchAlertSettingsFromCloud();
         }
       });
     },
@@ -8471,6 +8513,7 @@ Recommended Immediate Actions:
         cloudRefreshBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           this.fetchFromCloud(false);
+          this.fetchAlertSettingsFromCloud();
         });
       }
 
@@ -8479,6 +8522,7 @@ Recommended Immediate Actions:
           const userDropdownCard = document.getElementById('userDropdownCard');
           if (userDropdownCard) userDropdownCard.style.display = 'none';
           this.fetchFromCloud(false);
+          this.fetchAlertSettingsFromCloud();
         });
       }
 
@@ -8511,6 +8555,104 @@ Recommended Immediate Actions:
       }
     },
 
+    async publishAlertSettings(settings) {
+      if (!settings) return;
+      const user = (typeof authManager !== 'undefined' && authManager.getCurrentUser()) || { name: 'Admin', role: 'admin' };
+      const payload = {
+        type: 'alert_settings',
+        alertSettings: settings,
+        updatedBy: user.name,
+        updatedAt: new Date().toISOString()
+      };
+
+      try {
+        localStorage.setItem(CLOUD_ALERT_STORAGE_KEY, JSON.stringify(settings));
+      } catch (_) {}
+
+      try {
+        await fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.warn('POST /api/data alert settings failed:', err.message);
+      }
+
+      try {
+        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings)
+        }).catch(() => {});
+      } catch (_) {}
+    },
+
+    applyCloudAlertSettings(cloudSettings) {
+      if (!cloudSettings || typeof cloudSettings !== 'object') return false;
+      try {
+        alertSettings = {
+          ...defaultAlertSettings,
+          ...cloudSettings,
+          enabledChannels: { ...defaultAlertSettings.enabledChannels, ...(cloudSettings.enabledChannels || {}) },
+          thresholds: { ...defaultAlertSettings.thresholds, ...(cloudSettings.thresholds || {}) },
+          recipients: {
+            emails: Array.isArray(cloudSettings.recipients?.emails) ? cloudSettings.recipients.emails : defaultAlertSettings.recipients.emails,
+            phones: Array.isArray(cloudSettings.recipients?.phones) ? cloudSettings.recipients.phones : defaultAlertSettings.recipients.phones
+          },
+          emailjs: { ...defaultAlertSettings.emailjs, ...(cloudSettings.emailjs || {}) }
+        };
+        localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+        localStorage.setItem(CLOUD_ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+
+        if (typeof syncAlertModalInputs === 'function') syncAlertModalInputs();
+        if (typeof renderAlertEmailChips === 'function') renderAlertEmailChips();
+        if (typeof renderAlertPhoneChips === 'function') renderAlertPhoneChips();
+        if (typeof renderKPIs === 'function') renderKPIs();
+        if (typeof evaluateSlaAlerts === 'function') evaluateSlaAlerts();
+        return true;
+      } catch (e) {
+        console.warn('Error applying cloud alert settings:', e);
+        return false;
+      }
+    },
+
+    async fetchAlertSettingsFromCloud() {
+      // 1. Try Vercel Serverless /api/data?type=alert_settings
+      try {
+        const res = await fetch(`/api/data?type=alert_settings&t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && json.alertSettings) {
+            this.applyCloudAlertSettings(json.alertSettings);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('GET /api/data alertSettings failed:', err.message);
+      }
+
+      // 2. Try durable public fallback KV
+      try {
+        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1?t=${Date.now()}`);
+        if (fbRes.ok) {
+          const fbSettings = await fbRes.json();
+          if (fbSettings && fbSettings.thresholds) {
+            this.applyCloudAlertSettings(fbSettings);
+            return;
+          }
+        }
+      } catch (_) {}
+
+      // 3. Check local cloud mirror cache
+      try {
+        const cached = localStorage.getItem(CLOUD_ALERT_STORAGE_KEY);
+        if (cached) {
+          this.applyCloudAlertSettings(JSON.parse(cached));
+        }
+      } catch (_) {}
+    },
+
     async publishToCloud(batchObj) {
       if (!batchObj || !batchObj.transactions) return;
       this.updateSyncPill('syncing');
@@ -8525,7 +8667,8 @@ Recommended Immediate Actions:
           transactions: batchObj.transactions
         },
         uploadedBy: user.name,
-        aggregates: getAggregates()
+        aggregates: getAggregates(),
+        alertSettings: alertSettings
       };
 
       try {
@@ -8615,10 +8758,16 @@ Recommended Immediate Actions:
         const res = await fetch(`/api/data?t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
-          if (json && json.success && json.data && json.data.transactions && json.data.transactions.length > 0) {
-            if (applyCloudBatch(json.data)) {
-              this.isSyncing = false;
-              return;
+          if (json && json.success) {
+            // Apply synced alert settings if included
+            if (json.alertSettings || (json.data && json.data.alertSettings)) {
+              this.applyCloudAlertSettings(json.alertSettings || json.data.alertSettings);
+            }
+            if (json.data && json.data.transactions && json.data.transactions.length > 0) {
+              if (applyCloudBatch(json.data)) {
+                this.isSyncing = false;
+                return;
+              }
             }
           }
         }
@@ -8631,10 +8780,15 @@ Recommended Immediate Actions:
         const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1?t=${Date.now()}`);
         if (fbRes.ok) {
           const fbBatch = await fbRes.json();
-          if (fbBatch && fbBatch.transactions && fbBatch.transactions.length > 0) {
-            if (applyCloudBatch(fbBatch)) {
-              this.isSyncing = false;
-              return;
+          if (fbBatch) {
+            if (fbBatch.alertSettings) {
+              this.applyCloudAlertSettings(fbBatch.alertSettings);
+            }
+            if (fbBatch.transactions && fbBatch.transactions.length > 0) {
+              if (applyCloudBatch(fbBatch)) {
+                this.isSyncing = false;
+                return;
+              }
             }
           }
         }

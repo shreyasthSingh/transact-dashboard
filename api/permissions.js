@@ -4,7 +4,7 @@
 let inMemoryPermissions = {
   canUpload: false,
   canAdjustSla: false,
-  canDispatchAlerts: false,
+  canDispatchAlerts: true,
   canTriggerAnalysis: false,
   canExportReports: true,
   canViewFinancials: true

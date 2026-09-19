@@ -4055,6 +4055,8 @@ body.modal-open {
   top: calc(100% + 8px);
   right: 0;
   width: 250px;
+  max-width: min(280px, calc(100vw - 24px));
+  box-sizing: border-box;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -4062,6 +4064,23 @@ body.modal-open {
   padding: 12px;
   z-index: 1000;
   animation: fadeIn 0.15s ease-out;
+}
+
+.user-dropdown-card.align-left {
+  right: auto;
+  left: 0;
+}
+
+.user-dropdown-card.align-right {
+  right: 0;
+  left: auto;
+}
+
+@media (max-width: 860px) {
+  .user-dropdown-card {
+    right: auto;
+    left: 0;
+  }
 }
 
 .dropdown-header {
@@ -4123,7 +4142,7 @@ body.modal-open {
 }
 
 /* ================================================================
-   Transact Bridge — Enterprise Login Modal / Screen Styles
+   Transact Bridge — Clean Minimalist Executive Login (Reference Spec)
    ================================================================ */
 .login-overlay {
   position: fixed;
@@ -4131,9 +4150,9 @@ body.modal-open {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(8, 12, 20, 0.82);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(226, 232, 240, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -4141,261 +4160,430 @@ body.modal-open {
   padding: 1.5rem;
 }
 
-.login-card {
+[data-theme="dark"] .login-overlay {
+  background: rgba(15, 23, 42, 0.82);
+}
+
+.login-card-clean {
+  position: relative;
   width: 100%;
-  max-width: 580px;
-  background: var(--card-bg);
-  border: 1px solid rgba(0, 102, 255, 0.35);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35), 0 0 40px rgba(0, 102, 255, 0.12);
-  padding: 2.2rem 2.4rem;
-  overflow: hidden;
-  animation: modalPopIn 0.25s ease-out;
-}
-
-.login-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 1.25rem;
-}
-
-.login-brand-logo {
-  height: 48px;
-  display: flex;
-  align-items: center;
+  max-width: 420px;
   background: #ffffff;
-  padding: 4px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 102, 255, 0.2);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 2.8rem 2.2rem 2.2rem;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: modalPopIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.login-brand-logo img {
-  height: 38px;
-  width: auto;
-  object-fit: contain;
-}
-
-.login-title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--text-main);
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
-.login-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin: 3px 0 0;
-}
-
-.login-notice-banner {
-  background: rgba(0, 102, 255, 0.07);
-  border: 1px solid rgba(0, 102, 255, 0.2);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  font-size: 0.78rem;
-  color: var(--text-main);
-  line-height: 1.45;
-  margin-bottom: 1.5rem;
-}
-
-.login-notice-banner strong {
-  color: var(--accent-primary);
-}
-
-/* Login Tabs */
-.login-tabs {
+.login-brand-squircle {
+  width: 58px;
+  height: 58px;
+  background: #18181b;
+  border-radius: 16px;
   display: flex;
-  gap: 8px;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 1.5rem;
-  padding-bottom: 2px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  box-shadow: 0 6px 16px rgba(24, 24, 27, 0.2);
 }
 
-.login-tab-btn {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 14px;
+.login-header-clean {
+  text-align: center;
+  margin-bottom: 1.8rem;
+}
+
+.login-clean-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #18181b;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+
+.login-clean-subtitle {
+  font-size: 0.9rem;
+  color: #71717a;
+  margin: 0;
+  font-weight: 400;
+}
+
+.login-form-clean {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-group-clean {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.form-label-clean {
   font-size: 0.84rem;
   font-weight: 600;
-  color: var(--text-muted);
+  color: #18181b;
+}
+
+.form-input-clean {
+  width: 100%;
+  padding: 13px 16px;
+  background: #eceef2;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  color: #18181b;
+  font-size: 0.92rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.form-input-clean::placeholder {
+  color: #9ca3af;
+}
+
+.form-input-clean:focus {
+  background: #ffffff;
+  border-color: #18181b;
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.08);
+}
+
+.input-clean-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.input-password-clean {
+  padding-right: 48px;
+}
+
+.btn-clean-eye {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
   cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #71717a;
+  transition: opacity 0.2s;
+}
+
+.btn-clean-eye:hover {
+  opacity: 0.7;
+}
+
+.form-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -2px;
+  font-size: 0.82rem;
+}
+
+.checkbox-wrap-clean {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #71717a;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.82rem;
+}
+
+.checkbox-wrap-clean input[type="checkbox"] {
+  accent-color: #18181b;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.link-forgot-password {
+  color: #18181b;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.82rem;
+  transition: opacity 0.2s;
+}
+
+.link-forgot-password:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+.login-error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  animation: errorShake 0.3s ease;
+  text-align: left;
+}
+
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.btn-clean-submit {
+  width: 100%;
+  padding: 14px;
+  background: #18181b;
+  color: #ffffff;
+  font-size: 0.96rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  margin-top: 4px;
+  box-shadow: 0 4px 14px rgba(24, 24, 27, 0.18);
   transition: all 0.2s ease;
 }
 
-.login-tab-btn:hover {
+.btn-clean-submit:hover {
+  background: #000000;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.26);
+  transform: translateY(-1px);
+}
+
+.btn-clean-submit:active {
+  transform: translateY(0);
+}
+
+
+
+/* ================================================================
+   Admin Role Permission Management Modal Styles
+   ================================================================ */
+.permissions-card {
+  width: 100%;
+  max-width: 680px;
+  background: var(--card-bg);
+  border: 1px solid rgba(0, 102, 255, 0.35);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+}
+
+.perm-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.perm-header-icon {
+  font-size: 1.6rem;
+  background: rgba(0, 102, 255, 0.15);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 102, 255, 0.3);
+}
+
+.perm-notice-box {
+  background: rgba(0, 102, 255, 0.08);
+  border: 1px solid rgba(0, 102, 255, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
   color: var(--text-main);
+  margin-bottom: 1.25rem;
 }
 
-.login-tab-btn.active {
-  color: var(--accent-primary);
-  border-bottom-color: var(--accent-primary);
-}
-
-/* Quick Role Grid */
-.quick-role-grid {
+.role-matrix-summary {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 1rem;
+  gap: 10px;
+  margin-bottom: 1.25rem;
 }
 
 @media (max-width: 600px) {
-  .quick-role-grid {
+  .role-matrix-summary {
     grid-template-columns: 1fr;
   }
 }
 
-.quick-role-card {
+.role-matrix-item {
+  padding: 10px 12px;
+  border-radius: 8px;
   background: var(--bg-canvas);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 1.25rem;
+}
+
+.matrix-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.admin-matrix-item .matrix-badge {
+  color: #38bdf8;
+}
+
+.viewer-matrix-item .matrix-badge {
+  color: #34d399;
+}
+
+.matrix-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.permissions-toggle-grid {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.perm-card {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  cursor: pointer;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
   transition: all 0.2s ease;
 }
 
-.quick-role-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+.perm-card:hover {
+  border-color: rgba(0, 102, 255, 0.3);
+  background: rgba(0, 102, 255, 0.02);
 }
 
-.role-card-admin:hover {
-  border-color: var(--accent-primary);
-  background: rgba(0, 102, 255, 0.04);
-}
-
-.role-card-viewer:hover {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.04);
-}
-
-.quick-role-top {
+.perm-info {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  gap: 12px;
 }
 
-.role-icon {
+.perm-icon {
   font-size: 1.4rem;
+  flex-shrink: 0;
 }
 
-.role-pill-badge {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  padding: 2px 7px;
-  border-radius: 4px;
-}
-
-.badge-admin {
-  background: rgba(0, 102, 255, 0.15);
-  color: var(--accent-primary);
-  border: 1px solid rgba(0, 102, 255, 0.3);
-}
-
-.badge-viewer {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.quick-role-name {
-  font-size: 0.95rem;
+.perm-name {
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--text-main);
-  margin-bottom: 6px;
 }
 
-.quick-role-desc {
+.perm-desc {
   font-size: 0.74rem;
-  color: var(--text-dim);
-  line-height: 1.4;
-  margin: 0 0 14px;
-  flex-grow: 1;
-}
-
-.btn-role-action {
-  width: 100%;
-  padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.btn-admin-action {
-  background: var(--accent-primary);
-  color: #ffffff;
-}
-
-.btn-admin-action:hover {
-  background: var(--accent-hover);
-  box-shadow: 0 4px 14px rgba(0, 102, 255, 0.35);
-}
-
-.btn-viewer-action {
-  background: #10b981;
-  color: #ffffff;
-}
-
-.btn-viewer-action:hover {
-  background: #059669;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-}
-
-/* Login Form */
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.remember-row {
-  display: flex;
-  align-items: center;
-  font-size: 0.78rem;
   color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.35;
 }
 
-.btn-login-submit {
-  width: 100%;
-  padding: 12px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  border-radius: var(--radius-md);
-  margin-top: 4px;
+/* Switch Toggle Component */
+.switch-toggle {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
 }
 
-.login-footer {
-  margin-top: 1.5rem;
+.switch-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider-toggle {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.15);
+  transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.slider-toggle:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #ffffff;
+  transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.switch-toggle input:checked + .slider-toggle {
+  background-color: #0066ff;
+  border-color: #0066ff;
+}
+
+.switch-toggle input:checked + .slider-toggle:before {
+  transform: translateX(20px);
+}
+
+.perm-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: center;
 }
 
-.security-badge {
-  display: flex;
+/* Header Permissions Action Button */
+.btn-permissions {
+  background: rgba(0, 102, 255, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 102, 255, 0.35);
+  font-weight: 700;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.72rem;
-  color: var(--text-dim);
-  font-weight: 500;
+  gap: 6px;
 }
+
+.btn-permissions:hover {
+  background: rgba(0, 102, 255, 0.22);
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+/* Restricted Action Styling */
+.perm-restricted {
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+  position: relative;
+}
+
+/* Financial Visibility Masking */
+body.hide-financials .financial-metric-value,
+body.hide-financials [data-metric="totalAmount"],
+body.hide-financials [data-metric="revenueLoss"],
+body.hide-financials [data-metric="recoverableRevenue"] {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 
 </style>
   <!-- SheetJS & PapaParse for In-Browser Client-Side Excel and CSV Processing -->
@@ -4509,23 +4697,29 @@ body.modal-open {
           <span>🔗</span> Share Link
         </button>
 
+        <!-- Admin Role Permission Control Center -->
+        <button id="openPermissionsBtn" class="btn-action btn-permissions" title="Admin Permission Control Center (Admin Only)" style="display: none;">
+          <span>🛡️</span> Permissions
+        </button>
+
         <!-- User Profile & Session Controls -->
         <div class="user-profile-menu" id="userProfileMenu">
           <button type="button" class="user-profile-badge" id="userProfileBtn" title="Current Logged-in Account">
-            <span class="user-avatar-circle" id="userAvatarCircle">SA</span>
+            <span class="user-avatar-circle" id="userAvatarCircle">SS</span>
             <div class="user-info-text">
-              <span class="user-name" id="userNameLabel">Admin</span>
+              <span class="user-name" id="userNameLabel">Shreyasth</span>
               <span class="user-role-badge role-admin" id="userRoleBadge">ADMIN</span>
             </div>
             <span class="user-caret">▾</span>
           </button>
           <div class="user-dropdown-card" id="userDropdownCard" style="display: none;">
             <div class="dropdown-header">
-              <div class="dropdown-user-name" id="userDropdownName">System Administrator</div>
-              <div class="dropdown-email" id="userDropdownEmail">admin@transactbridge.com</div>
-              <div class="dropdown-role-desc" id="userDropdownRoleDesc">Full Permissions: Upload, Route &amp; Alert</div>
+              <div class="dropdown-user-name" id="userDropdownName">Shreyasth Singh</div>
+              <div class="dropdown-email" id="userDropdownEmail">Shreyasth@transactbridge.com</div>
+              <div class="dropdown-role-desc" id="userDropdownRoleDesc">Platform Administrator (Full Control)</div>
             </div>
             <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" id="dropdownPermissionsBtn" style="display: none;">🛡️ Role Permissions</button>
             <button type="button" class="dropdown-item" id="dropdownSwitchUserBtn">👤 Switch User / Role</button>
             <button type="button" class="dropdown-item" id="dropdownRefreshCloudBtn">☁️ Force Cloud Re-sync</button>
             <button type="button" class="dropdown-item" id="dropdownShareLinkBtn">🔗 Copy Team Link</button>
@@ -6062,105 +6256,214 @@ body.modal-open {
     </div>
   </div>
 
-  <!-- Transact Bridge Enterprise Login Modal / Screen -->
+  <!-- Transact Bridge Enterprise Sign-In Modal (Reference Design) -->
   <div class="modal-overlay login-overlay" id="loginModal" style="display: none;">
-    <div class="modal-card login-card">
-      <div class="login-header">
-        <div class="login-brand-logo">
-          <img src="assets/logo.png" alt="Transact Bridge Logo">
+    <div class="modal-card login-card-clean">
+      <!-- Centered Dark Squircle with 4-Petal Geometric Clover Emblem -->
+      <div class="login-brand-squircle">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a4 4 0 0 1 4 4c0 2-2 4-4 4-2 0-4-2-4-4a4 4 0 0 1 4-4z"/>
+          <path d="M22 12a4 4 0 0 1-4 4c-2 0-4-2-4-4 0-2 2-4 4-4a4 4 0 0 1 4 4z"/>
+          <path d="M12 22a4 4 0 0 1-4-4c0-2 2-4 4-4 2 0 4 2 4 4a4 4 0 0 1-4 4z"/>
+          <path d="M2 12a4 4 0 0 1 4-4c2 0 4 2 4 4 0 2-2 4-4 4a4 4 0 0 1-4-4z"/>
+        </svg>
+      </div>
+
+      <!-- Welcome Back Header -->
+      <div class="login-header-clean">
+        <h2 class="login-clean-title">Welcome Back!</h2>
+        <p class="login-clean-subtitle">Please enter your login details.</p>
+      </div>
+
+      <!-- Single Aesthetic Corporate Login Form -->
+      <form id="corporateLoginForm" class="login-form-clean" autocomplete="on">
+        <!-- Email Field -->
+        <div class="form-group-clean">
+          <label for="loginEmailInput" class="form-label-clean">Email</label>
+          <input 
+            type="email" 
+            id="loginEmailInput" 
+            class="form-input-clean" 
+            placeholder="Shreyasth@transactbridge.com" 
+            required 
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+          >
         </div>
-        <div class="login-brand-titles">
-          <h2 class="login-title">Transact Bridge Intelligence</h2>
-          <p class="login-subtitle">Enterprise Gateway Monitoring &amp; Shared Team Data Portal</p>
-        </div>
-      </div>
 
-      <div class="login-notice-banner">
-        <span>🌐 <strong>Shared Cloud Session Active:</strong> Any dataset uploaded by an Administrator is automatically synchronized in real time to all team members viewing this link.</span>
-      </div>
-
-      <!-- Login Method Tabs -->
-      <div class="login-tabs">
-        <button type="button" class="login-tab-btn active" data-ltab="tab-quick">⚡ 1-Click Role Access</button>
-        <button type="button" class="login-tab-btn" data-ltab="tab-email">✉️ Corporate Login</button>
-        <button type="button" class="login-tab-btn" data-ltab="tab-code">🔑 Team Access Code</button>
-      </div>
-
-      <!-- Tab 1: 1-Click Role Access -->
-      <div class="login-tab-content active" id="ltab-quick">
-        <div class="quick-role-grid">
-          <!-- Role Card 1: Admin Operator -->
-          <div class="quick-role-card role-card-admin" id="quickLoginAdminBtn">
-            <div class="quick-role-top">
-              <span class="role-icon">🛡️</span>
-              <span class="role-pill-badge badge-admin">FULL ADMIN ACCESS</span>
-            </div>
-            <div class="quick-role-name">Administrator / Data Lead</div>
-            <p class="quick-role-desc">Full permissions to upload hourly Excel/CSV datasets, change SLA targets, broadcast team alerts, and trigger route mitigations.</p>
-            <button type="button" class="btn-role-action btn-admin-action">
-              <span>Sign In as Admin</span> →
+        <!-- Password Field with Eye Toggle -->
+        <div class="form-group-clean">
+          <label for="loginPasswordInput" class="form-label-clean">Password</label>
+          <div class="input-clean-wrap">
+            <input 
+              type="password" 
+              id="loginPasswordInput" 
+              class="form-input-clean input-password-clean" 
+              placeholder="••••••••••••••••" 
+              required 
+              autocomplete="current-password"
+            >
+            <button type="button" class="btn-clean-eye" id="togglePasswordBtn" title="Toggle password visibility" aria-label="Toggle password visibility">
+              <svg id="eyeIconSvg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
             </button>
           </div>
+        </div>
 
-          <!-- Role Card 2: Team Stakeholder / Viewer -->
-          <div class="quick-role-card role-card-viewer" id="quickLoginViewerBtn">
-            <div class="quick-role-top">
-              <span class="role-icon">📊</span>
-              <span class="role-pill-badge badge-viewer">VIEWER ACCESS</span>
+        <!-- Remember Me & Forgot Password Row -->
+        <div class="form-options-row">
+          <label class="checkbox-wrap-clean">
+            <input type="checkbox" id="loginRememberMe" checked>
+            <span class="checkbox-custom-clean"></span>
+            <span class="checkbox-text-clean">Remember me</span>
+          </label>
+          <a href="#" class="link-forgot-password" id="forgotPasswordLink">Forgot Password?</a>
+        </div>
+
+        <!-- Error Notification Banner -->
+        <div class="login-error-banner" id="loginErrorMsg" style="display: none;"></div>
+
+        <!-- Solid Dark Login Button (Matches Reference) -->
+        <button type="submit" class="btn-clean-submit" id="corporateLoginSubmitBtn">
+          Login
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Role Permission Management Modal -->
+  <div class="modal-overlay" id="permissionsModal" style="display: none;">
+    <div class="modal-card permissions-card">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <div class="perm-title-row">
+            <span class="perm-header-icon">🛡️</span>
+            <div>
+              <h3 class="modal-title">Role Permission Management</h3>
+              <p class="modal-subtitle">Configure operational capabilities for Viewer accounts (Ops@transactbridge.com)</p>
             </div>
-            <div class="quick-role-name">Executive / Team Stakeholder</div>
-            <p class="quick-role-desc">Read-only live access to inspect shared uploads, live KPI cards, gateway success rates, telemetry diagnostics, and AI playbooks.</p>
-            <button type="button" class="btn-role-action btn-viewer-action">
-              <span>Sign In as Viewer</span> →
-            </button>
           </div>
         </div>
+        <div class="modal-header-actions">
+          <button type="button" class="modal-close" id="closePermissionsBtn" title="Close modal">&times;</button>
+        </div>
       </div>
+      <div class="modal-body permissions-body">
+        <div class="perm-notice-box">
+          <span>⚡ <strong>Live Dynamic Policy:</strong> Changes saved here are automatically synchronized across all team members viewing this dashboard via cloud telemetry.</span>
+        </div>
 
-      <!-- Tab 2: Corporate Email & Password -->
-      <div class="login-tab-content" id="ltab-email" style="display: none;">
-        <form id="emailLoginForm" class="login-form">
-          <div class="form-group">
-            <label for="loginEmailInput">Corporate Email</label>
-            <input type="email" id="loginEmailInput" class="form-input" placeholder="e.g. admin@transactbridge.com" required value="admin@transactbridge.com">
+        <div class="role-matrix-summary">
+          <div class="role-matrix-item admin-matrix-item">
+            <div class="matrix-badge">👑 Administrator (Shreyasth@transactbridge.com)</div>
+            <div class="matrix-desc">Always possesses full, unrestricted access across all features, file ingestion, SLA thresholds, and cloud synchronization.</div>
           </div>
-          <div class="form-group">
-            <label for="loginPasswordInput">Password / Passcode</label>
-            <input type="password" id="loginPasswordInput" class="form-input" placeholder="Enter your passcode (default: tb-admin-2026)" value="tb-admin-2026">
-            <div class="input-hint">Default admin passcode: <code>tb-admin-2026</code> | Viewer: <code>tb-team-2026</code></div>
+          <div class="role-matrix-item viewer-matrix-item">
+            <div class="matrix-badge">👁️ Viewer / Operations (Ops@transactbridge.com)</div>
+            <div class="matrix-desc">Governed by the granular policy toggles configured below:</div>
           </div>
-          <div class="form-row remember-row">
-            <label class="checkbox-wrap">
-              <input type="checkbox" id="loginRememberMe" checked>
-              <span>Keep me signed in on this device</span>
+        </div>
+
+        <div class="permissions-toggle-grid">
+          <!-- Perm 1: Upload Hourly Data -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">📤</div>
+              <div>
+                <div class="perm-name">Upload Hourly Data</div>
+                <div class="perm-desc">Allow Viewers to upload hourly transaction files (Excel/CSV) and publish them to team cloud.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Upload Hourly Data permission">
+              <input type="checkbox" id="permUpload">
+              <span class="slider-toggle"></span>
             </label>
           </div>
-          <button type="submit" class="btn-action btn-primary btn-login-submit" id="emailLoginSubmitBtn">
-            <span>🔐</span> Authenticate &amp; Access Dashboard
-          </button>
-        </form>
-      </div>
 
-      <!-- Tab 3: Team Access Code -->
-      <div class="login-tab-content" id="ltab-code" style="display: none;">
-        <form id="codeLoginForm" class="login-form">
-          <div class="form-group">
-            <label for="loginAccessCodeInput">Team Access Code</label>
-            <input type="text" id="loginAccessCodeInput" class="form-input" placeholder="e.g. TB-ADMIN-2026 or TB-TEAM-2026" style="text-transform: uppercase; font-family: monospace; font-size: 1.05rem; letter-spacing: 1px;" required value="TB-ADMIN-2026">
-            <div class="input-hint">Use <code>TB-ADMIN-2026</code> for Admin permissions or <code>TB-TEAM-2026</code> for Stakeholder / Viewer access.</div>
+          <!-- Perm 2: Modify Target SLA -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">🎯</div>
+              <div>
+                <div class="perm-name">Modify Target SLA Threshold</div>
+                <div class="perm-desc">Permit Viewer to adjust target SLA percentage slider and incident trigger thresholds.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Modify Target SLA permission">
+              <input type="checkbox" id="permAdjustSla">
+              <span class="slider-toggle"></span>
+            </label>
           </div>
-          <button type="submit" class="btn-action btn-primary btn-login-submit" id="codeLoginSubmitBtn">
-            <span>🔑</span> Verify Code &amp; Enter Dashboard
-          </button>
-        </form>
-      </div>
 
-      <div class="login-footer">
-        <div class="security-badge">
-          <span>🔒 Transact Bridge Enterprise Security</span>
-          <span>•</span>
-          <span>Shared Real-Time Telemetry Gateway</span>
+          <!-- Perm 3: Configure & Dispatch Alerts -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">🔔</div>
+              <div>
+                <div class="perm-name">Configure &amp; Dispatch Alerts</div>
+                <div class="perm-desc">Allow Viewer to configure automated alert rules, recipients, and dispatch email/webhook alerts.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Alerts permission">
+              <input type="checkbox" id="permDispatchAlerts" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <!-- Perm 4: Trigger Custom Analysis -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">⚡</div>
+              <div>
+                <div class="perm-name">Trigger Custom Analysis &amp; Incident Failovers</div>
+                <div class="perm-desc">Permit running ad-hoc multi-metric diagnostic scans, routing simulations, and recovery playbooks.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Custom Analysis permission">
+              <input type="checkbox" id="permTriggerAnalysis">
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <!-- Perm 5: Export Analytics Reports -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">📥</div>
+              <div>
+                <div class="perm-name">Export Analytics Reports</div>
+                <div class="perm-desc">Permit downloading merchant breakdown, gateway diagnostics, and audit logs as CSV files.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Report Export permission">
+              <input type="checkbox" id="permExportReports" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <!-- Perm 6: View Financials & Revenue at Risk -->
+          <div class="perm-card">
+            <div class="perm-info">
+              <div class="perm-icon">💰</div>
+              <div>
+                <div class="perm-name">View Financials &amp; Revenue at Risk</div>
+                <div class="perm-desc">Display sensitive monetary metrics, total transaction values, and financial risk forecasts.</div>
+              </div>
+            </div>
+            <label class="switch-toggle" title="Toggle Financial Visibility permission">
+              <input type="checkbox" id="permViewFinancials" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
         </div>
+      </div>
+      <div class="modal-footer perm-footer">
+        <button type="button" class="btn-action" id="resetPermissionsBtn">↺ Reset to Default Policy</button>
+        <button type="button" class="btn-action btn-primary" id="savePermissionsBtn">
+          <span>💾</span> Save &amp; Broadcast to Cloud
+        </button>
       </div>
     </div>
   </div>
@@ -6268,11 +6571,14 @@ body.modal-open {
     }
   }
 
-  function saveAlertSettings() {
+  function saveAlertSettings(broadcast = true) {
     try {
       localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
     } catch (e) {
       console.warn('Failed to persist alert settings', e);
+    }
+    if (broadcast && typeof cloudSyncManager !== 'undefined' && cloudSyncManager.publishAlertSettings) {
+      cloudSyncManager.publishAlertSettings(alertSettings);
     }
   }
 
@@ -8120,6 +8426,10 @@ body.modal-open {
   }
 
   function exportCSV() {
+    if (typeof permissionsManager !== 'undefined' && !permissionsManager.hasPermission('canExportReports')) {
+      showToast('🔒 Report export is restricted by Administrator policy. Contact Shreyasth@transactbridge.com.');
+      return;
+    }
     const cur = CURRENCIES[currentCurrency];
     const headers = [
       'Dimension',
@@ -8956,8 +9266,8 @@ body.modal-open {
   let loadedFileContent = null;
 
   openUploadBtn.addEventListener('click', () => {
-    if (typeof authManager !== 'undefined' && authManager.getCurrentUser() && authManager.getCurrentUser().role === 'viewer') {
-      showToast('🔒 Upload privileges are reserved for Administrators. As a Team Stakeholder, you are viewing shared live data uploaded by Admins.');
+    if (typeof permissionsManager !== 'undefined' && !permissionsManager.hasPermission('canUpload')) {
+      showToast('🔒 Upload privileges are restricted for your role. Contact Shreyasth@transactbridge.com to request access.');
       return;
     }
     uploadModal.classList.add('active');
@@ -12844,10 +13154,39 @@ Incident Timestamp: ${timeStr}`;
   }
 
   function openAlertsModal() {
+    const user = typeof authManager !== 'undefined' ? authManager.getCurrentUser() : null;
+    const isAdmin = user && user.role === 'admin';
+    const canDispatch = typeof permissionsManager === 'undefined' || permissionsManager.hasPermission('canDispatchAlerts');
+
+    if (typeof cloudSyncManager !== 'undefined' && cloudSyncManager.fetchAlertSettingsFromCloud) {
+      cloudSyncManager.fetchAlertSettingsFromCloud();
+    }
+
     syncAlertModalInputs();
     renderAlertEmailChips();
     renderAlertPhoneChips();
     renderAlertLogTable();
+
+    const saveBtn = document.getElementById('saveAlertsSettingsBtn');
+    const resetBtn = document.getElementById('resetAlertDefaultsBtn');
+    const alertStatusChip = document.getElementById('alertStatusChip');
+
+    if (!isAdmin && !canDispatch) {
+      if (saveBtn) saveBtn.style.display = 'none';
+      if (resetBtn) resetBtn.style.display = 'none';
+      if (alertStatusChip) {
+        alertStatusChip.textContent = 'ADMIN CONFIGURED (VIEW-ONLY)';
+        alertStatusChip.className = 'status-chip info';
+      }
+    } else {
+      if (saveBtn) saveBtn.style.display = 'inline-flex';
+      if (resetBtn) resetBtn.style.display = 'inline-flex';
+      if (alertStatusChip) {
+        alertStatusChip.textContent = 'ACTIVE';
+        alertStatusChip.className = 'status-chip healthy';
+      }
+    }
+
     openModal('alertsConfigModal');
   }
 
@@ -13363,6 +13702,10 @@ Incident Timestamp: ${timeStr}`;
   }
 
   function openCustomAnalysisModal() {
+    if (typeof permissionsManager !== 'undefined' && !permissionsManager.hasPermission('canTriggerAnalysis')) {
+      showToast('🔒 Custom Analysis is restricted by Administrator policy. Contact Shreyasth@transactbridge.com.');
+      return;
+    }
     // 1. Sync SLA benchmark from alertSettings
     const targetSla = (alertSettings && alertSettings.thresholds && alertSettings.thresholds.targetSla) || 95.0;
     const slaSlider = document.getElementById('customSlaSlider');
@@ -13967,9 +14310,30 @@ Recommended Immediate Actions:
   }
 
   // =========================================================================
-  // Transact Bridge Enterprise Authentication & Role Management Module
+  // Transact Bridge Enterprise Authentication & Corporate Security Module
   // =========================================================================
   const AUTH_STORAGE_KEY = 'tb_auth_session';
+
+  const AUTHORIZED_ACCOUNTS = [
+    {
+      email: 'shreyasth@transactbridge.com',
+      displayEmail: 'Shreyasth@transactbridge.com',
+      password: 'Shreyasth@1234',
+      name: 'Shreyasth Singh',
+      role: 'admin',
+      avatar: 'SS',
+      title: 'Platform Administrator'
+    },
+    {
+      email: 'ops@transactbridge.com',
+      displayEmail: 'Ops@transactbridge.com',
+      password: 'Transact@12',
+      name: 'Operations Team',
+      role: 'viewer',
+      avatar: 'OP',
+      title: 'Operations Stakeholder'
+    }
+  ];
 
   const authManager = {
     currentUser: null,
@@ -13979,7 +14343,15 @@ Recommended Immediate Actions:
       try {
         const stored = localStorage.getItem(AUTH_STORAGE_KEY);
         if (stored) {
-          this.currentUser = JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          const cleanStoredEmail = String(parsed.email || '').trim().toLowerCase();
+          const validAccount = AUTHORIZED_ACCOUNTS.find(a => a.email === cleanStoredEmail && a.role === parsed.role);
+          if (validAccount) {
+            this.currentUser = { ...validAccount, ...parsed, email: validAccount.displayEmail };
+          } else {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            this.currentUser = null;
+          }
         }
       } catch (e) {
         console.warn('Error reading auth session:', e);
@@ -13991,7 +14363,9 @@ Recommended Immediate Actions:
         this.showLoginModal();
       } else {
         this.updateHeaderUI();
-        this.applyRolePermissions();
+        if (typeof permissionsManager !== 'undefined') {
+          permissionsManager.applyPermissions();
+        }
       }
     },
 
@@ -14005,12 +14379,39 @@ Recommended Immediate Actions:
       const logoutBtn = document.getElementById('logoutBtn');
       const dropdownSwitchUserBtn = document.getElementById('dropdownSwitchUserBtn');
 
-      // Profile menu toggle
+      // Profile menu dropdown toggle
       if (userProfileBtn && userDropdownCard) {
         userProfileBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           const isVisible = userDropdownCard.style.display === 'block';
-          userDropdownCard.style.display = isVisible ? 'none' : 'block';
+          if (isVisible) {
+            userDropdownCard.style.display = 'none';
+          } else {
+            // Viewport boundary guard: prevent clipping on either left or right edge
+            const btnRect = userProfileBtn.getBoundingClientRect();
+            const cardWidth = 250;
+            const pad = 12;
+            
+            // If card aligned to right of button (right: 0), left edge is (btnRect.right - cardWidth)
+            const wouldOverflowLeft = (btnRect.right - cardWidth) < pad;
+            // If card aligned to left of button (left: 0), right edge is (btnRect.left + cardWidth)
+            const wouldOverflowRight = (btnRect.left + cardWidth) > (window.innerWidth - pad);
+
+            if (wouldOverflowLeft && !wouldOverflowRight) {
+              userDropdownCard.style.left = '0';
+              userDropdownCard.style.right = 'auto';
+            } else if (wouldOverflowRight && !wouldOverflowLeft) {
+              userDropdownCard.style.right = '0';
+              userDropdownCard.style.left = 'auto';
+            } else if (btnRect.left < 160) {
+              userDropdownCard.style.left = '0';
+              userDropdownCard.style.right = 'auto';
+            } else {
+              userDropdownCard.style.right = '0';
+              userDropdownCard.style.left = 'auto';
+            }
+            userDropdownCard.style.display = 'block';
+          }
         });
 
         document.addEventListener('click', (e) => {
@@ -14035,97 +14436,130 @@ Recommended Immediate Actions:
         });
       }
 
-      // Quick Role Buttons
-      const quickLoginAdminBtn = document.getElementById('quickLoginAdminBtn');
-      const quickLoginViewerBtn = document.getElementById('quickLoginViewerBtn');
-
-      if (quickLoginAdminBtn) {
-        quickLoginAdminBtn.addEventListener('click', () => {
-          this.login({
-            email: 'admin@transactbridge.com',
-            name: 'System Administrator',
-            role: 'admin',
-            avatar: 'SA',
-            token: 'token_' + Date.now() + '_admin'
-          });
-        });
-      }
-
-      if (quickLoginViewerBtn) {
-        quickLoginViewerBtn.addEventListener('click', () => {
-          this.login({
-            email: 'team@transactbridge.com',
-            name: 'Executive Stakeholder',
-            role: 'viewer',
-            avatar: 'ES',
-            token: 'token_' + Date.now() + '_viewer'
-          });
-        });
-      }
-
-      // Login Tabs
-      document.querySelectorAll('.login-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.login-tab-btn').forEach(b => b.classList.remove('active'));
-          document.querySelectorAll('.login-tab-content').forEach(c => c.style.display = 'none');
-          btn.classList.add('active');
-          const targetId = btn.getAttribute('data-ltab');
-          const content = document.getElementById(targetId);
-          if (content) content.style.display = 'block';
-        });
-      });
-
-      // Email Login Form
-      const emailForm = document.getElementById('emailLoginForm');
-      if (emailForm) {
-        emailForm.addEventListener('submit', (e) => {
+      // Password show/hide toggle (SVG based)
+      const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+      const loginPasswordInput = document.getElementById('loginPasswordInput');
+      const eyeIconSvg = document.getElementById('eyeIconSvg');
+      if (togglePasswordBtn && loginPasswordInput) {
+        togglePasswordBtn.addEventListener('click', (e) => {
           e.preventDefault();
-          const email = (document.getElementById('loginEmailInput')?.value || '').trim();
-          const pass = (document.getElementById('loginPasswordInput')?.value || '').trim();
-          const remember = document.getElementById('loginRememberMe')?.checked ?? true;
-
-          const role = (pass.toLowerCase().includes('admin') || email.toLowerCase().includes('admin')) ? 'admin' : 'viewer';
-          const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
-          const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-          const avatar = email.substring(0, 2).toUpperCase();
-
-          this.login({
-            email,
-            name,
-            role,
-            avatar,
-            token: 'token_' + Date.now() + '_' + role
-          }, remember);
-        });
-      }
-
-      // Code Login Form
-      const codeForm = document.getElementById('codeLoginForm');
-      if (codeForm) {
-        codeForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const code = (document.getElementById('loginAccessCodeInput')?.value || '').trim().toUpperCase();
-          if (code === 'TB-ADMIN-2026') {
-            this.login({
-              email: 'operator@transactbridge.com',
-              name: 'Admin Operator',
-              role: 'admin',
-              avatar: 'AO',
-              token: 'token_' + Date.now() + '_admin'
-            });
-          } else if (code === 'TB-VIEWER-2026' || code === 'TB-TEAM-2026') {
-            this.login({
-              email: 'team@transactbridge.com',
-              name: 'Team Member',
-              role: 'viewer',
-              avatar: 'TM',
-              token: 'token_' + Date.now() + '_viewer'
-            });
-          } else {
-            showToast('❌ Invalid code. Use TB-ADMIN-2026 for Admin or TB-TEAM-2026 for Viewer.');
+          const isPassword = loginPasswordInput.type === 'password';
+          loginPasswordInput.type = isPassword ? 'text' : 'password';
+          if (eyeIconSvg) {
+            if (isPassword) {
+              // Show open eye SVG
+              eyeIconSvg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+              togglePasswordBtn.title = 'Hide password';
+            } else {
+              // Show eye-slash SVG (reference design)
+              eyeIconSvg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+              togglePasswordBtn.title = 'Show password';
+            }
           }
         });
       }
+
+      // Help & Support Links (Forgot Password & Register Now)
+      const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+      if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          showToast('🔒 Password Reset: Please contact Administrator (Shreyasth@transactbridge.com) for password assistance.');
+        });
+      }
+
+      const loginEmailInput = document.getElementById('loginEmailInput');
+
+      // Corporate Login Form Submit Handler
+      const corporateLoginForm = document.getElementById('corporateLoginForm');
+      if (corporateLoginForm) {
+        corporateLoginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = (loginEmailInput?.value || '').trim();
+          const password = (loginPasswordInput?.value || '').trim();
+          const remember = document.getElementById('loginRememberMe')?.checked ?? true;
+          const submitBtn = document.getElementById('corporateLoginSubmitBtn');
+
+          if (!email || !password) {
+            this.showLoginError('Please enter both corporate email and password.');
+            return;
+          }
+
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>⏳</span> Authenticating...';
+          }
+
+          try {
+            // Attempt server-side auth endpoint
+            let serverSuccess = false;
+            try {
+              const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+              });
+              const json = await res.json();
+              if (res.ok && json.success && json.user) {
+                this.login(json.user, remember);
+                serverSuccess = true;
+                return;
+              } else if (res.status === 401 || res.status === 400) {
+                this.showLoginError(json.error || 'Invalid credentials. Please verify your email and password.');
+                return;
+              }
+            } catch (netErr) {
+              // Endpoint unavailable (local static file or offline), fallback to client validation
+            }
+
+            if (!serverSuccess) {
+              const cleanEmail = email.toLowerCase();
+              const account = AUTHORIZED_ACCOUNTS.find(a => a.email === cleanEmail);
+              if (!account) {
+                this.showLoginError('Account not recognized. Authorized accounts: Shreyasth@transactbridge.com or Ops@transactbridge.com');
+                return;
+              }
+              if (account.password !== password) {
+                this.showLoginError('Incorrect password. Please verify your password and try again.');
+                return;
+              }
+
+              this.login({
+                email: account.displayEmail,
+                name: account.name,
+                role: account.role,
+                avatar: account.avatar,
+                title: account.title,
+                token: 'token_' + Date.now() + '_' + account.role
+              }, remember);
+            }
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<span class="submit-icon">🔐</span><span class="submit-label">Sign In to Gateway Dashboard</span><span class="submit-arrow">→</span>';
+            }
+          }
+        });
+      }
+    },
+
+    showLoginError(msg) {
+      const errBox = document.getElementById('loginErrorMsg');
+      if (errBox) {
+        errBox.textContent = `❌ ${msg}`;
+        errBox.style.display = 'block';
+      }
+      const card = document.querySelector('.login-card-executive');
+      if (card) {
+        card.classList.remove('shake');
+        void card.offsetWidth;
+        card.classList.add('shake');
+      }
+    },
+
+    hideLoginError() {
+      const errBox = document.getElementById('loginErrorMsg');
+      if (errBox) errBox.style.display = 'none';
     },
 
     showLoginModal() {
@@ -14133,6 +14567,11 @@ Recommended Immediate Actions:
       if (modal) {
         modal.style.display = 'flex';
         modal.classList.add('active');
+        this.hideLoginError();
+        const emailInput = document.getElementById('loginEmailInput');
+        if (emailInput && !emailInput.value) {
+          emailInput.focus();
+        }
       }
     },
 
@@ -14141,6 +14580,7 @@ Recommended Immediate Actions:
       if (modal) {
         modal.style.display = 'none';
         modal.classList.remove('active');
+        this.hideLoginError();
       }
     },
 
@@ -14160,13 +14600,19 @@ Recommended Immediate Actions:
 
       this.hideLoginModal();
       this.updateHeaderUI();
-      this.applyRolePermissions();
+      if (typeof permissionsManager !== 'undefined') {
+        permissionsManager.applyPermissions();
+        permissionsManager.fetchPermissionsFromCloud();
+      }
 
       showToast(`👋 Welcome back, ${this.currentUser.name} (${this.currentUser.role.toUpperCase()})!`);
 
-      // Immediately trigger cloud sync upon login
+      // Immediately trigger cloud sync and alert settings sync upon login
       if (typeof cloudSyncManager !== 'undefined') {
         cloudSyncManager.fetchFromCloud(false);
+        if (cloudSyncManager.fetchAlertSettingsFromCloud) {
+          cloudSyncManager.fetchAlertSettingsFromCloud();
+        }
       }
     },
 
@@ -14178,6 +14624,9 @@ Recommended Immediate Actions:
 
       const userDropdownCard = document.getElementById('userDropdownCard');
       if (userDropdownCard) userDropdownCard.style.display = 'none';
+
+      const pwdInput = document.getElementById('loginPasswordInput');
+      if (pwdInput) pwdInput.value = '';
 
       this.showLoginModal();
       showToast('🔒 Signed out successfully.');
@@ -14203,22 +14652,293 @@ Recommended Immediate Actions:
       if (userDropdownEmail) userDropdownEmail.textContent = this.currentUser.email;
       if (userDropdownRoleDesc) {
         userDropdownRoleDesc.textContent = this.currentUser.role === 'admin'
-          ? 'Full Permissions: Upload, Route & Alert'
-          : 'Stakeholder Read-Only: Shared Live Telemetry';
+          ? 'Platform Administrator (Full Permissions)'
+          : 'Operations Stakeholder (Managed Permissions)';
+      }
+    }
+  };
+
+  // =========================================================================
+  // Admin Dynamic Permission Management Module
+  // Controls operational capabilities for Viewer accounts (Ops@transactbridge.com)
+  // =========================================================================
+  const DEFAULT_PERMISSIONS = {
+    canUpload: false,
+    canAdjustSla: false,
+    canDispatchAlerts: true,
+    canTriggerAnalysis: false,
+    canExportReports: true,
+    canViewFinancials: true
+  };
+
+  const PERMISSIONS_STORAGE_KEY = 'tb_role_permissions';
+
+  const permissionsManager = {
+    viewerPermissions: { ...DEFAULT_PERMISSIONS },
+
+    init() {
+      this.loadPermissions();
+      this.bindEvents();
+      this.applyPermissions();
+      this.fetchPermissionsFromCloud();
+    },
+
+    loadPermissions() {
+      try {
+        const stored = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
+        if (stored) {
+          this.viewerPermissions = { ...DEFAULT_PERMISSIONS, ...JSON.parse(stored) };
+        }
+      } catch (e) {
+        console.warn('Error reading permissions from storage:', e);
       }
     },
 
-    applyRolePermissions() {
+    savePermissions(perms, broadcast = true) {
+      this.viewerPermissions = { ...this.viewerPermissions, ...perms };
+      try {
+        localStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(this.viewerPermissions));
+      } catch (e) {}
+
+      this.applyPermissions();
+
+      if (broadcast) {
+        this.broadcastPermissions();
+      }
+    },
+
+    hasPermission(permKey) {
+      const user = authManager.getCurrentUser();
+      if (!user) return false;
+      if (user.role === 'admin') return true; // Administrator always has unrestricted access
+      return !!this.viewerPermissions[permKey];
+    },
+
+    applyPermissions() {
+      const user = authManager.getCurrentUser();
+      const isAdmin = user && user.role === 'admin';
+
+      // Header and Profile Permissions button: only visible to Admin
+      const openPermissionsBtn = document.getElementById('openPermissionsBtn');
+      if (openPermissionsBtn) {
+        openPermissionsBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+      }
+      const dropdownPermissionsBtn = document.getElementById('dropdownPermissionsBtn');
+      if (dropdownPermissionsBtn) {
+        dropdownPermissionsBtn.style.display = isAdmin ? 'flex' : 'none';
+      }
+
+      // 1. canUpload: Upload Hourly Data button
       const openUploadBtn = document.getElementById('openUploadBtn');
       if (openUploadBtn) {
-        if (this.currentUser && this.currentUser.role === 'viewer') {
-          openUploadBtn.title = 'Upload privileges are reserved for Administrators (Read-Only Viewer)';
-          openUploadBtn.style.opacity = '0.75';
-        } else {
-          openUploadBtn.title = 'Upload Hourly Excel or CSV dataset (Admin Full Access)';
+        if (isAdmin || this.hasPermission('canUpload')) {
+          openUploadBtn.classList.remove('perm-restricted');
+          openUploadBtn.title = 'Upload Hourly Excel or CSV dataset';
           openUploadBtn.style.opacity = '1';
+        } else {
+          openUploadBtn.classList.add('perm-restricted');
+          openUploadBtn.title = '🔒 Upload restricted by Administrator policy';
+          openUploadBtn.style.opacity = '0.6';
         }
       }
+
+      // 2. canAdjustSla: SLA Slider and inputs
+      const customSlaSlider = document.getElementById('customSlaSlider');
+      const customSlaInput = document.getElementById('customSlaInput');
+      const canSla = isAdmin || this.hasPermission('canAdjustSla');
+      if (customSlaSlider) {
+        customSlaSlider.disabled = !canSla;
+        customSlaSlider.title = canSla ? 'Adjust Target SLA' : '🔒 Target SLA modification locked by Administrator';
+      }
+      if (customSlaInput) {
+        customSlaInput.disabled = !canSla;
+      }
+
+      // 3. canDispatchAlerts: Alert buttons
+      const openAlertsModalBtn = document.getElementById('openAlertsModalBtn');
+      const slaConfigureBtn = document.getElementById('slaConfigureBtn');
+      const canAlerts = isAdmin || this.hasPermission('canDispatchAlerts');
+      [openAlertsModalBtn, slaConfigureBtn].forEach(btn => {
+        if (btn) {
+          if (canAlerts) {
+            btn.classList.remove('perm-restricted');
+            btn.style.opacity = '1';
+          } else {
+            btn.classList.add('perm-restricted');
+            btn.style.opacity = '0.6';
+          }
+        }
+      });
+
+      // 4. canTriggerAnalysis: Trigger Custom Analysis buttons
+      const triggerAnalysisBtn = document.getElementById('triggerAnalysisBtn');
+      const runCustomAnalysisBtn = document.getElementById('runCustomAnalysisBtn');
+      const canTrigger = isAdmin || this.hasPermission('canTriggerAnalysis');
+      [triggerAnalysisBtn, runCustomAnalysisBtn].forEach(btn => {
+        if (btn) {
+          if (canTrigger) {
+            btn.classList.remove('perm-restricted');
+            btn.style.opacity = '1';
+          } else {
+            btn.classList.add('perm-restricted');
+            btn.style.opacity = '0.6';
+          }
+        }
+      });
+
+      // 5. canExportReports: CSV Export buttons
+      const exportCsvBtn = document.getElementById('exportCsvBtn');
+      const exportDiagCsvBtn = document.getElementById('exportDiagCsvBtn');
+      const exportAlertLogCsvBtn = document.getElementById('exportAlertLogCsvBtn');
+      const canExport = isAdmin || this.hasPermission('canExportReports');
+      [exportCsvBtn, exportDiagCsvBtn, exportAlertLogCsvBtn].forEach(btn => {
+        if (btn) {
+          if (canExport) {
+            btn.classList.remove('perm-restricted');
+            btn.style.opacity = '1';
+          } else {
+            btn.classList.add('perm-restricted');
+            btn.style.opacity = '0.6';
+          }
+        }
+      });
+
+      // 6. canViewFinancials: Sensitive financial metrics masking
+      const canViewFin = isAdmin || this.hasPermission('canViewFinancials');
+      document.body.classList.toggle('hide-financials', !canViewFin);
+
+      this.updateModalInputs();
+    },
+
+    updateModalInputs() {
+      const p = this.viewerPermissions;
+      const ids = {
+        permUpload: p.canUpload,
+        permAdjustSla: p.canAdjustSla,
+        permDispatchAlerts: p.canDispatchAlerts,
+        permTriggerAnalysis: p.canTriggerAnalysis,
+        permExportReports: p.canExportReports,
+        permViewFinancials: p.canViewFinancials
+      };
+      Object.entries(ids).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!val;
+      });
+    },
+
+    bindEvents() {
+      const openPermissionsBtn = document.getElementById('openPermissionsBtn');
+      const dropdownPermissionsBtn = document.getElementById('dropdownPermissionsBtn');
+      const closePermissionsBtn = document.getElementById('closePermissionsBtn');
+      const permissionsModal = document.getElementById('permissionsModal');
+      const savePermissionsBtn = document.getElementById('savePermissionsBtn');
+      const resetPermissionsBtn = document.getElementById('resetPermissionsBtn');
+
+      const openModal = () => {
+        const user = authManager.getCurrentUser();
+        if (!user || user.role !== 'admin') {
+          showToast('🔒 Only Administrators can manage role permissions.');
+          return;
+        }
+        this.updateModalInputs();
+        if (permissionsModal) {
+          permissionsModal.style.display = 'flex';
+          permissionsModal.classList.add('active');
+        }
+      };
+
+      const closeModal = () => {
+        if (permissionsModal) {
+          permissionsModal.style.display = 'none';
+          permissionsModal.classList.remove('active');
+        }
+      };
+
+      if (openPermissionsBtn) openPermissionsBtn.addEventListener('click', openModal);
+      if (dropdownPermissionsBtn) {
+        dropdownPermissionsBtn.addEventListener('click', () => {
+          const userDropdownCard = document.getElementById('userDropdownCard');
+          if (userDropdownCard) userDropdownCard.style.display = 'none';
+          openModal();
+        });
+      }
+      if (closePermissionsBtn) closePermissionsBtn.addEventListener('click', closeModal);
+
+      if (permissionsModal) {
+        permissionsModal.addEventListener('click', (e) => {
+          if (e.target === permissionsModal) closeModal();
+        });
+      }
+
+      if (resetPermissionsBtn) {
+        resetPermissionsBtn.addEventListener('click', () => {
+          this.viewerPermissions = { ...DEFAULT_PERMISSIONS };
+          this.updateModalInputs();
+          showToast('↺ Reset Viewer permissions to default policy.');
+        });
+      }
+
+      if (savePermissionsBtn) {
+        savePermissionsBtn.addEventListener('click', () => {
+          const newPerms = {
+            canUpload: !!document.getElementById('permUpload')?.checked,
+            canAdjustSla: !!document.getElementById('permAdjustSla')?.checked,
+            canDispatchAlerts: !!document.getElementById('permDispatchAlerts')?.checked,
+            canTriggerAnalysis: !!document.getElementById('permTriggerAnalysis')?.checked,
+            canExportReports: !!document.getElementById('permExportReports')?.checked,
+            canViewFinancials: !!document.getElementById('permViewFinancials')?.checked
+          };
+          this.savePermissions(newPerms, true);
+          closeModal();
+          showToast('🛡️ Role permissions successfully updated and broadcast to Team Cloud!');
+        });
+      }
+    },
+
+    async broadcastPermissions() {
+      const payload = {
+        permissions: this.viewerPermissions,
+        updatedBy: authManager.getCurrentUser()?.email || 'Shreyasth@transactbridge.com',
+        updatedAt: new Date().toISOString()
+      };
+      try {
+        fetch('/api/permissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch (_) {}
+
+      try {
+        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch (_) {}
+    },
+
+    async fetchPermissionsFromCloud() {
+      try {
+        const res = await fetch(`/api/permissions?t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.data && json.data.permissions) {
+            this.savePermissions(json.data.permissions, false);
+            return;
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_role_permissions_v1?t=${Date.now()}`);
+        if (fbRes.ok) {
+          const fbJson = await fbRes.json();
+          if (fbJson && fbJson.permissions) {
+            this.savePermissions(fbJson.permissions, false);
+          }
+        }
+      } catch (_) {}
     }
   };
 
@@ -14227,6 +14947,7 @@ Recommended Immediate Actions:
   // Allows any uploaded dataset to be viewed live by anyone with the link
   // =========================================================================
   const CLOUD_STORAGE_KEY = 'tb_cloud_latest_batch';
+  const CLOUD_ALERT_STORAGE_KEY = 'tb_cloud_alert_settings';
 
   const cloudSyncManager = {
     activeCloudBatchId: null,
@@ -14238,17 +14959,23 @@ Recommended Immediate Actions:
       this.bindEvents();
       // Initial fetch from cloud
       this.fetchFromCloud(true);
+      this.fetchAlertSettingsFromCloud();
 
       // Periodic cloud polling (every 35s)
       this.syncInterval = setInterval(() => {
         this.fetchFromCloud(true);
+        this.fetchAlertSettingsFromCloud();
       }, 35000);
 
       // Auto-sync when window gains focus or tab becomes visible
-      window.addEventListener('focus', () => this.fetchFromCloud(true));
+      window.addEventListener('focus', () => {
+        this.fetchFromCloud(true);
+        this.fetchAlertSettingsFromCloud();
+      });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           this.fetchFromCloud(true);
+          this.fetchAlertSettingsFromCloud();
         }
       });
     },
@@ -14263,6 +14990,7 @@ Recommended Immediate Actions:
         cloudRefreshBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           this.fetchFromCloud(false);
+          this.fetchAlertSettingsFromCloud();
         });
       }
 
@@ -14271,6 +14999,7 @@ Recommended Immediate Actions:
           const userDropdownCard = document.getElementById('userDropdownCard');
           if (userDropdownCard) userDropdownCard.style.display = 'none';
           this.fetchFromCloud(false);
+          this.fetchAlertSettingsFromCloud();
         });
       }
 
@@ -14303,6 +15032,104 @@ Recommended Immediate Actions:
       }
     },
 
+    async publishAlertSettings(settings) {
+      if (!settings) return;
+      const user = (typeof authManager !== 'undefined' && authManager.getCurrentUser()) || { name: 'Admin', role: 'admin' };
+      const payload = {
+        type: 'alert_settings',
+        alertSettings: settings,
+        updatedBy: user.name,
+        updatedAt: new Date().toISOString()
+      };
+
+      try {
+        localStorage.setItem(CLOUD_ALERT_STORAGE_KEY, JSON.stringify(settings));
+      } catch (_) {}
+
+      try {
+        await fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.warn('POST /api/data alert settings failed:', err.message);
+      }
+
+      try {
+        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings)
+        }).catch(() => {});
+      } catch (_) {}
+    },
+
+    applyCloudAlertSettings(cloudSettings) {
+      if (!cloudSettings || typeof cloudSettings !== 'object') return false;
+      try {
+        alertSettings = {
+          ...defaultAlertSettings,
+          ...cloudSettings,
+          enabledChannels: { ...defaultAlertSettings.enabledChannels, ...(cloudSettings.enabledChannels || {}) },
+          thresholds: { ...defaultAlertSettings.thresholds, ...(cloudSettings.thresholds || {}) },
+          recipients: {
+            emails: Array.isArray(cloudSettings.recipients?.emails) ? cloudSettings.recipients.emails : defaultAlertSettings.recipients.emails,
+            phones: Array.isArray(cloudSettings.recipients?.phones) ? cloudSettings.recipients.phones : defaultAlertSettings.recipients.phones
+          },
+          emailjs: { ...defaultAlertSettings.emailjs, ...(cloudSettings.emailjs || {}) }
+        };
+        localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+        localStorage.setItem(CLOUD_ALERT_STORAGE_KEY, JSON.stringify(alertSettings));
+
+        if (typeof syncAlertModalInputs === 'function') syncAlertModalInputs();
+        if (typeof renderAlertEmailChips === 'function') renderAlertEmailChips();
+        if (typeof renderAlertPhoneChips === 'function') renderAlertPhoneChips();
+        if (typeof renderKPIs === 'function') renderKPIs();
+        if (typeof evaluateSlaAlerts === 'function') evaluateSlaAlerts();
+        return true;
+      } catch (e) {
+        console.warn('Error applying cloud alert settings:', e);
+        return false;
+      }
+    },
+
+    async fetchAlertSettingsFromCloud() {
+      // 1. Try Vercel Serverless /api/data?type=alert_settings
+      try {
+        const res = await fetch(`/api/data?type=alert_settings&t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && json.alertSettings) {
+            this.applyCloudAlertSettings(json.alertSettings);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('GET /api/data alertSettings failed:', err.message);
+      }
+
+      // 2. Try durable public fallback KV
+      try {
+        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1?t=${Date.now()}`);
+        if (fbRes.ok) {
+          const fbSettings = await fbRes.json();
+          if (fbSettings && fbSettings.thresholds) {
+            this.applyCloudAlertSettings(fbSettings);
+            return;
+          }
+        }
+      } catch (_) {}
+
+      // 3. Check local cloud mirror cache
+      try {
+        const cached = localStorage.getItem(CLOUD_ALERT_STORAGE_KEY);
+        if (cached) {
+          this.applyCloudAlertSettings(JSON.parse(cached));
+        }
+      } catch (_) {}
+    },
+
     async publishToCloud(batchObj) {
       if (!batchObj || !batchObj.transactions) return;
       this.updateSyncPill('syncing');
@@ -14317,7 +15144,8 @@ Recommended Immediate Actions:
           transactions: batchObj.transactions
         },
         uploadedBy: user.name,
-        aggregates: getAggregates()
+        aggregates: getAggregates(),
+        alertSettings: alertSettings
       };
 
       try {
@@ -14340,9 +15168,14 @@ Recommended Immediate Actions:
         console.warn('POST /api/data failed (local dev or no api host):', err.message);
       }
 
-      // Also cache in local cloud mirror
+      // Also cache in local cloud mirror and durable cloud relay
       try {
         localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(payload));
+        fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
       } catch (e) {}
 
       this.activeCloudBatchId = batchObj.id;
@@ -14355,62 +15188,88 @@ Recommended Immediate Actions:
       this.isSyncing = true;
       if (!silent) this.updateSyncPill('syncing');
 
+      const applyCloudBatch = (cloudBatch) => {
+        if (!cloudBatch || !cloudBatch.transactions || cloudBatch.transactions.length === 0) return false;
+        if (cloudBatch.id === this.activeCloudBatchId && dataMode === 'uploaded') return false;
+
+        this.activeCloudBatchId = cloudBatch.id;
+        this.lastSyncTimestamp = Date.now();
+
+        const normalized = cloudBatch.transactions.map(normalizeRow);
+        uploadedBatches = [{
+          id: cloudBatch.id,
+          name: cloudBatch.name || 'Shared Team Batch',
+          uploadedAt: cloudBatch.uploadedAt,
+          count: normalized.length,
+          transactions: normalized
+        }];
+
+        currentTransactions = normalized;
+        dataMode = 'uploaded';
+        activeBatchId = 'all';
+
+        saveBatchesToStorage();
+        recomputeDashboardFromTransactions(currentTransactions);
+        stopSimulation();
+        updateBatchSelector();
+
+        const banner = document.getElementById('dataStatusBanner');
+        const tag = document.getElementById('dataModeTag');
+        const msg = document.getElementById('dataStatusMessage');
+        if (banner && tag && msg) {
+          tag.className = 'data-status-tag tag-uploaded';
+          tag.textContent = 'Team Shared Ingestion';
+          const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+          msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
+        }
+
+        this.updateSyncPill('synced', 'Team Cloud Synced');
+        if (!silent) {
+          showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
+        }
+        return true;
+      };
+
       try {
-        // Fetch from Vercel Serverless API
+        // 1. Fetch from Vercel Serverless API (/api/data)
         const res = await fetch(`/api/data?t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
-          if (json && json.success && json.data && json.data.transactions && json.data.transactions.length > 0) {
-            const cloudBatch = json.data;
-
-            // Only recompute if new batch ID or if we currently have no uploaded data
-            if (cloudBatch.id !== this.activeCloudBatchId || dataMode !== 'uploaded') {
-              this.activeCloudBatchId = cloudBatch.id;
-              this.lastSyncTimestamp = Date.now();
-
-              // Normalize transactions
-              const normalized = cloudBatch.transactions.map(normalizeRow);
-
-              uploadedBatches = [{
-                id: cloudBatch.id,
-                name: cloudBatch.name || 'Shared Team Batch',
-                uploadedAt: cloudBatch.uploadedAt,
-                count: normalized.length,
-                transactions: normalized
-              }];
-
-              currentTransactions = normalized;
-              dataMode = 'uploaded';
-              activeBatchId = 'all';
-
-              saveBatchesToStorage();
-              recomputeDashboardFromTransactions(currentTransactions);
-              stopSimulation();
-              updateBatchSelector();
-
-              // Update Banner
-              const banner = document.getElementById('dataStatusBanner');
-              const tag = document.getElementById('dataModeTag');
-              const msg = document.getElementById('dataStatusMessage');
-              if (banner && tag && msg) {
-                tag.className = 'data-status-tag tag-uploaded';
-                tag.textContent = 'Team Shared Ingestion';
-                const timeStr = cloudBatch.uploadedAt ? new Date(cloudBatch.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
-                msg.innerHTML = `✅ Viewing <strong>Shared Team Data</strong> uploaded by <strong>${cloudBatch.uploadedBy || 'Administrator'}</strong> at ${timeStr} (${formatNumber(normalized.length)} records). Live for all users on this link.`;
+          if (json && json.success) {
+            // Apply synced alert settings if included
+            if (json.alertSettings || (json.data && json.data.alertSettings)) {
+              this.applyCloudAlertSettings(json.alertSettings || json.data.alertSettings);
+            }
+            if (json.data && json.data.transactions && json.data.transactions.length > 0) {
+              if (applyCloudBatch(json.data)) {
+                this.isSyncing = false;
+                return;
               }
-
-              this.updateSyncPill('synced', 'Team Cloud Synced');
-              if (!silent) {
-                showToast(`☁️ Loaded ${formatNumber(normalized.length)} shared team transactions!`);
-              }
-              this.isSyncing = false;
-              return;
             }
           }
         }
       } catch (err) {
         console.warn('GET /api/data unavailable:', err.message);
       }
+
+      // 2. Fetch from durable public cloud relay fallback
+      try {
+        const fbRes = await fetch(`https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1?t=${Date.now()}`);
+        if (fbRes.ok) {
+          const fbBatch = await fbRes.json();
+          if (fbBatch) {
+            if (fbBatch.alertSettings) {
+              this.applyCloudAlertSettings(fbBatch.alertSettings);
+            }
+            if (fbBatch.transactions && fbBatch.transactions.length > 0) {
+              if (applyCloudBatch(fbBatch)) {
+                this.isSyncing = false;
+                return;
+              }
+            }
+          }
+        }
+      } catch (_) {}
 
       this.updateSyncPill('synced', 'Team Cloud Synced');
       this.isSyncing = false;
@@ -14438,8 +15297,9 @@ Recommended Immediate Actions:
   renderRecommendations();
   initCharts();
 
-  // Initialize Enterprise Authentication & Global Team Cloud Sync
+  // Initialize Enterprise Authentication, Permissions Engine & Global Team Cloud Sync
   authManager.init();
+  permissionsManager.init();
   cloudSyncManager.init();
 
 })();

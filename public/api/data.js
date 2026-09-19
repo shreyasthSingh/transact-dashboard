@@ -1,7 +1,8 @@
 // Vercel Serverless Function: /api/data
-// Centralized shared transaction store for Transact Bridge Team Monitoring
+// Centralized shared transaction & alert configuration store for Transact Bridge Team Monitoring
 
 let inMemoryStore = null;
+let inMemoryAlertSettings = null;
 
 module.exports = async (req, res) => {
   // Set CORS headers
@@ -17,14 +18,54 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
-  // Handle GET - Fetch latest shared transaction batch
+  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  // Handle GET - Fetch latest shared transaction batch or alert configuration
   if (req.method === 'GET') {
     try {
-      // 1. Try Vercel KV / Upstash Redis if configured in Vercel environment
-      const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-      const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+      const isAlertQuery = req.query && req.query.type === 'alert_settings';
 
-      if (kvUrl && kvToken) {
+      // 1. Fetch Alert Settings if specifically requested
+      if (isAlertQuery) {
+        if (inMemoryAlertSettings) {
+          return res.status(200).json({ success: true, source: 'memory', alertSettings: inMemoryAlertSettings });
+        }
+        if (kvUrl && kvToken) {
+          try {
+            const kvRes = await fetch(`${kvUrl}/get/tb_shared_alert_settings_latest`, {
+              headers: { Authorization: `Bearer ${kvToken}` }
+            });
+            if (kvRes.ok) {
+              const kvData = await kvRes.json();
+              if (kvData && kvData.result) {
+                const parsed = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
+                inMemoryAlertSettings = parsed;
+                return res.status(200).json({ success: true, source: 'vercel_kv', alertSettings: parsed });
+              }
+            }
+          } catch (_) {}
+        }
+        try {
+          const fbRes = await fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1', {
+            headers: { 'Accept': 'application/json' }
+          });
+          if (fbRes.ok) {
+            const fbData = await fbRes.json();
+            if (fbData && fbData.thresholds) {
+              inMemoryAlertSettings = fbData;
+              return res.status(200).json({ success: true, source: 'cloud_fallback', alertSettings: fbData });
+            }
+          }
+        } catch (_) {}
+
+        return res.status(200).json({ success: true, source: 'none', alertSettings: null });
+      }
+
+      // 2. Fetch shared transaction batch & include latest alert settings
+      let batchData = inMemoryStore;
+
+      if (!batchData && kvUrl && kvToken) {
         try {
           const kvRes = await fetch(`${kvUrl}/get/tb_shared_transactions_latest`, {
             headers: { Authorization: `Bearer ${kvToken}` }
@@ -32,45 +73,67 @@ module.exports = async (req, res) => {
           if (kvRes.ok) {
             const kvData = await kvRes.json();
             if (kvData && kvData.result) {
-              const parsed = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
-              return res.status(200).json({ success: true, source: 'vercel_kv', data: parsed });
+              batchData = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
+              inMemoryStore = batchData;
             }
           }
         } catch (kvErr) {
-          console.warn('Vercel KV fetch failed, falling back to memory/cloud:', kvErr.message);
+          console.warn('Vercel KV fetch failed:', kvErr.message);
         }
       }
 
-      // 2. Return in-memory cached batch if available
-      if (inMemoryStore) {
-        return res.status(200).json({ success: true, source: 'memory', data: inMemoryStore });
-      }
-
-      // 3. Try free public KV store fallback if inMemoryStore is not yet initialized
-      try {
-        const fallbackRes = await fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
-          headers: { 'Accept': 'application/json' }
-        });
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json();
-          if (fallbackData && fallbackData.transactions && fallbackData.transactions.length > 0) {
-            inMemoryStore = fallbackData;
-            return res.status(200).json({ success: true, source: 'cloud_fallback', data: fallbackData });
+      if (!batchData) {
+        try {
+          const fallbackRes = await fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_transactions_v1', {
+            headers: { 'Accept': 'application/json' }
+          });
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json();
+            if (fallbackData && fallbackData.transactions && fallbackData.transactions.length > 0) {
+              batchData = fallbackData;
+              inMemoryStore = batchData;
+            }
           }
-        }
-      } catch (fbErr) {
-        // Quiet fallback
+        } catch (_) {}
       }
 
-      // 4. If nothing uploaded yet, return empty state
-      return res.status(200).json({ success: true, source: 'none', data: null, message: 'No uploaded team data yet. Displaying demo baseline.' });
+      // Attempt to load alert settings if not already cached
+      if (!inMemoryAlertSettings && kvUrl && kvToken) {
+        try {
+          const kvAlertRes = await fetch(`${kvUrl}/get/tb_shared_alert_settings_latest`, {
+            headers: { Authorization: `Bearer ${kvToken}` }
+          });
+          if (kvAlertRes.ok) {
+            const parsed = await kvAlertRes.json();
+            if (parsed && parsed.result) {
+              inMemoryAlertSettings = typeof parsed.result === 'string' ? JSON.parse(parsed.result) : parsed.result;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (batchData) {
+        const payloadToSend = { ...batchData };
+        if (inMemoryAlertSettings) {
+          payloadToSend.alertSettings = inMemoryAlertSettings;
+        }
+        return res.status(200).json({ success: true, source: 'cloud', data: payloadToSend, alertSettings: inMemoryAlertSettings });
+      }
+
+      return res.status(200).json({
+        success: true,
+        source: 'none',
+        data: null,
+        alertSettings: inMemoryAlertSettings,
+        message: 'No uploaded team data yet. Displaying demo baseline.'
+      });
     } catch (err) {
       console.error('Error fetching shared data:', err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
 
-  // Handle POST - Save newly uploaded batch from Admin
+  // Handle POST - Save newly uploaded batch or alert configuration from Admin
   if (req.method === 'POST') {
     try {
       let body = req.body;
@@ -78,7 +141,49 @@ module.exports = async (req, res) => {
         try { body = JSON.parse(body); } catch (_) {}
       }
 
-      if (!body || !body.batch) {
+      if (!body) {
+        return res.status(400).json({ success: false, error: 'Empty request body.' });
+      }
+
+      // 1. Dedicated Alert Configuration Save
+      if (body.type === 'alert_settings' || (body.alertSettings && !body.batch)) {
+        const settings = body.alertSettings;
+        inMemoryAlertSettings = settings;
+
+        if (inMemoryStore) {
+          inMemoryStore.alertSettings = settings;
+        }
+
+        // Persist to Vercel KV if available
+        if (kvUrl && kvToken) {
+          try {
+            await fetch(`${kvUrl}/set/tb_shared_alert_settings_latest`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(settings)
+            });
+          } catch (_) {}
+        }
+
+        // Persist to Fallback KV
+        try {
+          fetch('https://kvdb.io/A95b1Yf7K9sW4j2R8tLmPx/tb_shared_alert_settings_v1', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+          }).catch(() => {});
+        } catch (_) {}
+
+        return res.status(200).json({
+          success: true,
+          message: 'Alert configuration saved and broadcast to team cloud!',
+          alertSettings: settings,
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      // 2. Transaction Batch Upload
+      if (!body.batch) {
         return res.status(400).json({ success: false, error: 'Missing batch data in request body.' });
       }
 
@@ -90,16 +195,18 @@ module.exports = async (req, res) => {
         count: body.batch.count || (body.batch.transactions ? body.batch.transactions.length : 0),
         transactions: body.batch.transactions || [],
         aggregates: body.aggregates || null,
+        alertSettings: body.alertSettings || inMemoryAlertSettings || null,
         updatedAt: new Date().toISOString()
       };
+
+      if (body.alertSettings) {
+        inMemoryAlertSettings = body.alertSettings;
+      }
 
       // Always update in-memory cache
       inMemoryStore = payload;
 
-      // Persist to Vercel KV / Upstash Redis if configured
-      const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-      const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-
+      // Persist batch to Vercel KV if configured
       let persistedKV = false;
       if (kvUrl && kvToken) {
         try {
@@ -111,9 +218,7 @@ module.exports = async (req, res) => {
             },
             body: JSON.stringify(payload)
           });
-          if (setRes.ok) {
-            persistedKV = true;
-          }
+          if (setRes.ok) persistedKV = true;
         } catch (kvErr) {
           console.warn('Failed to persist to Vercel KV:', kvErr.message);
         }
@@ -133,7 +238,8 @@ module.exports = async (req, res) => {
         message: `Successfully published batch with ${payload.count} transactions to shared team cloud!`,
         batchId: payload.id,
         persistedKV,
-        uploadedAt: payload.uploadedAt
+        uploadedAt: payload.uploadedAt,
+        alertSettings: inMemoryAlertSettings
       });
     } catch (err) {
       console.error('Error saving shared data:', err);
